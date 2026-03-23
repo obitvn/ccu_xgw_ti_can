@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc:*)",
+      "Bash(xargs grep:*)",
+      "Bash(ls -la D:VinDynamicsProjectCCU_TI_RS485_CAN2.Firmwareccu_ti_mutilcoreipc_spinlock_sharedmem_am263px-lp_r5fss0-0_freertos_ti-arm-clangDebug*.out)",
+      "Bash(find D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/ipc_bidirect_sharemem_all_OK_ccu_ti_mutilcore -name *.syscfg)"
+    ]
+  }
+}

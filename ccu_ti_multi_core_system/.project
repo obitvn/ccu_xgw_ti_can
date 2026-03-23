@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<projectDescription>
+	<name>ccu_ti_multi_core_system</name>
+	<comment></comment>
+	<projects>
+	</projects>
+	<buildSpec>
+		<buildCommand>
+			<name>org.eclipse.cdt.managedbuilder.core.genmakebuilder</name>
+			<arguments>
+			</arguments>
+		</buildCommand>
+	</buildSpec>
+	<natures>
+		<nature>com.ti.ccstudio.core.ccsSystemNature</nature>
+		<nature>com.ti.ccstudio.core.ccsNature</nature>
+		<nature>org.eclipse.cdt.core.cnature</nature>
+		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
+		<nature>org.eclipse.cdt.core.ccnature</nature>
+	</natures>
+	<linkedResources>
+		<link>
+			<name>README.html</name>
+			<type>1</type>
+			<locationURI>MCU_PLUS_SDK_PATH/docs/api_guide_am263px/EXAMPLES_DRIVERS_IPC_SPINLOCK_SHAREDMEM.html</locationURI>
+		</link>
+	</linkedResources>
+	<variableList>
+		<variable>
+			<name>MCU_PLUS_SDK_PATH</name>
+			<value>$%7BCOM_TI_MCU_PLUS_SDK_AM263PX_INSTALL_DIR%7D</value>
+		</variable>
+	</variableList>
+</projectDescription>

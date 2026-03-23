@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<?ccsproject version="1.0"?>
+<projectOptions>
+	<ccsVariant value="50:Theia-based"/>
+	<ccsVersion value="70.4.0"/>
+	<deviceFamily value="TMS470"/>
+	<connection value="common/targetdb/connections/TIXDS110_Connection.xml"/>
+	<executableActions value=""/>
+	<createSlaveProjects value=""/>
+	<activeTargetConfiguration value="targetConfigs/AM263Px.ccxml"/>
+	<templateProperties value="id=system.projectspec.ipc_spinlock_sharedmem_am263px-lp_system_freertos_nortos"/>
+	<isTargetConfigurationManual value="false"/>
+	<origin value="D:\VinDynamics\Project\CCU_TI_RS485_CAN\2.Firmware\draft\mcu_plus_sdk_am263px_11_01_00_19\examples\drivers\ipc\ipc_spinlock_sharedmem\am263px-lp\system_freertos_nortos\system.projectspec"/>
+	<filesToOpen value="system.xml"/>
+</projectOptions>
