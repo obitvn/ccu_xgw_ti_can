@@ -19,6 +19,9 @@
 -l"syscfg/linker.cmd"
 -lfreertos.am263px.r5f.ti-arm-clang.debug.lib
 -ldrivers.am263px.r5f.ti-arm-clang.freertos.debug.lib
+-lenet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib
+-llwipif-cpsw-freertos.am263px.r5f.ti-arm-clang.debug.lib
+-llwip-freertos.am263px.r5f.ti-arm-clang.debug.lib
 -lboard.am263px.r5f.ti-arm-clang.freertos.debug.lib
 -llibc.a
 -llibsysbm.a

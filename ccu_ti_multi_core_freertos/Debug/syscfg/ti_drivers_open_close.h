@@ -51,6 +51,30 @@ void Drivers_open(void);
 void Drivers_close(void);
 
 /*
+ * I2C
+ */
+
+
+#include <drivers/i2c.h>
+
+/* I2C Driver handles  */
+extern I2C_Handle gI2cHandle[CONFIG_I2C_HLD_NUM_INSTANCES];
+
+/*
+ * I2C Driver Advance Parameters - to be used only when Driver_open() and
+ * Driver_close() is not used by the application
+ */
+
+/* I2C Driver Parameters */
+extern I2C_Params gI2cParams[CONFIG_I2C_HLD_NUM_INSTANCES];
+
+/* I2C Driver open/close - can be used by application when Driver_open() and
+ * Driver_close() is not used directly and app wants to control the various driver
+ * open/close sequences */
+void Drivers_i2cOpen(void);
+void Drivers_i2cClose(void);
+
+/*
  * UART
  */
 #include <drivers/uart.h>

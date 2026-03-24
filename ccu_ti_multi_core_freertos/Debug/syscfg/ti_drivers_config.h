@@ -53,10 +53,28 @@ extern "C" {
 void System_init(void);
 void System_deinit(void);
 
+
+/*
+ * I2C
+ */
+
+/* I2C Instance Macros */
+#define CONFIG_I2C0 (0U)
+
+/* I2C Includes */
+#include <drivers/i2c.h>
+#include <kernel/dpl/ClockP.h>
+
+#define CONFIG_I2C_HLD_NUM_INSTANCES (1U)
+
 /*
  * IPC Notify
  */
 #include <drivers/ipc_notify.h>
+
+
+
+/* ENET MACROS */
 
 
 

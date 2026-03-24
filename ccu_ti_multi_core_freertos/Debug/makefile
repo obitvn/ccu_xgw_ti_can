@@ -31,6 +31,9 @@ ORDERED_OBJS += \
 $(GEN_CMDS__FLAG) \
 -Wl,-lfreertos.am263px.r5f.ti-arm-clang.debug.lib \
 -Wl,-ldrivers.am263px.r5f.ti-arm-clang.freertos.debug.lib \
+-Wl,-lenet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib \
+-Wl,-llwipif-cpsw-freertos.am263px.r5f.ti-arm-clang.debug.lib \
+-Wl,-llwip-freertos.am263px.r5f.ti-arm-clang.debug.lib \
 -Wl,-lboard.am263px.r5f.ti-arm-clang.freertos.debug.lib \
 -Wl,-llibc.a \
 -Wl,-llibsysbm.a \
@@ -148,7 +151,7 @@ all: $(OBJS) $(GEN_CMDS)
 ccu_ti_multi_core_freertos.out: $(OBJS) $(GEN_CMDS)
 	@echo 'Building target: "$@"'
 	@echo 'Invoking: Arm Linker'
-	"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS/bin/tiarmclang.exe" -mcpu=cortex-r5 -mfloat-abi=hard -mfpu=vfpv3-d16 -mlittle-endian -mthumb -DSOC_AM263PX -DOS_FREERTOS -D_DEBUG_=1 -g -Wall -Wno-gnu-variable-sized-type-not-at-end -Wno-unused-function -Wl,-m"ipc_spinlock_sharedmem.Debug.map" -Wl,-i"C:/ti/mcu_plus_sdk_am263px_11_01_00_19/source/kernel/freertos/lib" -Wl,-i"C:/ti/mcu_plus_sdk_am263px_11_01_00_19/source/drivers/lib" -Wl,-i"C:/ti/mcu_plus_sdk_am263px_11_01_00_19/source/board/lib" -Wl,-i"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS/lib" -Wl,--reread_libs -Wl,--diag_suppress=10063 -Wl,--diag_wrap=off -Wl,--display_error_number -Wl,--warn_sections -Wl,--gen_xml_func_hash -Wl,--xml_link_info="ccu_ti_multi_core_freertos_linkInfo.xml" -Wl,--ram_model -o "ccu_ti_multi_core_freertos.out" $(ORDERED_OBJS)
+	"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS/bin/tiarmclang.exe" -mcpu=cortex-r5 -mfloat-abi=hard -mfpu=vfpv3-d16 -mlittle-endian -mthumb -DSOC_AM263PX -DOS_FREERTOS -D_DEBUG_=1 -g -Wall -Wno-gnu-variable-sized-type-not-at-end -Wno-unused-function -Wl,-m"ipc_spinlock_sharedmem.Debug.map" -Wl,-i"C:/ti/mcu_plus_sdk_am263px_11_01_00_19/source/kernel/freertos/lib" -Wl,-i"C:/ti/mcu_plus_sdk_am263px_11_01_00_19/source/drivers/lib" -Wl,-i"C:/ti/mcu_plus_sdk_am263px_11_01_00_19/source/board/lib" -Wl,-i"C:/ti/mcu_plus_sdk_am263px_11_01_00_19/source/networking/enet/lib" -Wl,-i"C:/ti/mcu_plus_sdk_am263px_11_01_00_19/source/networking/lwip/lib" -Wl,-i"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS/lib" -Wl,-i"D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/ccu_ti_mutilcore/ccu_ti_multi_core_freertos/Debug/syscfg" -Wl,--reread_libs -Wl,--diag_suppress=10063 -Wl,--diag_wrap=off -Wl,--display_error_number -Wl,--warn_sections -Wl,--gen_xml_func_hash -Wl,--xml_link_info="ccu_ti_multi_core_freertos_linkInfo.xml" -Wl,--ram_model -o "ccu_ti_multi_core_freertos.out" $(ORDERED_OBJS)
 	@echo 'Finished building target: "$@"'
 	@echo ' '
 	@$(MAKE) --no-print-directory post-build

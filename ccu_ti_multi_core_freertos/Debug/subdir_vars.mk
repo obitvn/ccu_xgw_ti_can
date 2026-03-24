@@ -199,6 +199,7 @@ C_SRCS__QUOTED += \
 "./syscfg/ti_sdl_config.c" \
 "../gateway_shared.c" \
 "../ipc_spinlock_sharedmem.c" \
-"../log_reader_task.c" 
+"../log_reader_task.c" \
+"../main.c" 
 
 

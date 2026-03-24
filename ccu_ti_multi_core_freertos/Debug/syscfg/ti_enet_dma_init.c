@@ -37,4 +37,58 @@
  */
 
 
+#include <include/core/enet_dma.h>
+#include <utils/include/enet_apputils.h>
+#include "ti_drivers_config.h"
+#include "ti_enet_config.h"
+#include "ti_enet_dma_init.h"
+
+const EnetApp_DmaCfg g_EnetApp_dmaChParams =
+{
+    .txChInitCfg = 
+    {
+        [0] = 
+        {
+            .txNumPkts    = 16,
+        },
+    },
+    .rxChInitCfg = 
+    {
+        [0] = 
+        {
+            .rxNumPkts       = 32,
+            .allocMacAddrCnt = 1,
+        },
+    }
+};
+
+
+EnetDma_Cfg gDmaCfg = 
+{
+    .enHostRxTsFlag     = false,
+    .rxChInitPrms =
+    {
+        .rxBufferOffset = 0U,
+    },
+    .maxTxChannels = ENET_SYSCFG_TX_CHANNELS_NUM,
+    .maxRxChannels = ENET_SYSCFG_RX_FLOWS_NUM,
+};
+
+void EnetApp_updateTxChInitCfg(EnetCpdma_OpenTxChPrms * pTxChPrms, uint32_t chId)
+{
+    EnetAppUtils_assert(chId < ENET_ARRAYSIZE(g_EnetApp_dmaChParams.txChInitCfg));
+    pTxChPrms->numTxPkts = g_EnetApp_dmaChParams.txChInitCfg[chId].txNumPkts;
+
+    return ;
+}
+
+void EnetApp_updateRxChInitCfg(EnetCpdma_OpenRxChPrms * pRxChPrms, uint32_t chId)
+{
+    EnetAppUtils_assert(chId < ENET_ARRAYSIZE(g_EnetApp_dmaChParams.rxChInitCfg));
+    pRxChPrms->numRxPkts = g_EnetApp_dmaChParams.rxChInitCfg[chId].rxNumPkts;
+    
+    return ;
+}
+
+
 

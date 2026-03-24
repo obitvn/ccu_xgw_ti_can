@@ -39,14 +39,81 @@
 
 void Drivers_open(void)
 {
+    Drivers_i2cOpen();
     Drivers_uartOpen();
 }
 
 void Drivers_close(void)
 {
+    Drivers_i2cClose();
     Drivers_uartClose();
 }
 
+/*
+ * I2C
+ */
+
+
+
+/* I2C Driver handles */
+I2C_Handle gI2cHandle[CONFIG_I2C_HLD_NUM_INSTANCES];
+
+/* I2C Driver Parameters */
+I2C_Params gI2cParams[CONFIG_I2C_HLD_NUM_INSTANCES] =
+{
+    {
+        .transferMode        = I2C_MODE_BLOCKING,
+        .transferCallbackFxn = NULL,
+        .bitRate             = I2C_400KHZ,
+    },
+};
+
+void Drivers_i2cOpen(void)
+{
+    int32_t  status = SystemP_SUCCESS;
+    uint32_t instCnt;
+
+
+
+    for(instCnt = 0U; instCnt < CONFIG_I2C_HLD_NUM_INSTANCES; instCnt++)
+    {
+        gI2cHandle[instCnt] = NULL;   /* Init to NULL so that we can exit gracefully */
+    }
+
+    /* Open all instances */
+    for(instCnt = 0U; instCnt < CONFIG_I2C_HLD_NUM_INSTANCES; instCnt++)
+    {
+        gI2cHandle[instCnt] = I2C_open(instCnt, &gI2cParams[instCnt]);
+        if(NULL == gI2cHandle[instCnt])
+        {
+            DebugP_logError("I2C open failed for HLD instance %d !!!\r\n", instCnt);
+            status = SystemP_FAILURE;
+            break;
+        }
+    }
+
+    if(SystemP_SUCCESS != status)
+    {
+        Drivers_i2cClose();   /* Exit gracefully */
+    }
+    return;
+}
+
+void Drivers_i2cClose(void)
+{
+    uint32_t instCnt;
+
+    /* Close all instances that are open */
+    for(instCnt = 0U; instCnt < CONFIG_I2C_HLD_NUM_INSTANCES; instCnt++)
+    {
+        if(gI2cHandle[instCnt] != NULL)
+        {
+            I2C_close(gI2cHandle[instCnt]);
+            gI2cHandle[instCnt] = NULL;
+        }
+    }
+    return;
+}
 
 /*
  * UART

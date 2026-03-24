@@ -47,12 +47,20 @@ typedef struct {
 } SOC_ModuleClockFrequency;
 
 uint32_t gSocModules[] = {
+    SOC_RcmPeripheralId_I2C,
+
+    SOC_RcmPeripheralId_CPTS,
+
     SOC_RcmPeripheralId_LIN0_UART0,
 
     SOC_MODULES_END,
 };
 
 SOC_ModuleClockFrequency gSocModulesClockFrequency[] = {
+    { SOC_RcmPeripheralId_I2C, SOC_RcmPeripheralClockSource_DPLL_PER_HSDIV0_CLKOUT1, 96000000},
+
+    { SOC_RcmPeripheralId_CPTS, SOC_RcmPeripheralClockSource_SYS_CLK, 200000000},
+
     { SOC_RcmPeripheralId_LIN0_UART0, SOC_RcmPeripheralClockSource_DPLL_PER_HSDIV0_CLKOUT1, 48000000},
 
     { SOC_MODULES_END, SOC_MODULES_END, SOC_MODULES_END },

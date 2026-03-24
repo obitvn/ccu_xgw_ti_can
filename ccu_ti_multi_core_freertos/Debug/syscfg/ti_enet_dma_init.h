@@ -37,4 +37,28 @@
  */
 
 
+#include <include/dma/cpdma/enet_cpdma.h>
+
+typedef struct EnetApp_TxChInitCfg_s
+{
+    uint32_t txNumPkts;
+}EnetApp_TxChInitCfg;
+
+typedef struct EnetApp_RxChInitCfg_s
+{
+    uint32_t rxNumPkts;
+    uint32_t allocMacAddrCnt;
+}EnetApp_RxChInitCfg;
+
+typedef struct EnetApp_DmaCfg_s
+{
+    EnetApp_TxChInitCfg txChInitCfg[1];
+    EnetApp_RxChInitCfg rxChInitCfg[1]; 
+}EnetApp_DmaCfg;
+
+void EnetApp_updateTxChInitCfg(EnetCpdma_OpenTxChPrms * pTxChPrms, uint32_t chId);
+
+void EnetApp_updateRxChInitCfg(EnetCpdma_OpenRxChPrms * pRxChPrms, uint32_t chId);
+
+
 

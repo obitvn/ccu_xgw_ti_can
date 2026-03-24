@@ -49,6 +49,20 @@ extern "C" {
 int32_t Board_driversOpen(void);
 void Board_driversClose(void);
 
+/*
+ * EEPROM
+ */
+#include <board/eeprom.h>
+
+/* EEPROM Driver handles */
+extern EEPROM_Handle gEepromHandle[CONFIG_EEPROM_NUM_INSTANCES];
+
+/* EEPROM Driver open/close - can be used by application when Board_driversOpen() and
+ * Board_driversClose() is not used directly and app wants to control the various driver
+ * open/close sequences */
+int32_t Board_eepromOpen(void);
+void Board_eepromClose(void);
+
 
 #ifdef __cplusplus
 }

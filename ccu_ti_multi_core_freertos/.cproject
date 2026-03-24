@@ -44,6 +44,14 @@
                                     <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/kernel/freertos/FreeRTOS-Kernel/include"/>
                                     <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/kernel/freertos/portable/TI_ARM_CLANG/ARM_CR5F"/>
                                     <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/kernel/freertos/config/am263px/r5f"/>
+                                    <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/enet"/>
+                                    <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/enet/core"/>
+                                    <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/enet/core/utils/include"/>
+                                    <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/enet/core/include"/>
+                                    <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/enet/include"/>
+                                    <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/enet/include/protocols"/>
+                                    <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/lwip/src/include"/>
+                                    <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/lwip/ports"/>
                                 </option>
                                 <option id="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_4.0.compilerID.DEFINE.1759757424" superClass="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_4.0.compilerID.DEFINE" valueType="definedSymbols">
                                     <listOptionValue value="${SYSCONFIG_TOOL_SYMBOLS}"/>
@@ -75,13 +83,19 @@
                                     <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/kernel/freertos/lib"/>
                                     <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/drivers/lib"/>
                                     <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/board/lib"/>
+                                    <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/enet/lib"/>
+                                    <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/lwip/lib"/>
                                     <listOptionValue value="${CG_TOOL_ROOT}/lib"/>
+                                    <listOptionValue value="${PROJECT_BUILD_DIR}/syscfg"/>
                                 </option>
                                 <option id="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_4.0.linkerID.LIBRARY.335514986" superClass="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_4.0.linkerID.LIBRARY" valueType="libs">
                                     <listOptionValue value="${SYSCONFIG_TOOL_LIBRARIES}"/>
                                     <listOptionValue value="${COM_TI_MCU_PLUS_SDK_AM263PX_LIBRARIES}"/>
                                     <listOptionValue value="freertos.am263px.r5f.ti-arm-clang.release.lib"/>
                                     <listOptionValue value="drivers.am263px.r5f.ti-arm-clang.freertos.release.lib"/>
+                                    <listOptionValue value="enet-cpsw.am263px.r5f.ti-arm-clang.freertos.release.lib"/>
+                                    <listOptionValue value="lwipif-cpsw-freertos.am263px.r5f.ti-arm-clang.release.lib"/>
+                                    <listOptionValue value="lwip-freertos.am263px.r5f.ti-arm-clang.release.lib"/>
                                     <listOptionValue value="board.am263px.r5f.ti-arm-clang.freertos.release.lib"/>
                                     <listOptionValue value="libc.a"/>
                                     <listOptionValue value="libsysbm.a"/>
@@ -149,9 +163,27 @@
                                     <listOptionValue value="${COM_TI_MCU_PLUS_SDK_AM263PX_INCLUDE_PATH}"/>
                                     <listOptionValue value="${CG_TOOL_ROOT}/include/c"/>
                                     <listOptionValue value="${MCU_PLUS_SDK_PATH}/source"/>
+                                    <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/board/ethphy/enet/rtos_drivers/include"/>
+                                    <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/board/ethphy/port"/>
                                     <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/kernel/freertos/FreeRTOS-Kernel/include"/>
                                     <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/kernel/freertos/portable/TI_ARM_CLANG/ARM_CR5F"/>
                                     <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/kernel/freertos/config/am263px/r5f"/>
+                                    <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/enet"/>
+                                    <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/enet/core/utils/include"/>
+                                    <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/enet/core"/>
+                                    <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/enet/core/include"/>
+                                    <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/enet/core/include/phy"/>
+                                    <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/enet/core/include/core"/>
+                                    <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/enet/hw_include"/>
+                                    <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/enet/soc/am263px"/>
+                                    <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/enet/hw_include/mdio/V4"/>
+                                    <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/lwip/lwip-stack/src/include"/>
+                                    <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/lwip/lwip-port/include"/>
+                                    <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/lwip/lwip-port/freertos/include"/>
+                                    <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/enet/core/lwipif/inc"/>
+                                    <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/lwip/lwip-stack/contrib"/>
+                                    <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/lwip/lwip-config/am263px/enet"/>
+                                    <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/enet/core/examples/lwip/enet_lwip_cpsw/extPhyMgmt"/>
                                 </option>
                                 <option id="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_4.0.compilerID.DEFINE.185902523" superClass="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_4.0.compilerID.DEFINE" valueType="definedSymbols">
                                     <listOptionValue value="${SYSCONFIG_TOOL_SYMBOLS}"/>
@@ -183,13 +215,19 @@
                                     <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/kernel/freertos/lib"/>
                                     <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/drivers/lib"/>
                                     <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/board/lib"/>
+                                    <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/enet/lib"/>
+                                    <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/lwip/lib"/>
                                     <listOptionValue value="${CG_TOOL_ROOT}/lib"/>
+                                    <listOptionValue value="${PROJECT_BUILD_DIR}/syscfg"/>
                                 </option>
                                 <option id="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_4.0.linkerID.LIBRARY.1358536133" superClass="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_4.0.linkerID.LIBRARY" valueType="libs">
                                     <listOptionValue value="${SYSCONFIG_TOOL_LIBRARIES}"/>
                                     <listOptionValue value="${COM_TI_MCU_PLUS_SDK_AM263PX_LIBRARIES}"/>
                                     <listOptionValue value="freertos.am263px.r5f.ti-arm-clang.debug.lib"/>
                                     <listOptionValue value="drivers.am263px.r5f.ti-arm-clang.freertos.debug.lib"/>
+                                    <listOptionValue value="enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib"/>
+                                    <listOptionValue value="lwipif-cpsw-freertos.am263px.r5f.ti-arm-clang.debug.lib"/>
+                                    <listOptionValue value="lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib"/>
                                     <listOptionValue value="board.am263px.r5f.ti-arm-clang.freertos.debug.lib"/>
                                     <listOptionValue value="libc.a"/>
                                     <listOptionValue value="libsysbm.a"/>
@@ -213,11 +251,6 @@
                             </tool>
                         </toolChain>
                     </folderInfo>
-                    <fileInfo id="com.ti.ccstudio.buildDefinitions.TMS470.Debug.1994198336.main.c" name="main.c" rcbsApplicability="disable" resourcePath="main.c" toolsToInvoke="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_4.0.exe.compilerDebug.113910574.1698843253">
-                        <tool id="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_4.0.exe.compilerDebug.113910574.1698843253" name="Arm Compiler" superClass="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_4.0.exe.compilerDebug.113910574">
-                            <option id="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_4.0.compilerID.OPT_LEVEL.175826933" superClass="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_4.0.compilerID.OPT_LEVEL" value="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_4.0.compilerID.OPT_LEVEL.0" valueType="enumerated"/>
-                        </tool>
-                    </fileInfo>
                 </configuration>
             </storageModule>
             <storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>

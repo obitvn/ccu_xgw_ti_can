@@ -46,6 +46,55 @@ extern "C" {
 void Board_init(void);
 void Board_deinit(void);
 
+/*
+ * EEPROM
+ */
+#include <board/eeprom.h>
+
+/* EEPROM Instance Macros */
+#define CONFIG_EEPROM0 (0U)
+#define CONFIG_EEPROM_NUM_INSTANCES (1U)
+
+/* ========================================================================== */
+/*                             Include Files                                  */
+/* ========================================================================== */
+
+#include <enet_board.h>
+
+/* ========================================================================== */
+/*                                 Macros                                     */
+/* ========================================================================== */
+/*!
+ * \brief Define indicating application has enabled custom board configuration.
+ *
+ * Custom boards are board not supported by MCU+SDK out of the box
+ */
+#define ENETBOARD_SYSCFG_CUSTOM_BOARD                   (0)
+
+/*!
+ * \brief AM263PX Common Processor Board (CPB) id.
+ */
+#define ENETBOARD_CPB_ID                      (ENETPHY_BIT(0U))
+
+/*!
+ * \brief AM263PX dummy board, used for MAC loopback.
+ */
+#define ENETBOARD_LOOPBACK_ID                 (ENETPHY_BIT(1U))
+
+/*!
+ * \brief AM263PX EVM base configuration: CPB and loopback.
+ */
+#define ENETBOARD_AM263PX_EVM                  (ENETBOARD_CPB_ID | \
+                                               ENETBOARD_LOOPBACK_ID)
+
+/* ========================================================================== */
+/*                          Function Declarations                             */
+/* ========================================================================== */
+
+uint32_t EnetBoard_getId(void);
+
+void EnetBoard_getMiiConfig(EnetMacPort_Interface *mii, const Enet_MacPort macPort);
+
 
 #ifdef __cplusplus
 }
