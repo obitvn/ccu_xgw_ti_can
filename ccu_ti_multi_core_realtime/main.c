@@ -23,6 +23,7 @@
 #include "gateway_shared.h"
 #include "can_interface.h"
 #include "motor_mapping.h"
+#include "dispatcher_timer.h"
 
 /* Core ID definitions from CSL */
 #ifndef CSL_CORE_ID_R5FSS0_0
@@ -92,6 +93,10 @@ static void timer_isr(void *args)
 {
     (void)args;
 
+    /* Call dispatcher timer callback for statistics and user callback */
+    disp_timer_isr_callback(args);
+
+    /* Set flag for main loop processing */
     g_timer_expired = true;
     g_cycle_count++;
 
@@ -381,6 +386,18 @@ static int32_t core1_init(void)
     status = init_1000hz_timer();
     if (status != SystemP_SUCCESS) {
         DebugP_log("[Core1] WARNING: Timer init failed, using simulated timing\r\n");
+    }
+
+    /* Initialize dispatcher timer */
+    status = disp_timer_init();
+    if (status != SystemP_SUCCESS) {
+        DebugP_log("[Core1] WARNING: Dispatcher timer init failed!\r\n");
+    }
+
+    /* Start dispatcher timer */
+    status = disp_timer_start();
+    if (status != SystemP_SUCCESS) {
+        DebugP_log("[Core1] WARNING: Dispatcher timer start failed!\r\n");
     }
 
     /* Start CAN RX interrupts */

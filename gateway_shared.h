@@ -96,6 +96,23 @@ typedef struct __attribute__((packed)) {
 } motor_state_ipc_t;
 
 /**
+ * @brief IMU state for IPC (Core 1 -> Core 0)
+ *
+ * Optimized packed structure for shared memory transfer
+ * Based on xGW IMU state structure
+ */
+typedef struct __attribute__((packed)) {
+    uint8_t  imu_id;        /* IMU Sensor ID */
+    uint8_t  reserved;      /* Padding */
+    int16_t  temp_cdeg;     /* Temperature (0.01°C) - 4500 = 45.00°C */
+    float    gyro[3];       /* Angular velocity [rad/s] - [x, y, z] */
+    float    quat[4];       /* Quaternion [w, x, y, z] */
+    float    euler[3];      /* Euler angles [rad] - [roll, pitch, yaw] */
+    float    mag_val[3];    /* Raw magnetic field [Gauss] */
+    float    mag_norm[3];   /* Normalized magnetic vector */
+} imu_state_ipc_t;
+
+/**
  * @brief Double buffered motor state buffer
  *
  * Core 1 writes, Core 0 reads
@@ -215,6 +232,12 @@ typedef struct __attribute__((packed)) {
     can_to_eth_buf_t can_to_eth_buf;
     eth_to_can_buf_t eth_to_can_buf;
 #endif
+
+    /* === IMU Buffer (Core 1 -> Core 0) === */
+    imu_state_ipc_t imu_state;
+    volatile uint32_t imu_ready_flag;               /* IMU data ready flag */
+    volatile uint32_t imu_sequence;                 /* IMU sequence number */
+    uint32_t imu_reserved[3];                       /* Padding */
 
     /* === Statistics Section === */
     gateway_stats_t stats;
@@ -364,6 +387,29 @@ void gateway_update_stat(uint8_t core_id, uint8_t stat_id);
  */
 int gateway_notify_commands_ready(void);
 int gateway_notify_states_ready(void);
+
+/**
+ * @brief Write IMU state to shared memory (Core 1 -> Core 0)
+ *
+ * @param imu_state IMU state data
+ * @return 0 on success, -1 on error
+ */
+int gateway_write_imu_state(const imu_state_ipc_t* imu_state);
+
+/**
+ * @brief Read IMU state from shared memory (Core 0 reads from Core 1)
+ *
+ * @param imu_state Output IMU state buffer
+ * @return 0 on success, -1 on error
+ */
+int gateway_read_imu_state(imu_state_ipc_t* imu_state);
+
+/**
+ * @brief Notify that IMU data is ready (Core 1 -> Core 0)
+ *
+ * @return 0 on success, -1 on error
+ */
+int gateway_notify_imu_ready(void);
 
 #if GATEWAY_USE_PINGPONG_BUFFER
 /*==============================================================================

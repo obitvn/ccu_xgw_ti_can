@@ -22,6 +22,7 @@
 #include "task.h"
 #include "gateway_shared.h"
 #include "log_reader_task.h"
+#include "enet/xgw_udp_interface.h"
 
 /* Core ID definitions from CSL */
 #ifndef CSL_CORE_ID_R5FSS0_0
@@ -188,10 +189,28 @@ static void udp_tx_task(void *args)
  */
 static void build_and_send_udp_packet(void)
 {
-    /* TODO: Build xGW protocol packet with motor states */
-    /* This will be implemented when lwIP is integrated */
+    /* Convert IPC format to xGW protocol format */
+    xgw_motor_state_t xgw_states[GATEWAY_NUM_MOTORS];
 
-    DebugP_log("[Core0] Sending motor states: %d motors\r\n", GATEWAY_NUM_MOTORS);
+    for (uint8_t i = 0; i < GATEWAY_NUM_MOTORS; i++) {
+        xgw_states[i].motor_id = g_motor_states[i].motor_id;
+        xgw_states[i].error_code = g_motor_states[i].error_code;
+        xgw_states[i].pattern = g_motor_states[i].pattern;
+        xgw_states[i].reserved = 0;
+        xgw_states[i].position = g_motor_states[i].position / 100.0f;  /* 0.01 rad -> rad */
+        xgw_states[i].velocity = g_motor_states[i].velocity / 100.0f;  /* 0.01 rad/s -> rad/s */
+        xgw_states[i].torque = g_motor_states[i].torque / 100.0f;      /* 0.01 Nm -> Nm */
+        xgw_states[i].temp = g_motor_states[i].temperature / 10.0f;   /* 0.1 °C -> °C */
+    }
+
+    /* Send via xGW UDP interface */
+    int32_t sent = xgw_udp_send_motor_states(xgw_states, GATEWAY_NUM_MOTORS);
+
+    if (sent > 0) {
+        /* Successfully sent */
+    } else {
+        DebugP_log("[Core0] ERROR: Failed to send motor states!\r\n");
+    }
 }
 
 /*==============================================================================
@@ -360,12 +379,18 @@ static int32_t init_ethernet(void)
  */
 static int32_t init_udp(void)
 {
-    DebugP_log("[Core0] Initializing UDP...\r\n");
+    int32_t status;
 
-    /* TODO: Create UDP PCB for RX (port 61904) */
-    /* TODO: Create UDP PCB for TX (port 53489) */
+    DebugP_log("[Core0] Initializing xGW UDP interface...\r\n");
 
-    DebugP_log("[Core0] UDP initialized\r\n");
+    /* Initialize xGW UDP interface */
+    status = xgw_udp_init();
+    if (status != 0) {
+        DebugP_log("[Core0] ERROR: xGW UDP interface init failed!\r\n");
+        return -1;
+    }
+
+    DebugP_log("[Core0] xGW UDP interface initialized (will start after tcpip_init)\r\n");
     return 0;
 }
 
@@ -494,6 +519,12 @@ static void freertos_main(void *args)
     status = log_reader_task_create();
     if (status != 0) {
         DebugP_log("[Core0] WARNING: Log Reader task creation failed!\r\n");
+    }
+
+    /* Start xGW UDP interface (must be called after tcpip_init) */
+    status = xgw_udp_start();
+    if (status != 0) {
+        DebugP_log("[Core0] WARNING: xGW UDP interface start failed!\r\n");
     }
 
     DebugP_log("[Core0] All tasks created successfully\r\n");

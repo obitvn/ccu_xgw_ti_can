@@ -4,7 +4,25 @@
       "Bash(wc:*)",
       "Bash(xargs grep:*)",
       "Bash(ls -la D:VinDynamicsProjectCCU_TI_RS485_CAN2.Firmwareccu_ti_mutilcoreipc_spinlock_sharedmem_am263px-lp_r5fss0-0_freertos_ti-arm-clangDebug*.out)",
-      "Bash(find D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/ipc_bidirect_sharemem_all_OK_ccu_ti_mutilcore -name *.syscfg)"
+      "Bash(find D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/ipc_bidirect_sharemem_all_OK_ccu_ti_mutilcore -name *.syscfg)",
+      "Bash(find D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/ccu_ti_mutilcore -type f \\\\\\(-name *.c -o -name *.h -o -name *.syscfg \\\\\\))",
+      "Bash(cp \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\draft\\\\ccu_ti\\\\xgw_protocol.h\" \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\ccu_ti_mutilcore\\\\common\\\\xgw_protocol.h\")",
+      "Bash(cp \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\draft\\\\ccu_ti\\\\xgw_protocol.c\" \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\ccu_ti_mutilcore\\\\common\\\\xgw_protocol.c\")",
+      "Bash(cp \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\draft\\\\ccu_ti\\\\dispatcher_timer.h\" \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\ccu_ti_mutilcore\\\\ccu_ti_multi_core_realtime\\\\dispatcher_timer.h\")",
+      "Bash(cp \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\draft\\\\ccu_ti\\\\dispatcher_timer.c\" \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\ccu_ti_mutilcore\\\\ccu_ti_multi_core_realtime\\\\dispatcher_timer.c\")",
+      "Bash(cp \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\draft\\\\ccu_ti\\\\imu\\\\imu_interface.h\" \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\ccu_ti_mutilcore\\\\ccu_ti_multi_core_realtime\\\\imu\\\\imu_interface.h\")",
+      "Bash(cp \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\draft\\\\ccu_ti\\\\imu\\\\imu_interface.c\" \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\ccu_ti_mutilcore\\\\ccu_ti_multi_core_realtime\\\\imu\\\\imu_interface.c\")",
+      "Bash(cp \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\draft\\\\ccu_ti\\\\imu\\\\imu_interface_isr.h\" \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\ccu_ti_mutilcore\\\\ccu_ti_multi_core_realtime\\\\imu\\\\imu_interface_isr.h\")",
+      "Bash(cp \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\draft\\\\ccu_ti\\\\imu\\\\imu_interface_isr.c\" \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\ccu_ti_mutilcore\\\\ccu_ti_multi_core_realtime\\\\imu\\\\imu_interface_isr.c\")",
+      "Bash(cp \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\draft\\\\ccu_ti\\\\imu\\\\imu_protocol_handler.h\" \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\ccu_ti_mutilcore\\\\ccu_ti_multi_core_realtime\\\\imu\\\\imu_protocol_handler.h\")",
+      "Bash(cp \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\draft\\\\ccu_ti\\\\test_enet_lwip.h\" \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\ccu_ti_mutilcore\\\\ccu_ti_multi_core_freertos\\\\enet\\\\test_enet_lwip.h\")",
+      "Bash(cp \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\draft\\\\ccu_ti\\\\udp_iperf.h\" \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\ccu_ti_mutilcore\\\\ccu_ti_multi_core_freertos\\\\enet\\\\udp_iperf.h\")",
+      "Bash(cp \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\draft\\\\ccu_ti\\\\test_enet.c\" \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\ccu_ti_mutilcore\\\\ccu_ti_multi_core_freertos\\\\enet\\\\test_enet.c\")",
+      "Bash(cp \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\draft\\\\ccu_ti\\\\udp_iperf.c\" \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\ccu_ti_mutilcore\\\\ccu_ti_multi_core_freertos\\\\enet\\\\udp_iperf.c\")",
+      "Bash(cp:*)",
+      "Bash(cp \"C:/ti/mcu_plus_sdk_am263px_11_01_00_19/source/networking/lwip/lwip-config/am263px/enet/lwipopts.h\" \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\ccu_ti_mutilcore\\\\ccu_ti_multi_core_freertos\\\\lwipopts.h\")",
+      "Bash(cp \"C:/ti/mcu_plus_sdk_am263px_11_01_00_19/source/networking/lwip/lwip-config/am263px/enet/lwippools.h\" \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\ccu_ti_mutilcore\\\\ccu_ti_multi_core_freertos\\\\lwippools.h\")",
+      "Bash(find D:VinDynamicsProjectCCU_TI_RS485_CAN2.Firmwareccu_ti_mutilcore -name *.project -o -name *.cproject)"
     ]
   }
 }

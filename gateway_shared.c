@@ -434,6 +434,55 @@ int gateway_notify_states_ready(void)
 #endif
 }
 
+/*==============================================================================
+ * IMU SHARED MEMORY FUNCTIONS
+ *============================================================================*/
+
+int gateway_write_imu_state(const imu_state_ipc_t* imu_state)
+{
+    if (imu_state == NULL) {
+        return -1;
+    }
+
+    /* Copy IMU state to shared memory */
+    gGatewaySharedMem.imu_state = *imu_state;
+
+    /* Update sequence and set ready flag */
+    gGatewaySharedMem.imu_sequence++;
+    gateway_memory_barrier();
+    gGatewaySharedMem.imu_ready_flag = 1;
+    gateway_memory_barrier();
+
+    return 0;
+}
+
+int gateway_read_imu_state(imu_state_ipc_t* imu_state)
+{
+    if (imu_state == NULL) {
+        return -1;
+    }
+
+    /* Check if IMU data is ready */
+    if (gGatewaySharedMem.imu_ready_flag == 0) {
+        return -1;  /* No new data */
+    }
+
+    gateway_memory_barrier();
+
+    /* Copy IMU state from shared memory */
+    *imu_state = gGatewaySharedMem.imu_state;
+
+    /* Clear ready flag */
+    gGatewaySharedMem.imu_ready_flag = 0;
+
+    return 0;
+}
+
+int gateway_notify_imu_ready(void)
+{
+    return IpcNotify_sendMsg(CSL_CORE_ID_R5FSS0_0, GATEWAY_IPC_CLIENT_ID, MSG_IMU_DATA_READY, 1);
+}
+
 #if GATEWAY_USE_PINGPONG_BUFFER
 /*==============================================================================
  * PING-PONG BUFFER IMPLEMENTATION (Experimental)

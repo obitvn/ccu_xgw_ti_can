@@ -16,6 +16,11 @@
 "./ipc_spinlock_sharedmem.o"
 "./log_reader_task.o"
 "./main.o"
+"./common/crc32.o"
+"./common/xgw_protocol.o"
+"./enet/test_enet.o"
+"./enet/udp_iperf.o"
+"./enet/xgw_udp_interface.o"
 -l"syscfg/linker.cmd"
 -lfreertos.am263px.r5f.ti-arm-clang.debug.lib
 -ldrivers.am263px.r5f.ti-arm-clang.freertos.debug.lib

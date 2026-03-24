@@ -122,8 +122,40 @@
 │  • test_data_buf_t: Test data buffer (16 uint32_t)         │
 │  • motor_state_ipc_t: Motor states (23 motors)             │
 │  • motor_cmd_ipc_t: Motor commands (23 motors)              │
+│  • imu_state_ipc_t: IMU state (gyro, quat, euler, mag)    │
 │  • Statistics & Diagnostics                                 │
 └─────────────────────────────────────────────────────────────┘
+        ↑                         ↑
+        │ Write                  │ Write
+        │ Read                   │ Read
+    ┌───┴───┐               ┌───┴───┐
+    │ Core 0│               │ Core 1│
+    │ Free  │               │ NoRTOS│
+    │ RTOS  │               │       │
+    └───────┘               └───────┘
+    Ethernet                 CAN Bus
+    UDP/xGW                 8x CAN
+    (xGW UDP                  IMU
+     Interface)              (YIS320)
+
+IPC Notifications (IpcNotify):
+• 0x01: CAN_DATA_READY  (Core 1 → 0)
+• 0x02: ETH_DATA_READY  (Core 0 → 1)
+• 0x06: IMU_DATA_READY  (Core 1 → 0)
+• 0x09: TEST_DATA (Core 0 → 1)
+• 0x0A: TEST_DATA (Core 1 → 0)
+```
+
+## 9. RECENT UPDATES (2026-03-24)
+
+### Ethernet/UDP Integration (Core 0)
+- ✅ Created xGW UDP interface for Core 0
+- ✅ Implemented xgw_udp_interface.h and xgw_udp_interface.c
+- ✅ Integrated with main.c for Core 0
+- ✅ UDP TX task sends motor states at 1000Hz
+- ✅ UDP RX receives motor commands from PC
+- ✅ xGW protocol packet building and parsing
+- ✅ CRC32 validation for received packets
         ↑                         ↑
         │ Write                  │ Write
         │ Read                   │ Read
@@ -146,5 +178,17 @@ IPC Notifications (IpcNotify):
 1. ✅ IPC communication - DONE
 2. ✅ Shared memory test - DONE
 3. ⏳ CAN interface integration
-4. ⏳ UDP/Ethernet integration
+4. ✅ UDP/Ethernet integration - DONE (2026-03-24)
+   - Files added:
+     - `ccu_ti_multi_core_freertos/enet/xgw_udp_interface.h`
+     - `ccu_ti_multi_core_freertos/enet/xgw_udp_interface.c`
+     - `ccu_ti_multi_core_freertos/common/xgw_protocol.h`
+     - `ccu_ti_multi_core_freertos/common/xgw_protocol.c`
+     - `ccu_ti_multi_core_freertos/common/crc32.h`
+     - `ccu_ti_multi_core_freertos/common/crc32.c`
+     - `ccu_ti_multi_core_freertos/lwipcfg.h`
+     - `ccu_ti_multi_core_freertos/lwipopts.h`
+     - `ccu_ti_multi_core_freertos/lwippools.h`
+   - Need to rebuild in CCS and test
 5. ⏳ Motor command/state protocol implementation
+6. ✅ IMU interface porting - DONE (2026-03-24)
