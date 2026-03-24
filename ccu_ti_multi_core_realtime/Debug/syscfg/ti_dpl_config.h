@@ -50,6 +50,29 @@ extern "C" {
 #include <kernel/dpl/CacheP.h>
 #include <kernel/dpl/MpuP_armv7.h>
 
+/* ----------- TimerP ----------- */
+#include <kernel/dpl/TimerP.h>
+
+#define CONFIG_TIMER0                  (0u)
+#define CONFIG_TIMER0_BASE_ADDR        (0x52183000u)
+#define CONFIG_TIMER0_INT_NUM          (105u)
+#define CONFIG_TIMER0_INPUT_CLK_HZ     (25000000u)
+#define CONFIG_TIMER0_INPUT_PRE_SCALER (1u)
+/* This represents the required time period 'floored' to nearest usec */
+#define CONFIG_TIMER0_USEC_PER_TICK    (1000u)
+/* This represents the required time period 'floored' to nearest nsec */
+#define CONFIG_TIMER0_NSEC_PER_TICK    (1000000u)
+/* This represents the actual time period 'floored' to nearest nsec */
+#define CONFIG_TIMER0_NSEC_PER_TICK_ACTUAL  (1000000u)
+/* NOTE: nsec per tick is used as input to the timer API */
+/* NOTE: The actual nsec per tick that will be achieved depends on timer input clock hz precision */
+
+#define TIMER_NUM_INSTANCES  (1u)
+
+extern HwiP_Object gTimerHwiObj[TIMER_NUM_INSTANCES];
+extern uint32_t gTimerBaseAddr[TIMER_NUM_INSTANCES];
+
+
 
 void Dpl_init(void);
 void Dpl_deinit(void);

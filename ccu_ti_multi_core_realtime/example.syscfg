@@ -1,8 +1,9 @@
 /**
  * These arguments were used when this file was generated. They will be automatically applied on subsequent loads
  * via the GUI or CLI. Run CLI with '--help' for additional information on how to override these arguments.
- * @cliArgs --device "AM263Px" --package "ZCZ_C" --part "AM263P4" --context "r5fss0-1" --product "MCU_PLUS_SDK_AM263Px@11.01.00"
- * @versions {"tool":"1.18.0+3266"}
+ * @cliArgs --device "AM263Px" --part "AM263P4" --package "ZCZ_C" --context "r5fss0-1" --product "MCU_PLUS_SDK_AM263Px@11.01.00"
+ * @v2CliArgs --device "AM263P4-Q1" --package "NFBGA (ZCZ-C)" --context "r5fss0-1" --product "MCU_PLUS_SDK_AM263Px@11.01.00"
+ * @versions {"tool":"1.26.0+4407"}
  */
 
 /**
@@ -10,7 +11,7 @@
  */
 const ipc             = scripting.addModule("/drivers/ipc/ipc");
 const debug_log       = scripting.addModule("/kernel/dpl/debug_log");
-const dpl_cfg = scripting.addModule("/kernel/dpl/dpl_cfg");
+const dpl_cfg         = scripting.addModule("/kernel/dpl/dpl_cfg");
 const mpu_armv7       = scripting.addModule("/kernel/dpl/mpu_armv7", {}, false);
 const mpu_armv71      = mpu_armv7.addInstance();
 const mpu_armv72      = mpu_armv7.addInstance();
@@ -19,6 +20,8 @@ const mpu_armv74      = mpu_armv7.addInstance();
 const mpu_armv75      = mpu_armv7.addInstance();
 const mpu_armv76      = mpu_armv7.addInstance();
 const mpu_armv77      = mpu_armv7.addInstance();
+const timer           = scripting.addModule("/kernel/dpl/timer", {}, false);
+const timer1          = timer.addInstance();
 const default_linker  = scripting.addModule("/memory_configurator/default_linker", {}, false);
 const default_linker1 = default_linker.addInstance();
 const general         = scripting.addModule("/memory_configurator/general", {}, false);
@@ -86,6 +89,10 @@ mpu_armv77.size         = 16;
 mpu_armv77.allowExecute = false;
 mpu_armv77.baseAddr     = 0x701D0000;
 mpu_armv77.attributes   = "NonCached";
+
+timer1.$name         = "CONFIG_TIMER0";
+timer1.timerCallback = "timerISR";
+timer1.RTI.$assign   = "RTI3";
 
 default_linker1.$name = "memory_configurator_default_linker0";
 

@@ -30,3 +30,8 @@
 *.exe
 *.out
 *.app
+/ccu_ti_multi_core_realtime/Debug
+/ccu_ti_multi_core_realtime/Debug
+/ccu_ti_multi_core_realtime/Debug
+/ccu_ti_multi_core_freertos/Debug
+CLAUDE.md

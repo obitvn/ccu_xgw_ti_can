@@ -17,6 +17,7 @@
 "./ipc_spinlock_sharedmem.o"
 "./main.o"
 "./motor_mapping.o"
+"./timer.o"
 -l"syscfg/linker.cmd"
 -lnortos.am263px.r5f.ti-arm-clang.debug.lib
 -ldrivers.am263px.r5f.ti-arm-clang.nortos.debug.lib

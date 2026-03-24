@@ -194,6 +194,60 @@ const MpuP_RegionConfig gMpuRegionConfig[CONFIG_MPU_NUM_REGIONS] RODATA_CFG_SECT
     },
 };
 
+/* ----------- TimerP ----------- */
+#define CONFIG_TIMER0_CLOCK_SRC_MUX_ADDR (0x53208120u)
+#define CONFIG_TIMER0_CLOCK_SRC_WUCPUCLK (0x0u)
+
+
+HwiP_Object gTimerHwiObj[TIMER_NUM_INSTANCES];
+uint32_t gTimerBaseAddr[TIMER_NUM_INSTANCES];
+
+void TimerP_isr0(void *args)
+{
+    void timerISR(void *args);
+
+    timerISR(args);
+    TimerP_clearOverflowInt(gTimerBaseAddr[CONFIG_TIMER0]);
+}
+
+void TimerP_init()
+{
+    TimerP_Params timerParams;
+    HwiP_Params timerHwiParams;
+    int32_t status;
+
+    /* set timer clock source */
+    SOC_controlModuleUnlockMMR(SOC_DOMAIN_ID_MAIN, MSS_RCM_PARTITION0);
+    *(volatile uint32_t*)AddrTranslateP_getLocalAddr(CONFIG_TIMER0_CLOCK_SRC_MUX_ADDR) = CONFIG_TIMER0_CLOCK_SRC_WUCPUCLK;
+    SOC_controlModuleLockMMR(SOC_DOMAIN_ID_MAIN, MSS_RCM_PARTITION0);
+
+    gTimerBaseAddr[CONFIG_TIMER0] = (uint32_t)AddrTranslateP_getLocalAddr(CONFIG_TIMER0_BASE_ADDR);
+
+    TimerP_Params_init(&timerParams);
+    timerParams.inputPreScaler = CONFIG_TIMER0_INPUT_PRE_SCALER;
+    timerParams.inputClkHz     = CONFIG_TIMER0_INPUT_CLK_HZ;
+    timerParams.periodInNsec   = CONFIG_TIMER0_NSEC_PER_TICK;
+    timerParams.oneshotMode    = 0;
+    timerParams.enableOverflowInt = 1;
+    timerParams.enableDmaTrigger  = 0;
+    TimerP_setup(gTimerBaseAddr[CONFIG_TIMER0], &timerParams);
+
+    HwiP_Params_init(&timerHwiParams);
+    timerHwiParams.intNum = CONFIG_TIMER0_INT_NUM;
+    timerHwiParams.callback = TimerP_isr0;
+    timerHwiParams.isPulse = 1;
+    timerHwiParams.priority = 4;
+    status = HwiP_construct(&gTimerHwiObj[CONFIG_TIMER0], &timerHwiParams);
+    DebugP_assertNoLog(status==SystemP_SUCCESS);
+
+}
+
+void TimerP_deinit()
+{
+    TimerP_stop(gTimerBaseAddr[CONFIG_TIMER0]);
+    HwiP_destruct(&gTimerHwiObj[CONFIG_TIMER0]);
+
+}
 
 #define BOOT_SECTION __attribute__((section(".text.boot"), do_not_share))
 
@@ -226,6 +280,7 @@ void Dpl_init(void)
     ClockP_init();
 
 
+    TimerP_init();
 
     
     /* Enable interrupt handling */
@@ -235,4 +290,5 @@ void Dpl_init(void)
 
 void Dpl_deinit(void)
 {
+    TimerP_deinit();
 }
