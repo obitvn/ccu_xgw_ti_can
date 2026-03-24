@@ -1,4 +1,5 @@
 "./can_interface.o"
+"./dispatcher_timer.o"
 "./syscfg/ti_dpl_config.o"
 "./syscfg/ti_drivers_config.o"
 "./syscfg/ti_drivers_open_close.o"
@@ -18,6 +19,9 @@
 "./main.o"
 "./motor_mapping.o"
 "./timer.o"
+"./imu/imu_interface_isr.o"
+"./imu/imu_protocol_handler.o"
+"./imu/yis320/yis320_protocol.o"
 -l"syscfg/linker.cmd"
 -lnortos.am263px.r5f.ti-arm-clang.debug.lib
 -ldrivers.am263px.r5f.ti-arm-clang.nortos.debug.lib

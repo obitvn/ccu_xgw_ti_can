@@ -39,9 +39,108 @@
 
 void Drivers_open(void)
 {
+    Drivers_uartOpen();
 }
 
 void Drivers_close(void)
 {
+    Drivers_uartClose();
 }
 
+
+/*
+ * UART
+ */
+
+/* UART Driver handles */
+UART_Handle gUartHandle[CONFIG_UART_NUM_INSTANCES];
+
+#include <drivers/uart/v0/lld/dma/uart_dma.h>
+#include <kernel/dpl/ClockP.h>
+#include <drivers/edma.h>
+/* EDMA driver confiurations */
+EDMA_Config gEdmaConfig[] =
+{
+};
+
+uint32_t gEdmaConfigNum = 0;
+
+UART_DmaChConfig gUartDmaChConfig[CONFIG_UART_NUM_INSTANCES] =
+{
+                NULL,
+};
+
+/* UART Driver Parameters */
+UART_Params gUartParams[CONFIG_UART_NUM_INSTANCES] =
+{
+        {
+            .baudRate           = 921600,
+            .dataLength         = UART_LEN_8,
+            .stopBits           = UART_STOPBITS_1,
+            .parityType         = UART_PARITY_NONE,
+            .readMode           = UART_TRANSFER_MODE_BLOCKING,
+            .readReturnMode     = UART_READ_RETURN_MODE_FULL,
+            .writeMode          = UART_TRANSFER_MODE_BLOCKING,
+            .readCallbackFxn    = NULL,
+            .writeCallbackFxn   = NULL,
+            .hwFlowControl      = FALSE,
+            .hwFlowControlThr   = UART_RXTRIGLVL_16,
+            .transferMode       = UART_CONFIG_MODE_INTERRUPT,
+            .skipIntrReg         = FALSE,
+            .uartDmaIndex = -1,
+            .intrNum            = 43U,
+            .intrPriority       = 4U,
+            .operMode           = UART_OPER_MODE_13X,
+            .rxTrigLvl          = 8U,
+            .txTrigLvl          = 32U,
+            .rxEvtNum           = 0U,
+            .txEvtNum           = 0U,
+        },
+};
+
+void Drivers_uartOpen(void)
+{
+    uint32_t instCnt;
+    int32_t  status = SystemP_SUCCESS;
+
+    for(instCnt = 0U; instCnt < CONFIG_UART_NUM_INSTANCES; instCnt++)
+    {
+        gUartHandle[instCnt] = NULL;   /* Init to NULL so that we can exit gracefully */
+    }
+
+    /* Open all instances */
+    for(instCnt = 0U; instCnt < CONFIG_UART_NUM_INSTANCES; instCnt++)
+    {
+        gUartHandle[instCnt] = UART_open(instCnt, &gUartParams[instCnt]);
+        if(NULL == gUartHandle[instCnt])
+        {
+            DebugP_logError("UART open failed for instance %d !!!\r\n", instCnt);
+            status = SystemP_FAILURE;
+            break;
+        }
+    }
+
+    if(SystemP_FAILURE == status)
+    {
+        Drivers_uartClose();   /* Exit gracefully */
+    }
+
+    return;
+}
+
+void Drivers_uartClose(void)
+{
+    uint32_t instCnt;
+
+    /* Close all instances that are open */
+    for(instCnt = 0U; instCnt < CONFIG_UART_NUM_INSTANCES; instCnt++)
+    {
+        if(gUartHandle[instCnt] != NULL)
+        {
+            UART_close(gUartHandle[instCnt]);
+            gUartHandle[instCnt] = NULL;
+        }
+    }
+
+    return;
+}

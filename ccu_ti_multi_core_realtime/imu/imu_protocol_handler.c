@@ -12,8 +12,17 @@
 #include "yis320/yis320_protocol.h"
 #include <string.h>
 #include <stddef.h>  /* For NULL */
-#include "FreeRTOS.h"
-#include "task.h"  /* For taskENTER_CRITICAL_FROM_ISR, taskEXIT_CRITICAL_FROM_ISR */
+
+/*==============================================================================
+ * CRITICAL SECTION WRAPPERS (NoRTOS)
+ *============================================================================*/
+#ifdef __TI_ARM_CLANG__
+    #define IMU_ENTER_CRITICAL()    uint32_t imu_cs_key = __get_CPU_state()
+    #define IMU_EXIT_CRITICAL()     __set_CPU_state(imu_cs_key)
+#else
+    #define IMU_ENTER_CRITICAL()    __disable_irq()
+    #define IMU_EXIT_CRITICAL()     __enable_irq()
+#endif
 
 /*==============================================================================
  * INTERNAL DATA
@@ -128,9 +137,9 @@ void imu_protocol_update_state(const imu_state_t* imu_state)
 {
     if (imu_state != NULL) {
         // Use critical section for thread safety (called from ISR context)
-        UBaseType_t uxSavedInterruptStatus = taskENTER_CRITICAL_FROM_ISR();
+        IMU_ENTER_CRITICAL();
         g_imu_state = *imu_state;
         g_imu_state.updated = true;
-        taskEXIT_CRITICAL_FROM_ISR(uxSavedInterruptStatus);
+        IMU_EXIT_CRITICAL();
     }
 }

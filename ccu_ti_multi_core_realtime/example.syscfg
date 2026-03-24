@@ -10,6 +10,8 @@
  * Import the modules used in this configuration.
  */
 const ipc             = scripting.addModule("/drivers/ipc/ipc");
+const uart            = scripting.addModule("/drivers/uart/uart", {}, false);
+const uart1           = uart.addInstance();
 const debug_log       = scripting.addModule("/kernel/dpl/debug_log");
 const dpl_cfg         = scripting.addModule("/kernel/dpl/dpl_cfg");
 const mpu_armv7       = scripting.addModule("/kernel/dpl/mpu_armv7", {}, false);
@@ -48,6 +50,14 @@ const section12       = section.addInstance();
 ipc.r5fss1_0 = "notify";
 ipc.r5fss1_1 = "notify";
 ipc.r5fss0_0 = "notify";
+
+uart1.$name            = "CONFIG_UART5";
+uart1.baudRate         = 921600;
+uart1.operMode         = "13X";
+uart1.UART.$assign     = "UART5";
+uart1.UART.RXD.$assign = "SDFM0_CLK3";
+uart1.UART.TXD.$assign = "SDFM0_CLK2";
+uart1.child.$name      = "drivers_uart_v2_uart_v2_template0";
 
 debug_log.enableCssLog       = false;
 debug_log.enableSharedMemLog = true;

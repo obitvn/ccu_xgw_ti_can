@@ -12,7 +12,6 @@
 #include "../imu_protocol_handler.h"
 #include <string.h>
 #include <stddef.h>  /* For NULL */
-#include "FreeRTOS.h"  /* For critical sections */
 #include "kernel/dpl/DebugP.h"  /* For debug logging */
 #include "kernel/dpl/ClockP.h"  /* For timing measurements */
 

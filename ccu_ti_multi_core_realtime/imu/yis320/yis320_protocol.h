@@ -12,7 +12,7 @@
 #define CCU_TI_YIS320_PROTOCOL_H_
 
 #include "../imu_protocol_handler.h"
-#include "motor_mapping.h"
+#include "../../motor_mapping.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>  /* For NULL */

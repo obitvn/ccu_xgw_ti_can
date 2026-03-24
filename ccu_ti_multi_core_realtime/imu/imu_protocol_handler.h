@@ -11,7 +11,7 @@
 #ifndef CCU_TI_IMU_PROTOCOL_HANDLER_H_
 #define CCU_TI_IMU_PROTOCOL_HANDLER_H_
 
-#include "motor_mapping.h"
+#include "../motor_mapping.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>  /* For NULL */

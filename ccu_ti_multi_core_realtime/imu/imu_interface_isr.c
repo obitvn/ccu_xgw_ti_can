@@ -19,8 +19,17 @@
 #include <kernel/dpl/DebugP.h>
 #include <kernel/dpl/ClockP.h>
 #include <string.h>
-#include "FreeRTOS.h"
-#include "task.h"
+
+/*==============================================================================
+ * CRITICAL SECTION WRAPPERS (NoRTOS)
+ *============================================================================*/
+#ifdef __TI_ARM_CLANG__
+    #define IMU_ENTER_CRITICAL()    uint32_t imu_cs_key = __get_CPU_state()
+    #define IMU_EXIT_CRITICAL()     __set_CPU_state(imu_cs_key)
+#else
+    #define IMU_ENTER_CRITICAL()    __disable_irq()
+    #define IMU_EXIT_CRITICAL()     __enable_irq()
+#endif
 
 /*==============================================================================
  * CONSTANTS
@@ -86,7 +95,7 @@ typedef struct {
     uint32_t parse_count;
     uint32_t frame_count;
     uint32_t error_count;
-    uint32_t last_log_time;
+    uint64_t last_log_time;  /* Microseconds */
 } imu_isr_stats_t;
 
 /*==============================================================================
@@ -327,7 +336,7 @@ static void parse_yis320_frame(const uint8_t* buffer, uint8_t frame_size)
 static void update_imu_state_atomic(const float gyro[3], const float rpy[3],
                                      const float quat[4])
 {
-    UBaseType_t saved = taskENTER_CRITICAL_FROM_ISR();
+    IMU_ENTER_CRITICAL();
 
     /* Copy data */
     memcpy((void*)g_imu_atomic_state.gyroscope, gyro, sizeof(g_imu_atomic_state.gyroscope));
@@ -338,7 +347,7 @@ static void update_imu_state_atomic(const float gyro[3], const float rpy[3],
     g_imu_atomic_state.timestamp = (uint32_t)(ClockP_getTimeUsec() / 1000ULL);
     g_imu_atomic_state.updated = true;
 
-    taskEXIT_CRITICAL_FROM_ISR(saved);
+    IMU_EXIT_CRITICAL();
 }
 
 /*==============================================================================
@@ -550,7 +559,7 @@ int imu_uart_isr_init(void)
     UART_intrEnable(g_uart_base_addr, UART_INTR_RHR_CTI);
 
     g_imu_uart_state.initialized = true;
-    g_isr_stats.last_log_time = xTaskGetTickCount();
+    g_isr_stats.last_log_time = ClockP_getTimeUsec();
 
     DebugP_log("[IMU_ISR] UART interface initialized (Parse-in-ISR mode)\r\n");
     DebugP_log("[IMU_ISR] IMU data parsed directly in ISR\r\n");
@@ -627,8 +636,8 @@ bool imu_protocol_get_state_isr(imu_state_t* imu_state)
  */
 void imu_uart_isr_log_stats(void)
 {
-    uint32_t current_time = xTaskGetTickCount();
-    if ((current_time - g_isr_stats.last_log_time) >= pdMS_TO_TICKS(IMU_ISR_DEBUG_LOG_INTERVAL)) {
+    uint64_t current_time = ClockP_getTimeUsec();
+    if ((current_time - g_isr_stats.last_log_time) >= (IMU_ISR_DEBUG_LOG_INTERVAL * 1000ULL)) {
 
         uint32_t avg_isr_us = (g_isr_stats.isr_count > 0) ?
                               (g_isr_stats.isr_total_us / g_isr_stats.isr_count) : 0;

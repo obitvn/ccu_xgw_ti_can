@@ -19,7 +19,7 @@
 /* Include UART driver for callback stubs */
 #include <drivers/uart.h>
 /* Include motor_mapping for imu_state_t definition */
-#include "motor_mapping.h"
+#include "../motor_mapping.h"
 
 #ifdef __cplusplus
 extern "C" {

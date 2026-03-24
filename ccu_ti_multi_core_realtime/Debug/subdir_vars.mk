@@ -10,6 +10,7 @@ SYSCFG_SRCS += \
 
 C_SRCS += \
 ../can_interface.c \
+../dispatcher_timer.c \
 ./syscfg/ti_dpl_config.c \
 ./syscfg/ti_drivers_config.c \
 ./syscfg/ti_drivers_open_close.c \
@@ -55,6 +56,7 @@ GEN_MISC_DIRS += \
 
 C_DEPS += \
 ./can_interface.d \
+./dispatcher_timer.d \
 ./syscfg/ti_dpl_config.d \
 ./syscfg/ti_drivers_config.d \
 ./syscfg/ti_drivers_open_close.d \
@@ -77,6 +79,7 @@ C_DEPS += \
 
 OBJS += \
 ./can_interface.o \
+./dispatcher_timer.o \
 ./syscfg/ti_dpl_config.o \
 ./syscfg/ti_drivers_config.o \
 ./syscfg/ti_drivers_open_close.o \
@@ -116,6 +119,7 @@ GEN_MISC_DIRS__QUOTED += \
 
 OBJS__QUOTED += \
 "can_interface.o" \
+"dispatcher_timer.o" \
 "syscfg\ti_dpl_config.o" \
 "syscfg\ti_drivers_config.o" \
 "syscfg\ti_drivers_open_close.o" \
@@ -152,6 +156,7 @@ GEN_MISC_FILES__QUOTED += \
 
 C_DEPS__QUOTED += \
 "can_interface.d" \
+"dispatcher_timer.d" \
 "syscfg\ti_dpl_config.d" \
 "syscfg\ti_drivers_config.d" \
 "syscfg\ti_drivers_open_close.d" \
@@ -191,6 +196,7 @@ GEN_FILES__QUOTED += \
 
 C_SRCS__QUOTED += \
 "../can_interface.c" \
+"../dispatcher_timer.c" \
 "./syscfg/ti_dpl_config.c" \
 "./syscfg/ti_drivers_config.c" \
 "./syscfg/ti_drivers_open_close.c" \

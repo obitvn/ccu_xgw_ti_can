@@ -60,6 +60,16 @@ void System_deinit(void);
 
 
 
+/*
+ * UART
+ */
+#include <drivers/uart.h>
+/* UART Instance Macros */
+#define CONFIG_UART5 (0U)
+#define CONFIG_UART_NUM_INSTANCES (1U)
+#define CONFIG_UART_NUM_DMA_INSTANCES (0U)
+
+
 #include <drivers/soc.h>
 #include <kernel/dpl/CycleCounterP.h>
 

@@ -47,10 +47,14 @@ typedef struct {
 } SOC_ModuleClockFrequency;
 
 uint32_t gSocModules[] = {
+    SOC_RcmPeripheralId_LIN5_UART5,
+
     SOC_MODULES_END,
 };
 
 SOC_ModuleClockFrequency gSocModulesClockFrequency[] = {
+    { SOC_RcmPeripheralId_LIN5_UART5, SOC_RcmPeripheralClockSource_DPLL_PER_HSDIV0_CLKOUT1, 48000000},
+
     { SOC_MODULES_END, SOC_MODULES_END, SOC_MODULES_END },
 };
 

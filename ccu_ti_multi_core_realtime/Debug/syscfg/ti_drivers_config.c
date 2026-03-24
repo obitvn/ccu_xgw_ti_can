@@ -94,6 +94,42 @@ void IpcNotify_allocSwQueue(IpcNotify_MailboxConfig *mailboxConfig)
 }
 
 
+/*
+ * UART
+ */
+
+/* UART atrributes */
+static UART_Attrs gUartAttrs[CONFIG_UART_NUM_INSTANCES] =
+{
+        {
+            .baseAddr           = CSL_UART5_U_BASE,
+            .inputClkFreq       = 48000000U,
+        },
+};
+/* UART objects - initialized by the driver */
+static UART_Object gUartObjects[CONFIG_UART_NUM_INSTANCES];
+/* UART driver configuration */
+UART_Config gUartConfig[CONFIG_UART_NUM_INSTANCES] =
+{
+        {
+            &gUartAttrs[CONFIG_UART5],
+            &gUartObjects[CONFIG_UART5],
+        },
+};
+
+uint32_t gUartConfigNum = CONFIG_UART_NUM_INSTANCES;
+
+#include <drivers/uart/v0/lld/dma/uart_dma.h>
+UART_DmaHandle gUartDmaHandle[] =
+{
+};
+
+uint32_t gUartDmaConfigNum = CONFIG_UART_NUM_DMA_INSTANCES;
+
+void Drivers_uartInit(void)
+{
+    UART_init();
+}
 
 /*
  * MCU_LBIST
@@ -160,12 +196,14 @@ void System_init(void)
 
     }
 
+    Drivers_uartInit();
 }
 
 void System_deinit(void)
 {
     IpcNotify_deInit();
 
+    UART_deinit();
     PowerClock_deinit();
 
     Dpl_deinit();
