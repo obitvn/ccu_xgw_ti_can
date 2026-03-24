@@ -178,7 +178,7 @@ section1.output_section.create(1);
 section1.output_section[0].$name      = ".vectors";
 section1.output_section[0].palignment = true;
 
-section2.load_memory                  = "OCRAM";
+section2.load_memory                  = "FLASH";
 section2.$name                        = "Text Segments";
 section2.output_section.create(5);
 section2.output_section[0].$name      = ".text.hwi";
@@ -192,7 +192,7 @@ section2.output_section[3].palignment = true;
 section2.output_section[4].$name      = ".text:abort";
 section2.output_section[4].palignment = true;
 
-section3.load_memory                  = "OCRAM";
+section3.load_memory                  = "FLASH";
 section3.$name                        = "Code and Read-Only Data";
 section3.output_section.create(2);
 section3.output_section[0].$name      = ".text";

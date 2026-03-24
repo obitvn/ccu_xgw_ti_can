@@ -23,6 +23,7 @@ C_SRCS += \
 ./syscfg/ti_enet_soc.c \
 ./syscfg/ti_enet_lwipif.c \
 ./syscfg/ti_sdl_config.c \
+../freertos_hooks.c \
 ../gateway_shared.c \
 ../ipc_spinlock_sharedmem.c \
 ../log_reader_task.c \
@@ -66,6 +67,7 @@ C_DEPS += \
 ./syscfg/ti_enet_soc.d \
 ./syscfg/ti_enet_lwipif.d \
 ./syscfg/ti_sdl_config.d \
+./freertos_hooks.d \
 ./gateway_shared.d \
 ./ipc_spinlock_sharedmem.d \
 ./log_reader_task.d \
@@ -86,6 +88,7 @@ OBJS += \
 ./syscfg/ti_enet_soc.o \
 ./syscfg/ti_enet_lwipif.o \
 ./syscfg/ti_sdl_config.o \
+./freertos_hooks.o \
 ./gateway_shared.o \
 ./ipc_spinlock_sharedmem.o \
 ./log_reader_task.o \
@@ -123,6 +126,7 @@ OBJS__QUOTED += \
 "syscfg\ti_enet_soc.o" \
 "syscfg\ti_enet_lwipif.o" \
 "syscfg\ti_sdl_config.o" \
+"freertos_hooks.o" \
 "gateway_shared.o" \
 "ipc_spinlock_sharedmem.o" \
 "log_reader_task.o" \
@@ -157,6 +161,7 @@ C_DEPS__QUOTED += \
 "syscfg\ti_enet_soc.d" \
 "syscfg\ti_enet_lwipif.d" \
 "syscfg\ti_sdl_config.d" \
+"freertos_hooks.d" \
 "gateway_shared.d" \
 "ipc_spinlock_sharedmem.d" \
 "log_reader_task.d" \
@@ -197,6 +202,7 @@ C_SRCS__QUOTED += \
 "./syscfg/ti_enet_soc.c" \
 "./syscfg/ti_enet_lwipif.c" \
 "./syscfg/ti_sdl_config.c" \
+"../freertos_hooks.c" \
 "../gateway_shared.c" \
 "../ipc_spinlock_sharedmem.c" \
 "../log_reader_task.c" \

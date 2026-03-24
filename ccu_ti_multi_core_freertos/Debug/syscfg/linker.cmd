@@ -54,7 +54,7 @@ SECTIONS
     } palign(8)
     .text:abort : {
     } palign(8)
-    } > OCRAM  
+    } > FLASH  
 
 
     GROUP  :   {
@@ -62,7 +62,7 @@ SECTIONS
     } palign(8)
     .rodata : {
     } palign(8)
-    } > OCRAM  
+    } > FLASH  
 
 
     GROUP  :   {

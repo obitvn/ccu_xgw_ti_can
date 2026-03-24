@@ -24,6 +24,7 @@ ORDERED_OBJS += \
 "./syscfg/ti_enet_soc.o" \
 "./syscfg/ti_enet_lwipif.o" \
 "./syscfg/ti_sdl_config.o" \
+"./freertos_hooks.o" \
 "./gateway_shared.o" \
 "./ipc_spinlock_sharedmem.o" \
 "./log_reader_task.o" \
@@ -168,8 +169,8 @@ ccu_ti_multi_core_freertos.out: $(OBJS) $(GEN_CMDS)
 # Other Targets
 clean:
 	-$(RM) $(GEN_MISC_FILES__QUOTED)$(GEN_FILES__QUOTED)$(EXE_OUTPUTS__QUOTED)
-	-$(RM) "syscfg\ti_dpl_config.o" "syscfg\ti_drivers_config.o" "syscfg\ti_drivers_open_close.o" "syscfg\ti_pinmux_config.o" "syscfg\ti_power_clock_config.o" "syscfg\ti_board_config.o" "syscfg\ti_board_open_close.o" "syscfg\ti_enet_config.o" "syscfg\ti_enet_init.o" "syscfg\ti_enet_dma_init.o" "syscfg\ti_enet_open_close.o" "syscfg\ti_enet_soc.o" "syscfg\ti_enet_lwipif.o" "syscfg\ti_sdl_config.o" "gateway_shared.o" "ipc_spinlock_sharedmem.o" "log_reader_task.o" "main.o" "common\crc32.o" "common\xgw_protocol.o" "enet\test_enet.o" "enet\udp_iperf.o" "enet\xgw_udp_interface.o" 
-	-$(RM) "syscfg\ti_dpl_config.d" "syscfg\ti_drivers_config.d" "syscfg\ti_drivers_open_close.d" "syscfg\ti_pinmux_config.d" "syscfg\ti_power_clock_config.d" "syscfg\ti_board_config.d" "syscfg\ti_board_open_close.d" "syscfg\ti_enet_config.d" "syscfg\ti_enet_init.d" "syscfg\ti_enet_dma_init.d" "syscfg\ti_enet_open_close.d" "syscfg\ti_enet_soc.d" "syscfg\ti_enet_lwipif.d" "syscfg\ti_sdl_config.d" "gateway_shared.d" "ipc_spinlock_sharedmem.d" "log_reader_task.d" "main.d" "common\crc32.d" "common\xgw_protocol.d" "enet\test_enet.d" "enet\udp_iperf.d" "enet\xgw_udp_interface.d" 
+	-$(RM) "syscfg\ti_dpl_config.o" "syscfg\ti_drivers_config.o" "syscfg\ti_drivers_open_close.o" "syscfg\ti_pinmux_config.o" "syscfg\ti_power_clock_config.o" "syscfg\ti_board_config.o" "syscfg\ti_board_open_close.o" "syscfg\ti_enet_config.o" "syscfg\ti_enet_init.o" "syscfg\ti_enet_dma_init.o" "syscfg\ti_enet_open_close.o" "syscfg\ti_enet_soc.o" "syscfg\ti_enet_lwipif.o" "syscfg\ti_sdl_config.o" "freertos_hooks.o" "gateway_shared.o" "ipc_spinlock_sharedmem.o" "log_reader_task.o" "main.o" "common\crc32.o" "common\xgw_protocol.o" "enet\test_enet.o" "enet\udp_iperf.o" "enet\xgw_udp_interface.o" 
+	-$(RM) "syscfg\ti_dpl_config.d" "syscfg\ti_drivers_config.d" "syscfg\ti_drivers_open_close.d" "syscfg\ti_pinmux_config.d" "syscfg\ti_power_clock_config.d" "syscfg\ti_board_config.d" "syscfg\ti_board_open_close.d" "syscfg\ti_enet_config.d" "syscfg\ti_enet_init.d" "syscfg\ti_enet_dma_init.d" "syscfg\ti_enet_open_close.d" "syscfg\ti_enet_soc.d" "syscfg\ti_enet_lwipif.d" "syscfg\ti_sdl_config.d" "freertos_hooks.d" "gateway_shared.d" "ipc_spinlock_sharedmem.d" "log_reader_task.d" "main.d" "common\crc32.d" "common\xgw_protocol.d" "enet\test_enet.d" "enet\udp_iperf.d" "enet\xgw_udp_interface.d" 
 	-$(RMDIR) $(GEN_MISC_DIRS__QUOTED)
 	-@echo 'Finished clean'
 	-@echo ' '

@@ -22,7 +22,8 @@
       "Bash(cp:*)",
       "Bash(cp \"C:/ti/mcu_plus_sdk_am263px_11_01_00_19/source/networking/lwip/lwip-config/am263px/enet/lwipopts.h\" \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\ccu_ti_mutilcore\\\\ccu_ti_multi_core_freertos\\\\lwipopts.h\")",
       "Bash(cp \"C:/ti/mcu_plus_sdk_am263px_11_01_00_19/source/networking/lwip/lwip-config/am263px/enet/lwippools.h\" \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\ccu_ti_mutilcore\\\\ccu_ti_multi_core_freertos\\\\lwippools.h\")",
-      "Bash(find D:VinDynamicsProjectCCU_TI_RS485_CAN2.Firmwareccu_ti_mutilcore -name *.project -o -name *.cproject)"
+      "Bash(find D:VinDynamicsProjectCCU_TI_RS485_CAN2.Firmwareccu_ti_mutilcore -name *.project -o -name *.cproject)",
+      "Bash(find D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/draft/ccu_ti -name *.sysconfig)"
     ]
   }
 }

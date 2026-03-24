@@ -12,6 +12,7 @@
 "./syscfg/ti_enet_soc.o"
 "./syscfg/ti_enet_lwipif.o"
 "./syscfg/ti_sdl_config.o"
+"./freertos_hooks.o"
 "./gateway_shared.o"
 "./ipc_spinlock_sharedmem.o"
 "./log_reader_task.o"
