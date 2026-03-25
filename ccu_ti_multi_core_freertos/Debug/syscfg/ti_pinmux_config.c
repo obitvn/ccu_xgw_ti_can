@@ -37,16 +37,16 @@
 #include <drivers/pinmux.h>
 
 static Pinmux_PerCfg_t gPinMuxMainDomainCfg[] = {
-            /* I2C0 pin config */
-    /* I2C0_SCL -> I2C0_SCL (A13) */
+            /* I2C1 pin config */
+    /* I2C1_SCL -> I2C1_SCL (D7) */
     {
-        PIN_I2C0_SCL,
+        PIN_I2C1_SCL,
         ( PIN_MODE(0) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
     },
-    /* I2C0 pin config */
-    /* I2C0_SDA -> I2C0_SDA (B13) */
+    /* I2C1 pin config */
+    /* I2C1_SDA -> I2C1_SDA (C8) */
     {
-        PIN_I2C0_SDA,
+        PIN_I2C1_SDA,
         ( PIN_MODE(0) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
     },
 

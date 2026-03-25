@@ -54,7 +54,7 @@ SECTIONS
     } palign(8)
     .text:abort : {
     } palign(8)
-    } > FLASH  
+    } > OCRAM  
 
 
     GROUP  :   {
@@ -62,7 +62,7 @@ SECTIONS
     } palign(8)
     .rodata : {
     } palign(8)
-    } > FLASH  
+    } > OCRAM  
 
 
     GROUP  :   {
@@ -146,7 +146,8 @@ MEMORY
     R5F_TCMA   : ORIGIN = 0x40 , LENGTH = 0x7FC0 
     R5F_TCMB   : ORIGIN = 0x80000 , LENGTH = 0x8000 
     SBL   : ORIGIN = 0x70000000 , LENGTH = 0x40000 
-    OCRAM   : ORIGIN = 0x70040000 , LENGTH = 0x40000 
+    OCRAM   : ORIGIN = 0x70040000 , LENGTH = 0x80000 
+    ENET_CPPI_DESC   : ORIGIN = 0x700C0000 , LENGTH = 0x40000 
     USER_SHM_MEM   : ORIGIN = 0x701D0000 , LENGTH = 0x4000 
     LOG_SHM_MEM   : ORIGIN = 0x701D4000 , LENGTH = 0x4000 
     FLASH   : ORIGIN = 0x60100000 , LENGTH = 0x80000 

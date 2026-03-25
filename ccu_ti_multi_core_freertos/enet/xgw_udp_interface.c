@@ -17,6 +17,7 @@
 #include "lwip/api.h"
 #include "lwip/udp.h"
 #include "lwip/mem.h"
+#include "lwip/sys.h"
 #include "../common/crc32.h"
 #include <string.h>
 
@@ -65,7 +66,6 @@ static ip_addr_t g_pc_ip_addr = IPADDR4_INIT(0xFFFFFFFF);
  * FORWARD DECLARATIONS
  *============================================================================*/
 
-static void xgw_udp_rx_task(void* args);
 static void xgw_udp_recv_callback(void* arg, struct udp_pcb* pcb, struct pbuf* p,
                                    const ip_addr_t* addr, u16_t port);
 
@@ -95,28 +95,46 @@ int xgw_udp_start(void)
 
     DebugP_log("[xGW UDP] Starting UDP interface...\r\n");
 
-    /* Create UDP RX task */
-    BaseType_t ret = xTaskCreate(
-        xgw_udp_rx_task,
-        "xgw_udp_rx",
-        XGW_UDP_TASK_STACK_SIZE,
-        NULL,
-        XGW_UDP_TASK_PRIORITY,
-        &g_udp_task_handle
-    );
-
-    if (ret != pdPASS) {
-        DebugP_log("[xGW UDP] ERROR: Failed to create RX task!\r\n");
+    /* Create UDP RX PCB (called from tcpip thread context via lwip_init_callback) */
+    g_udp_rx_pcb = udp_new();
+    if (g_udp_rx_pcb == NULL) {
+        DebugP_log("[xGW UDP] ERROR: Failed to create RX PCB!\r\n");
         return -1;
     }
 
+    /* Bind to RX port */
+    err_t err = udp_bind(g_udp_rx_pcb, IP_ADDR_ANY, XGW_UDP_RX_PORT);
+    if (err != ERR_OK) {
+        DebugP_log("[xGW UDP] ERROR: Failed to bind to port %d: %d\r\n", XGW_UDP_RX_PORT, err);
+        udp_remove(g_udp_rx_pcb);
+        g_udp_rx_pcb = NULL;
+        return -1;
+    }
+
+    /* Set receive callback */
+    udp_recv(g_udp_rx_pcb, xgw_udp_recv_callback, NULL);
+
+    DebugP_log("[xGW UDP] RX PCB bound to port %d\r\n", XGW_UDP_RX_PORT);
+
+    /* Create UDP TX PCB */
+    g_udp_tx_pcb = udp_new();
+    if (g_udp_tx_pcb == NULL) {
+        DebugP_log("[xGW UDP] ERROR: Failed to create TX PCB!\r\n");
+        udp_remove(g_udp_rx_pcb);
+        g_udp_rx_pcb = NULL;
+        return -1;
+    }
+
+    DebugP_log("[xGW UDP] TX PCB created\r\n");
+
+    g_udp_state.started = true;
     DebugP_log("[xGW UDP] UDP interface started\r\n");
     return 0;
 }
 
 int xgw_udp_send_motor_states(const xgw_motor_state_t* states, uint8_t count)
 {
-    if (!g_udp_state.initialized || states == NULL || count == 0) {
+    if (!g_udp_state.started || states == NULL || count == 0) {
         return -1;
     }
 
@@ -151,8 +169,10 @@ int xgw_udp_send_motor_states(const xgw_motor_state_t* states, uint8_t count)
     /* Calculate CRC */
     header->crc32 = xgw_crc32_calculate(header, data + sizeof(xgw_header_t), payload_len);
 
-    /* Send packet */
+    /* Send packet - MUST lock tcpip core when calling from non-tcpip thread */
+    LOCK_TCPIP_CORE();
     err_t err = udp_sendto(g_udp_tx_pcb, p, &g_pc_ip_addr, XGW_UDP_TX_PORT);
+    UNLOCK_TCPIP_CORE();
 
     /* Free pbuf */
     pbuf_free(p);
@@ -161,7 +181,6 @@ int xgw_udp_send_motor_states(const xgw_motor_state_t* states, uint8_t count)
         g_udp_state.tx_count++;
         return total_len;
     } else {
-        DebugP_log("[xGW UDP] ERROR: udp_sendto failed: %d\r\n", err);
         g_udp_state.tx_errors++;
         return -1;
     }
@@ -169,7 +188,7 @@ int xgw_udp_send_motor_states(const xgw_motor_state_t* states, uint8_t count)
 
 int xgw_udp_send_imu_state(const xgw_imu_state_t* imu_state)
 {
-    if (!g_udp_state.initialized || imu_state == NULL) {
+    if (!g_udp_state.started || imu_state == NULL) {
         return -1;
     }
 
@@ -179,7 +198,6 @@ int xgw_udp_send_imu_state(const xgw_imu_state_t* imu_state)
     struct pbuf* p = pbuf_alloc(PBUF_TRANSPORT, total_len, PBUF_RAM);
 
     if (p == NULL) {
-        DebugP_log("[xGW UDP] ERROR: Failed to allocate pbuf for IMU!\r\n");
         g_udp_state.tx_errors++;
         return -1;
     }
@@ -200,8 +218,10 @@ int xgw_udp_send_imu_state(const xgw_imu_state_t* imu_state)
     /* Calculate CRC */
     header->crc32 = xgw_crc32_calculate(header, data + sizeof(xgw_header_t), payload_len);
 
-    /* Send packet */
+    /* Send packet - MUST lock tcpip core when calling from non-tcpip thread */
+    LOCK_TCPIP_CORE();
     err_t err = udp_sendto(g_udp_tx_pcb, p, &g_pc_ip_addr, XGW_UDP_TX_PORT);
+    UNLOCK_TCPIP_CORE();
 
     /* Free pbuf */
     pbuf_free(p);
@@ -210,7 +230,6 @@ int xgw_udp_send_imu_state(const xgw_imu_state_t* imu_state)
         g_udp_state.tx_count++;
         return total_len;
     } else {
-        DebugP_log("[xGW UDP] ERROR: udp_sendto failed for IMU: %d\r\n", err);
         g_udp_state.tx_errors++;
         return -1;
     }
@@ -218,7 +237,7 @@ int xgw_udp_send_imu_state(const xgw_imu_state_t* imu_state)
 
 int xgw_udp_send_diagnostics(const xgw_diag_t* diag)
 {
-    if (!g_udp_state.initialized || diag == NULL) {
+    if (!g_udp_state.started || diag == NULL) {
         return -1;
     }
 
@@ -228,7 +247,6 @@ int xgw_udp_send_diagnostics(const xgw_diag_t* diag)
     struct pbuf* p = pbuf_alloc(PBUF_TRANSPORT, total_len, PBUF_RAM);
 
     if (p == NULL) {
-        DebugP_log("[xGW UDP] ERROR: Failed to allocate pbuf for diag!\r\n");
         g_udp_state.tx_errors++;
         return -1;
     }
@@ -249,8 +267,10 @@ int xgw_udp_send_diagnostics(const xgw_diag_t* diag)
     /* Calculate CRC */
     header->crc32 = xgw_crc32_calculate(header, data + sizeof(xgw_header_t), payload_len);
 
-    /* Send packet */
+    /* Send packet - MUST lock tcpip core when calling from non-tcpip thread */
+    LOCK_TCPIP_CORE();
     err_t err = udp_sendto(g_udp_tx_pcb, p, &g_pc_ip_addr, XGW_UDP_TX_PORT);
+    UNLOCK_TCPIP_CORE();
 
     /* Free pbuf */
     pbuf_free(p);
@@ -259,7 +279,6 @@ int xgw_udp_send_diagnostics(const xgw_diag_t* diag)
         g_udp_state.tx_count++;
         return total_len;
     } else {
-        DebugP_log("[xGW UDP] ERROR: udp_sendto failed for diag: %d\r\n", err);
         g_udp_state.tx_errors++;
         return -1;
     }
@@ -280,7 +299,7 @@ void xgw_udp_get_state(xgw_udp_state_t* state)
 
 bool xgw_udp_is_initialized(void)
 {
-    return g_udp_state.initialized;
+    return g_udp_state.started;
 }
 
 /*==============================================================================
@@ -392,55 +411,6 @@ int xgw_udp_process_motor_set(const uint8_t* data, uint16_t length)
 
     g_udp_state.rx_count++;
     return 0;
-}
-
-/*==============================================================================
- * UDP RX TASK
- *============================================================================*/
-
-static void xgw_udp_rx_task(void* args)
-{
-    (void)args;
-
-    DebugP_log("[xGW UDP] RX task started\r\n");
-
-    /* Create UDP RX PCB */
-    g_udp_rx_pcb = udp_new();
-
-    if (g_udp_rx_pcb == NULL) {
-        DebugP_log("[xGW UDP] ERROR: Failed to create RX PCB!\r\n");
-        vTaskDelete(NULL);
-        return;
-    }
-
-    /* Bind to RX port */
-    err_t err = udp_bind(g_udp_rx_pcb, IP_ADDR_ANY, XGW_UDP_RX_PORT);
-
-    if (err != ERR_OK) {
-        DebugP_log("[xGW UDP] ERROR: Failed to bind to port %d: %d\r\n", XGW_UDP_RX_PORT, err);
-        udp_remove(g_udp_rx_pcb);
-        vTaskDelete(NULL);
-        return;
-    }
-
-    /* Set receive callback */
-    udp_recv(g_udp_rx_pcb, xgw_udp_recv_callback, NULL);
-
-    DebugP_log("[xGW UDP] Listening on port %d\r\n", XGW_UDP_RX_PORT);
-
-    /* Create UDP TX PCB */
-    g_udp_tx_pcb = udp_new();
-
-    if (g_udp_tx_pcb == NULL) {
-        DebugP_log("[xGW UDP] ERROR: Failed to create TX PCB!\r\n");
-        vTaskDelete(NULL);
-        return;
-    }
-
-    /* Main loop - task handles callbacks via lwIP */
-    while (1) {
-        vTaskDelay(pdMS_TO_TICKS(1000));
-    }
 }
 
 /*==============================================================================

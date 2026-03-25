@@ -29,6 +29,7 @@ extern "C" {
 /* UDP Interface State */
 typedef struct {
     bool initialized;
+    bool started;             /* UDP PCBs created and bound */
     uint32_t rx_count;
     uint32_t tx_count;
     uint32_t rx_errors;

@@ -43,8 +43,8 @@
 static I2C_HwAttrs gI2cHwAttrs[CONFIG_I2C_HLD_NUM_INSTANCES] =
 {
     {
-        .baseAddr       = CSL_I2C0_U_BASE,
-        .intNum         = 44,
+        .baseAddr       = CSL_I2C1_U_BASE,
+        .intNum         = 45,
         .eventId        = 0,
         .funcClk        = 96000000U,
         .enableIntr     = 1,

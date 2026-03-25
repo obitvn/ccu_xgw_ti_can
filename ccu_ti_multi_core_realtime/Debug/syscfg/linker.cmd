@@ -145,7 +145,7 @@ MEMORY
     R5F_VECS   : ORIGIN = 0x0 , LENGTH = 0x40 
     R5F_TCMA   : ORIGIN = 0x40 , LENGTH = 0x7FC0 
     R5F_TCMB   : ORIGIN = 0x80000 , LENGTH = 0x8000 
-    OCRAM   : ORIGIN = 0x70080000 , LENGTH = 0x40000 
+    OCRAM   : ORIGIN = 0x70100000 , LENGTH = 0x40000 
     FLASH   : ORIGIN = 0x60180000 , LENGTH = 0x80000 
 
     /* For memory Regions not defined in this core but shared by other cores with the current core */

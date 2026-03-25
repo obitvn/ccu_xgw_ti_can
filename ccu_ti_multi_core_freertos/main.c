@@ -23,6 +23,7 @@
 #include "gateway_shared.h"
 #include "log_reader_task.h"
 #include "enet/xgw_udp_interface.h"
+#include "lwip/tcpip.h"
 
 /* Core ID definitions from CSL */
 #ifndef CSL_CORE_ID_R5FSS0_0
@@ -37,11 +38,13 @@
  *============================================================================*/
 
 #define MAIN_TASK_PRI         (configMAX_PRIORITIES - 1)
+#define ENET_LWIP_TASK_PRI    (configMAX_PRIORITIES - 2)
 #define UDP_TX_TASK_PRI       (configMAX_PRIORITIES - 3)
 #define UDP_RX_TASK_PRI       (configMAX_PRIORITIES - 3)
 #define IPC_TASK_PRI          (configMAX_PRIORITIES - 2)
 
 #define MAIN_TASK_SIZE        (8192U/sizeof(configSTACK_DEPTH_TYPE))
+#define ENET_LWIP_TASK_SIZE   (4096U/sizeof(configSTACK_DEPTH_TYPE))
 #define UDP_TX_TASK_SIZE      (4096U/sizeof(configSTACK_DEPTH_TYPE))
 #define UDP_RX_TASK_SIZE      (4096U/sizeof(configSTACK_DEPTH_TYPE))
 #define IPC_TASK_SIZE         (2048U/sizeof(configSTACK_DEPTH_TYPE))
@@ -68,11 +71,13 @@ typedef struct {
 
 /* Task stacks and handles */
 static StackType_t gMainTaskStack[MAIN_TASK_SIZE] __attribute__((aligned(32)));
+static StackType_t gEnetLwipTaskStack[ENET_LWIP_TASK_SIZE] __attribute__((aligned(32)));
 static StackType_t gUdpTxTaskStack[UDP_TX_TASK_SIZE] __attribute__((aligned(32)));
 static StackType_t gUdpRxTaskStack[UDP_RX_TASK_SIZE] __attribute__((aligned(32)));
 static StackType_t gIpcTaskStack[IPC_TASK_SIZE] __attribute__((aligned(32)));
 
 static StaticTask_t gMainTaskObj;
+static StaticTask_t gEnetLwipTaskObj;
 static StaticTask_t gUdpTxTaskObj;
 static StaticTask_t gUdpRxTaskObj;
 static StaticTask_t gIpcTaskObj;
@@ -103,6 +108,8 @@ static volatile uint32_t g_test_data_from_core1_values[8] = {0};
  *============================================================================*/
 
 static void freertos_main(void *args);
+static void enet_lwip_task_wrapper(void *args);
+static void lwip_init_callback(void *arg);
 static void udp_tx_task(void *args);
 static void udp_rx_task(void *args);
 static void ipc_process_task(void *args);
@@ -189,6 +196,12 @@ static void udp_tx_task(void *args)
  */
 static void build_and_send_udp_packet(void)
 {
+    /* Check if UDP interface is initialized */
+    if (!xgw_udp_is_initialized()) {
+        /* UDP not ready yet - skip sending */
+        return;
+    }
+
     /* Convert IPC format to xGW protocol format */
     xgw_motor_state_t xgw_states[GATEWAY_NUM_MOTORS];
 
@@ -209,7 +222,7 @@ static void build_and_send_udp_packet(void)
     if (sent > 0) {
         /* Successfully sent */
     } else {
-        DebugP_log("[Core0] ERROR: Failed to send motor states!\r\n");
+        /* Silent fail - UDP may not be ready yet */
     }
 }
 
@@ -367,10 +380,10 @@ static int32_t init_ethernet(void)
     DebugP_log("[Core0] Initializing Ethernet...\r\n");
 
     /* TODO: Initialize Ethernet driver */
-    /* TODO: Initialize lwIP stack */
+    /* TODO: Initialize lwIP stack in separate task AFTER scheduler starts */
     /* TODO: Configure IP address */
 
-    DebugP_log("[Core0] Ethernet initialized\r\n");
+    DebugP_log("[Core0] Ethernet initialized (lwIP deferred)\r\n");
     return 0;
 }
 
@@ -521,15 +534,100 @@ static void freertos_main(void *args)
         DebugP_log("[Core0] WARNING: Log Reader task creation failed!\r\n");
     }
 
-    /* Start xGW UDP interface (must be called after tcpip_init) */
-    status = xgw_udp_start();
-    if (status != 0) {
-        DebugP_log("[Core0] WARNING: xGW UDP interface start failed!\r\n");
-    }
+    /* Create Ethernet/LwIP task (runs main_loop in separate task) */
+    xTaskCreateStatic(
+        enet_lwip_task_wrapper,
+        "EnetLwip",
+        ENET_LWIP_TASK_SIZE,
+        NULL,
+        ENET_LWIP_TASK_PRI,
+        gEnetLwipTaskStack,
+        &gEnetLwipTaskObj
+    );
+
+    /* Note: xGW UDP interface will be started in lwip_init_callback() AFTER tcpip_init() */
+    /* This ensures lwIP is properly initialized before creating UDP PCBs */
 
     DebugP_log("[Core0] All tasks created successfully\r\n");
 
     /* Main task no longer needed - delete itself */
+    vTaskDelete(NULL);
+}
+
+/*==============================================================================
+ * LWIP INITIALIZATION (Following ccu_ti pattern)
+ *============================================================================*/
+
+/**
+ * @brief Callback from tcpip_init() - called when lwIP tcpip thread is ready
+ *
+ * This is called in the context of the tcpip thread, after lwIP protection
+ * (mutexes) has been initialized. Safe to call lwIP APIs here.
+ */
+static void lwip_init_callback(void *arg)
+{
+    sys_sem_t *init_sem = (sys_sem_t*)arg;
+
+    DebugP_log("[Core0] lwIP tcpip_init complete - initializing UDP...\r\n");
+
+    /* Start xGW UDP interface (creates UDP PCBs) */
+    int32_t status = xgw_udp_start();
+    if (status != 0) {
+        DebugP_log("[Core0] ERROR: xGW UDP interface start failed!\r\n");
+    } else {
+        DebugP_log("[Core0] xGW UDP interface started successfully\r\n");
+        DebugP_log("[Core0] UDP RX Port: %d (PC -> xGW)\r\n", XGW_UDP_RX_PORT);
+        DebugP_log("[Core0] UDP TX Port: %d (xGW -> PC)\r\n", XGW_UDP_TX_PORT);
+    }
+
+    /* Signal that initialization is complete */
+    if (init_sem != NULL) {
+        sys_sem_signal(init_sem);
+    }
+}
+
+/**
+ * @brief Wrapper task for lwIP initialization
+ *
+ * This task calls tcpip_init() which creates the tcpip thread and waits
+ * for initialization to complete. Follows the pattern from ccu_ti.
+ */
+static void enet_lwip_task_wrapper(void *args)
+{
+    (void)args;
+    err_t err;
+    sys_sem_t init_sem;
+
+    DebugP_log("[Core0] Starting lwIP initialization...\r\n");
+
+    /* Create semaphore for tcpip_init completion */
+    err = sys_sem_new(&init_sem, 0);
+    if (err != ERR_OK) {
+        DebugP_log("[Core0] ERROR: Failed to create init semaphore!\r\n");
+        vTaskDelete(NULL);
+        return;
+    }
+
+    /* Initialize lwIP stack - this creates the tcpip thread */
+    /* lwip_init_callback will be called when tcpip thread is ready */
+    tcpip_init(lwip_init_callback, &init_sem);
+
+    /* Wait for tcpip_init to complete */
+    sys_sem_wait(&init_sem);
+    sys_sem_free(&init_sem);
+
+    DebugP_log("[Core0] lwIP initialization complete\r\n");
+
+    /* TODO: Initialize Ethernet driver (CPSW) */
+    /* TODO: Configure IP address */
+
+    /* TODO: Main loop for Ethernet driver polling */
+    /* For now, just keep task alive */
+    while (1) {
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+
+    /* Should never reach here */
     vTaskDelete(NULL);
 }
 
