@@ -27,7 +27,9 @@
       "Bash(find D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/draft/ccu_ti -name *motor* -type f)",
       "Bash(\"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\ccu_ti_mutilcore\\\\ccu_ti_multi_core_freertos\\\\Debug\\\\syscfg\\\\linker.cmd.tmp\":*)",
       "Bash(ls -la D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/ccu_ti_mutilcore/ccu_ti_multi_core_freertos/Debug/*.map)",
-      "Bash(\"C:\\\\Users\\\\chuti\\\\.ccs\\\\tools\\\\2024.06\\\\sysconfig_1.26.0\\\\sysconfig_cli.bat\" --product \"MCU_PLUS_SDK_AM263Px@11.01.00\" example.syscfg)"
+      "Bash(\"C:\\\\Users\\\\chuti\\\\.ccs\\\\tools\\\\2024.06\\\\sysconfig_1.26.0\\\\sysconfig_cli.bat\" --product \"MCU_PLUS_SDK_AM263Px@11.01.00\" example.syscfg)",
+      "mcp__web-search-prime__web_search_prime",
+      "Bash(cd:*)"
     ]
   }
 }

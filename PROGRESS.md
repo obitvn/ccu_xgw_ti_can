@@ -174,11 +174,79 @@ IPC Notifications (IpcNotify):
 • 0x0A: TEST_DATA (Core 1 → 0)
 ```
 
-## 9. NEXT STEPS
+## 9. MEMORY MAP FIX (2026-03-25)
+
+### Vấn đề Core 1 không hoạt động sau porting ccu_ti:
+- **Nguyên nhân**: Core 1 OCRAM được cấu hình sai địa chỉ
+- **Root cause**: Khi porting ccu_ti (single-core), memory map bị thay đổi
+
+### Memory Map AM263Px (3MB = 6 Banks × 512KB):
+
+| Bank | Address Range | Interconnect | Near For |
+|------|---------------|--------------|----------|
+| BANK0 | 0x7000_0000 - 0x7007_FFFF | R5SS0 VBUSM | R5SS0 cores (0,1) |
+| BANK1 | 0x7008_0000 - 0x700F_FFFF | R5SS0 VBUSM | R5SS0 cores (0,1) |
+| BANK2 | 0x7010_0000 - 0x7017_FFFF | R5SS1 VBUSM | R5SS1 cores (2,3) |
+| BANK3 | 0x7018_0000 - 0x701F_FFFF | R5SS1 VBUSM | R5SS1 cores (2,3) |
+| BANK4 | 0x7020_0000 - 0x7027_FFFF | VBUSM CORE | Common |
+| BANK5 | 0x7028_0000 - 0x702F_FFFF | VBUSM CORE | Common |
+
+**Access Latency**: Near < Common < Far
+
+### BEFORE (SAI):
+```
+Core 0 (r5fss0-0): 0x70040000 - 0x700C0000 (512KB)
+                    └─ BANK0 + BANK1 (near OK)
+
+Core 1 (r5fss0-1): 0x70100000 - 0x70140000 (256KB)
+                    └─ BANK2 (FAR BANK cho R5SS0!) ❌
+
+ENET_CPPI_DESC: 0x700C0000 (BANK1)
+```
+
+### AFTER (ĐÃ SỬA - Có SBL cho boot from flash):
+```
+BANK0 (0x70000000-0x70080000): SBL (256KB) + Core 1 OCRAM (256KB)
+                              0x70000000-0x70040000: SBL ✅
+                              0x70040000-0x70080000: Core 1 (Near bank) ✅
+
+BANK1 (0x70080000-0x70100000): Core 0 OCRAM (512KB)
+                              └─ Near bank ✅
+                              FreeRTOS needs more RAM for lwIP
+
+BANK2 (0x70100000-0x70140000): ENET_CPPI_DESC (256KB)
+                              └─ OK for DMA buffer
+```
+
+### Phân bổ cuối cùng:
+| Core | OCRAM Address | Size | Bank | Type |
+|------|---------------|------|------|------|
+| SBL | 0x70000000 | 256KB | BANK0 | Bootloader ✅ |
+| Core 0 (FreeRTOS) | 0x70080000 | 512KB | BANK1 | Near ✅ |
+| Core 1 (NoRTOS) | 0x70040000 | 256KB | BANK0 | Near ✅ |
+| ENET_CPPI_DESC | 0x70100000 | 256KB | BANK2 | Far (OK) |
+
+### Files Modified:
+- `ccu_ti_multi_core_freertos/example.syscfg`:
+  - Xóa SBL region (không cần cho JTAG debug)
+  - OCRAM: 0x70080000, size: 0x80000 (512KB)
+  - ENET_CPPI_DESC: 0x70100000, size: 0x40000 (256KB)
+
+- `ccu_ti_multi_core_realtime/example.syscfg`:
+  - OCRAM: 0x70000000, size: 0x40000 (256KB)
+
+### Next Steps:
+1. ✅ SysConfig files updated
+2. ⏳ Run SysConfig tool to regenerate linker files
+3. ⏳ Rebuild both projects in CCS
+4. ⏳ Test both cores running
+
+## 10. NEXT STEPS
 1. ✅ IPC communication - DONE
 2. ✅ Shared memory test - DONE
 3. ⏳ CAN interface integration
 4. ✅ UDP/Ethernet integration - DONE (2026-03-24)
+5. ✅ Memory map fix - DONE (2026-03-25)
    - Files added:
      - `ccu_ti_multi_core_freertos/enet/xgw_udp_interface.h`
      - `ccu_ti_multi_core_freertos/enet/xgw_udp_interface.c`

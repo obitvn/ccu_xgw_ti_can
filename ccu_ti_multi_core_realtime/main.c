@@ -543,7 +543,6 @@ int main(void)
     }
 
     /* Start main loop (never returns) */
-    timer_test_main(NULL);
     main_loop();
 
     /* Should never reach here */
