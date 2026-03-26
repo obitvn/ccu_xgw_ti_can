@@ -32,7 +32,7 @@
                             }
                         },
                         {
-                            "name": "Cortex_R5_1",
+                            "name": "Cortex_R5_3",
                             "debuggerSettings": {
                                 "data": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n<PropertyValues>\n  <property id=\"FlashBoardType\">\n    <curValue>LP</curValue>\n  </property>\n  <property id=\"FlashPartType\">\n    <curValue>Standard</curValue>\n  </property>\n  <property id=\"AutoRunToLabelName\">\n    <curValue>main</curValue>\n  </property>\n</PropertyValues>\n"
                             }

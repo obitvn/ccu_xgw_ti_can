@@ -48,9 +48,10 @@ const section12       = section.addInstance();
  * Write custom configuration values to the imported modules.
  */
 /* Explicitly configure all IPC routes for r5fss1-1 context */
+/* Only Core 0 and Core 3 are active - disable Core 2 route */
 ipc.r5fss0_0 = "notify";
 ipc.r5fss0_1 = "NONE";
-ipc.r5fss1_0 = "notify";
+ipc.r5fss1_0 = "NONE";
 
 uart1.$name            = "CONFIG_UART5";
 uart1.baudRate         = 921600;
@@ -125,7 +126,7 @@ region1.memory_region[2].$name              = "R5F_TCMB";
 region1.memory_region[3].$name              = "OCRAM";
 region1.memory_region[3].auto               = false;
 region1.memory_region[3].manualStartAddress = 0x70100000;
-region1.memory_region[3].size               = 0x80000;
+region1.memory_region[3].size               = 0x40000;
 region1.memory_region[4].type               = "FLASH";
 region1.memory_region[4].auto               = false;
 region1.memory_region[4].manualStartAddress = 0x60180000;

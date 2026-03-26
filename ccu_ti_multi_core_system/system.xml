@@ -5,7 +5,7 @@
     <core id="Cortex_R5_0" project="project_0"/>
     <project configuration="@match" id="project_1" name="ccu_ti_multi_core_realtime">
     </project>
-    <core id="Cortex_R5_1" project="project_1"/>
+    <core id="Cortex_R5_3" project="project_1"/>
 	<preBuildSteps>
 	</preBuildSteps>
     <postBuildSteps>
