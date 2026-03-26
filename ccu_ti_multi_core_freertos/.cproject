@@ -52,6 +52,8 @@
                                     <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/enet/include/protocols"/>
                                     <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/lwip/src/include"/>
                                     <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/lwip/ports"/>
+                                    <listOptionValue value="&quot;${ProjDirPath}/enet&quot;"/>
+                                    <listOptionValue value="&quot;${ProjDirPath}/common&quot;"/>
                                 </option>
                                 <option id="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_4.0.compilerID.DEFINE.1759757424" superClass="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_4.0.compilerID.DEFINE" valueType="definedSymbols">
                                     <listOptionValue value="${SYSCONFIG_TOOL_SYMBOLS}"/>
@@ -184,6 +186,8 @@
                                     <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/lwip/lwip-stack/contrib"/>
                                     <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/lwip/lwip-config/am263px/enet"/>
                                     <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/enet/core/examples/lwip/enet_lwip_cpsw/extPhyMgmt"/>
+                                    <listOptionValue value="&quot;${ProjDirPath}/enet&quot;"/>
+                                    <listOptionValue value="&quot;${ProjDirPath}/common&quot;"/>
                                 </option>
                                 <option id="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_4.0.compilerID.DEFINE.185902523" superClass="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_4.0.compilerID.DEFINE" valueType="definedSymbols">
                                     <listOptionValue value="${SYSCONFIG_TOOL_SYMBOLS}"/>

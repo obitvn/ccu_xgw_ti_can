@@ -74,15 +74,20 @@ extern "C"
 
 #include "lwipopts_os.h"
 
+/* OPTIMIZED: Minimal IP config for UDP-only xGW application */
 #define LWIP_IPV4                  1
 #define LWIP_IPV6                  0
+#define LWIP_IP_FORWARD            0
+#define IP_REASSEMBLY              0
+#define IP_FRAG                    0
 
 #define LWIP_SOCKET                (NO_SYS==0)
 #define LWIP_NETCONN               (NO_SYS==0)
 #define LWIP_NETIF_API             (NO_SYS==0)
 
-#define LWIP_IGMP                  LWIP_IPV4
-#define LWIP_ICMP                  LWIP_IPV4
+/* OPTIMIZED: Disable ICMP/IGMP for xGW (saves ~5-10KB code) */
+#define LWIP_IGMP                  0
+#define LWIP_ICMP                  0
 
 #define LWIP_DNS                   LWIP_UDP
 #define LWIP_MDNS_RESPONDER        LWIP_UDP
@@ -164,37 +169,37 @@ extern "C"
 /* MEMP_NUM_PBUF: the number of memp struct pbufs. If the application
    sends a lot of data out of ROM (or other static memory), this
    should be set high. */
-#define MEMP_NUM_PBUF           128
+#define MEMP_NUM_PBUF           16
 /* MEMP_NUM_RAW_PCB: the number of UDP protocol control blocks. One
    per active RAW "connection". */
-#define MEMP_NUM_RAW_PCB        3
+#define MEMP_NUM_RAW_PCB        2
 /* MEMP_NUM_UDP_PCB: the number of UDP protocol control blocks. One
    per active UDP "connection". */
-#define MEMP_NUM_UDP_PCB        4
+#define MEMP_NUM_UDP_PCB        2
 /* MEMP_NUM_TCP_PCB: the number of simulatenously active TCP
-   connections. */
-#define MEMP_NUM_TCP_PCB        5
+   connections. OPTIMIZED: 2 → 1 */
+#define MEMP_NUM_TCP_PCB        1
 /* MEMP_NUM_TCP_PCB_LISTEN: the number of listening TCP
-   connections. */
-#define MEMP_NUM_TCP_PCB_LISTEN 8
+   connections. OPTIMIZED: 2 → 1 */
+#define MEMP_NUM_TCP_PCB_LISTEN 1
 /* MEMP_NUM_TCP_SEG: the number of simultaneously queued TCP
-   segments. */
-#define MEMP_NUM_TCP_SEG        128
+   segments. OPTIMIZED: 16 → 8 */
+#define MEMP_NUM_TCP_SEG        8
 /* MEMP_NUM_SYS_TIMEOUT: the number of simulateously active
    timeouts. */
-#define MEMP_NUM_SYS_TIMEOUT    17
+#define MEMP_NUM_SYS_TIMEOUT    8
 
 /* The following four are used only with the sequential API and can be
    set to 0 if the application only will use the raw API. */
-/* MEMP_NUM_NETBUF: the number of struct netbufs. */
-#define MEMP_NUM_NETBUF         128
-/* MEMP_NUM_NETCONN: the number of struct netconns. */
-#define MEMP_NUM_NETCONN        10
+/* MEMP_NUM_NETBUF: the number of struct netbufs. OPTIMIZED: 16 → 8 */
+#define MEMP_NUM_NETBUF         8
+/* MEMP_NUM_NETCONN: the number of struct netconns. OPTIMIZED: 4 → 2 */
+#define MEMP_NUM_NETCONN        2
 /* MEMP_NUM_TCPIP_MSG_*: the number of struct tcpip_msg, which is used
    for sequential API communication and incoming packets. Used in
-   src/api/tcpip.c. */
-#define MEMP_NUM_TCPIP_MSG_API   128
-#define MEMP_NUM_TCPIP_MSG_INPKT 128
+   src/api/tcpip.c. OPTIMIZED: 16 → 8 */
+#define MEMP_NUM_TCPIP_MSG_API   8
+#define MEMP_NUM_TCPIP_MSG_INPKT 8
 
 /* Debug checks - will impact throughput if enabled */
 #define MEMP_OVERFLOW_CHECK      (0)
@@ -241,26 +246,26 @@ extern "C"
 /* TCP Maximum segment size. */
 #define TCP_MSS                 1460
 
-/* TCP sender buffer space (bytes). */
-#define TCP_SND_BUF             (16 * TCP_MSS)
+/* TCP sender buffer space (bytes). OPTIMIZED: 16 → 8 */
+#define TCP_SND_BUF             (8 * TCP_MSS)
 
 /* TCP sender buffer space (pbufs). This must be at least = 2 *
-   TCP_SND_BUF/TCP_MSS for things to work. */
-#define TCP_SND_QUEUELEN       (8 * TCP_SND_BUF/TCP_MSS)
+   TCP_SND_BUF/TCP_MSS for things to work. OPTIMIZED: 8 → 4 */
+#define TCP_SND_QUEUELEN       (4 * TCP_SND_BUF/TCP_MSS)
 
 /* TCP writable space (bytes). This must be less than or equal
    to TCP_SND_BUF. It is the amount of space which must be
    available in the tcp snd_buf for select to return writable */
 #define TCP_SNDLOWAT           (TCP_SND_BUF/2)
 
-/* TCP receive window. */
-#define TCP_WND                 (TCP_SND_BUF)
+/* TCP receive window. OPTIMIZED: TCP_SND_BUF → 4 * TCP_MSS */
+#define TCP_WND                 (4 * TCP_MSS)
 
-/* Maximum number of retransmissions of data segments. */
-#define TCP_MAXRTX              12
+/* Maximum number of retransmissions of data segments. OPTIMIZED: 12 → 6 */
+#define TCP_MAXRTX              6
 
-/* Maximum number of retransmissions of SYN segments. */
-#define TCP_SYNMAXRTX           4
+/* Maximum number of retransmissions of SYN segments. OPTIMIZED: 4 → 2 */
+#define TCP_SYNMAXRTX           2
 
 #define DEFAULT_THREAD_STACKSIZE    (5 * 1024)
 #define TCPIP_THREAD_STACKSIZE      (8 * 1024)
@@ -268,9 +273,10 @@ extern "C"
 //#define LWIP_FREERTOS_THREAD_STACKSIZE_IS_STACKWORDS (1)
 
 /* ---------- ARP options ---------- */
+/* OPTIMIZED: Disable ARP features for embedded xGW (saves ~10KB code) */
 #define LWIP_ARP                1
-#define ARP_TABLE_SIZE          10
-#define ARP_QUEUEING            1
+#define ARP_TABLE_SIZE          5
+#define ARP_QUEUEING            0
 
 
 /* ---------- IP options ---------- */
@@ -320,8 +326,9 @@ extern "C"
 
 /* ---------- Statistics options ---------- */
 
-#define LWIP_STATS              1
-#define LWIP_STATS_DISPLAY      1
+/* OPTIMIZED: Disabled statistics to save ~20-30KB memory */
+#define LWIP_STATS              0
+#define LWIP_STATS_DISPLAY      0
 
 #if LWIP_STATS
 #define LINK_STATS              1

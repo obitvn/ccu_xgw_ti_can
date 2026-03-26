@@ -64,31 +64,8 @@
 #include "lwip/etharp.h"
 #include "netif/ethernet.h"
 
-/* applications includes */
-#include "lwip/apps/netbiosns.h"
-#include "lwip/apps/httpd.h"
-#include "apps/httpserver/httpserver-netconn.h"
-#include "apps/netio/netio.h"
-#include "apps/ping/ping.h"
-#include "apps/rtp/rtp.h"
-#include "apps/chargen/chargen.h"
-#include "apps/shell/shell.h"
-#include "apps/tcpecho/tcpecho.h"
-#include "apps/udpecho/udpecho.h"
-#include "apps/tcpecho_raw/tcpecho_raw.h"
-#include "apps/socket_examples/socket_examples.h"
-
-#include "examples/lwiperf/lwiperf_example.h"
-#include "examples/mdns/mdns_example.h"
-#include "examples/snmp/snmp_example.h"
-#include "examples/tftp/tftp_example.h"
-#include "examples/sntp/sntp_example.h"
-#include "examples/mqtt/mqtt_example.h"
-#include "udp_iperf.h"
-
-#include "examples/httpd/cgi_example/cgi_example.h"
-#include "examples/httpd/fs_example/fs_example.h"
-#include "examples/httpd/ssi_example/ssi_example.h"
+/* applications includes - REMOVED: All unused lwIP apps for xGW project
+ * NetBIOS, HTTP, NetIO, Ping, RTP, Chargen, Shell, Echo, etc. not needed */
 
 #if NO_SYS
 /* ... then we need information about the timer intervals: */

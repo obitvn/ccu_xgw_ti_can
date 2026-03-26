@@ -24,6 +24,7 @@
 #include "log_reader_task.h"
 #include "enet/xgw_udp_interface.h"
 #include "lwip/tcpip.h"
+#include "test_enet_lwip.h"
 
 /* Core ID definitions from CSL */
 #ifndef CSL_CORE_ID_R5FSS0_0
@@ -43,11 +44,11 @@
 #define UDP_RX_TASK_PRI       (configMAX_PRIORITIES - 3)
 #define IPC_TASK_PRI          (configMAX_PRIORITIES - 2)
 
-#define MAIN_TASK_SIZE        (8192U/sizeof(configSTACK_DEPTH_TYPE))
-#define ENET_LWIP_TASK_SIZE   (4096U/sizeof(configSTACK_DEPTH_TYPE))
-#define UDP_TX_TASK_SIZE      (4096U/sizeof(configSTACK_DEPTH_TYPE))
-#define UDP_RX_TASK_SIZE      (4096U/sizeof(configSTACK_DEPTH_TYPE))
-#define IPC_TASK_SIZE         (2048U/sizeof(configSTACK_DEPTH_TYPE))
+#define MAIN_TASK_SIZE        (4096U/sizeof(configSTACK_DEPTH_TYPE))
+#define ENET_LWIP_TASK_SIZE   (2048U/sizeof(configSTACK_DEPTH_TYPE))
+#define UDP_TX_TASK_SIZE      (2048U/sizeof(configSTACK_DEPTH_TYPE))
+#define UDP_RX_TASK_SIZE      (2048U/sizeof(configSTACK_DEPTH_TYPE))
+#define IPC_TASK_SIZE         (1024U/sizeof(configSTACK_DEPTH_TYPE))
 
 #define UDP_TX_PERIOD_MS      2   /* 1000 Hz */
 #define UDP_RX_PORT           61904  /* Motor commands from PC */
@@ -601,43 +602,22 @@ static void lwip_init_callback(void *arg)
 /**
  * @brief Wrapper task for lwIP initialization
  *
- * This task calls tcpip_init() which creates the tcpip thread and waits
- * for initialization to complete. Follows the pattern from ccu_ti.
+ * This task calls enet_lwip_example() which:
+ * 1. Initializes ENET driver (CPSW)
+ * 2. Initializes PHY and waits for link
+ * 3. Calls main_loop() which never returns
+ *
+ * Follows the pattern from ccu_ti working version.
  */
 static void enet_lwip_task_wrapper(void *args)
 {
     (void)args;
-    err_t err;
-    sys_sem_t init_sem;
 
-    DebugP_log("[Core0] Starting lwIP initialization...\r\n");
+    DebugP_log("[Core0] Starting ENET + lwIP initialization...\r\n");
 
-    /* Create semaphore for tcpip_init completion */
-    err = sys_sem_new(&init_sem, 0);
-    if (err != ERR_OK) {
-        DebugP_log("[Core0] ERROR: Failed to create init semaphore!\r\n");
-        vTaskDelete(NULL);
-        return;
-    }
-
-    /* Initialize lwIP stack - this creates the tcpip thread */
-    /* lwip_init_callback will be called when tcpip thread is ready */
-    tcpip_init(lwip_init_callback, &init_sem);
-
-    /* Wait for tcpip_init to complete */
-    sys_sem_wait(&init_sem);
-    sys_sem_free(&init_sem);
-
-    DebugP_log("[Core0] lwIP initialization complete\r\n");
-
-    /* TODO: Initialize Ethernet driver (CPSW) */
-    /* TODO: Configure IP address */
-
-    /* TODO: Main loop for Ethernet driver polling */
-    /* For now, just keep task alive */
-    while (1) {
-        vTaskDelay(pdMS_TO_TICKS(1000));
-    }
+    /* This function initializes ENET driver, PHY, and calls main_loop() */
+    /* It will never return */
+    enet_lwip_example(NULL);
 
     /* Should never reach here */
     vTaskDelete(NULL);

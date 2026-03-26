@@ -34,7 +34,18 @@
       "Bash(dir \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\ccu_ti_mutilcore\\\\ccu_ti_multi_core_realtime\\\\Debug\\\\*.out\")",
       "Bash(find D:VinDynamicsProjectCCU_TI_RS485_CAN2.Firmwareccu_ti_mutilcoreccu_ti_multi_core_realtimeDebug -name *.map -type f)",
       "Read(//c/ti/mcu_plus_sdk_am263px_11_01_00_19/source/**)",
-      "Bash(2)"
+      "Bash(2)",
+      "Bash(find C:/ti/mcu_plus_sdk_am263px_11_01_00_19/source/networking/enet/core/examples -name *.c -exec grep -l main_loop {})",
+      "Bash(find D:VinDynamicsProjectCCU_TI_RS485_CAN2.Firmwareccu_ti_mutilcoreccu_ti_multi_core_freertos -name *.h -exec grep -l \"test_enet\\\\|udp_iperf\" {})",
+      "Bash(grep -i .h$)",
+      "Bash(find D:VinDynamicsProjectCCU_TI_RS485_CAN2.Firmwaredraftccu_ti -name *.h -exec basename {})",
+      "Bash(grep -E .o$ D:VinDynamicsProjectCCU_TI_RS485_CAN2.Firmwaredraftccu_tiDebugmakefile)",
+      "Bash(find D:VinDynamicsProjectCCU_TI_RS485_CAN2.Firmwaredraftccu_ti -name *.h -exec grep -l typedef.*Enet_Type {})",
+      "Bash(grep -r typedef.*Enet_Type D:VinDynamicsProjectCCU_TI_RS485_CAN2.Firmwaredraftmcu_plus_sdk_am263px_11_01_00_19sourcenetworkingenetcoreinclude)",
+      "Bash(find D:VinDynamicsProjectCCU_TI_RS485_CAN2.Firmwareccu_ti_mutilcore -name *.map -type f)",
+      "Bash(sort -k2 -r)",
+      "Bash(grep -E \"\\\\.bss.*0x[0-9a-f]{8}\\\\s+[0-9a-f]{4,}\" \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\ccu_ti_mutilcore\\\\ccu_ti_multi_core_freertos\\\\Debug\\\\ipc_spinlock_sharedmem.Debug.map\")",
+      "Bash(sort -t' ' -k3 -rn)"
     ]
   }
 }

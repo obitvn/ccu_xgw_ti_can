@@ -121,4 +121,5 @@ SUBDIRS := \
 . \
 common \
 enet \
+extPhyMgmt \
 

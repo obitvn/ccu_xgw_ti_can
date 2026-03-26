@@ -1,9 +1,10 @@
 # Nhật ký Dự án: CCU Multicore Gateway IPC
 
 ## 1. Thông tin chung
-- **Ngày cập nhật:** 2026-03-23 10:00
-- **Trạng thái:** ✅ BIDIRECTIONAL SHARED MEMORY HOÀN THÀNH!
+- **Ngày cập nhật:** 2026-03-26 16:00
+- **Trạng thái:** ✅ LOCK-FREE RING BUFFER IPC HOÀN THÀNH!
 - **Cấu hình phần cứng:** AM263Px LaunchPad (R5FSS0-0 FreeRTOS, R5FSS0-1 NoRTOS).
+- **Shared Memory:** 32KB (0x701D0000)
 
 ## 2. TỔNG KẾT THÀNH TÍCH 🎉
 
@@ -241,22 +242,74 @@ BANK2 (0x70100000-0x70140000): ENET_CPPI_DESC (256KB)
 3. ⏳ Rebuild both projects in CCS
 4. ⏳ Test both cores running
 
-## 10. NEXT STEPS
+## 10. LOCK-FREE RING BUFFER IPC (2026-03-26)
+
+### ✅ Kiến trúc Lock-free Circular FIFO
+**Phiên bản:** 4.0.0 - Lock-free Ring Buffer
+
+**Đặc điểm:**
+- **Non-blocking**: Producer/Consumer không chờ đợi (không dùng mutex/spinlock)
+- **Cache Line Alignment**: 32-byte cho mỗi control variable (tránh false sharing)
+- **Memory Barriers**: Inline assembly ARM `dmb/dsb` cho Cortex-R5F
+- **Dual Unidirectional Ring Buffers**: 2 channel độc lập
+
+### Memory Layout:
+```
+Shared Memory: 32KB (0x701D0000)
+├── RingBuf 0→1: 8KB (Core0 Producer → Core1 Consumer)
+├── RingBuf 1→0: 8KB (Core1 Producer → Core0 Consumer)
+├── Legacy Buffers: ~200 bytes (backward compatibility)
+└── IMU, Stats, Diagnostics: ~300 bytes
+```
+
+### Test Results:
+```
+✅ Core 0 → Core 1: seq=0,1,2,3... [1,2,3,4,5,6,7,8]
+✅ Core 1 → Core 0: seq=0,1,2,3... [10,20,30,40,50,60,70,80]
+✅ No data corruption
+✅ Sequence numbers increment correctly
+```
+
+### Files Modified:
+- `gateway_shared.h`: Added lock-free ring buffer structures and API
+- `gateway_shared.c`: Implemented ring buffer read/write with memory barriers
+- `ccu_ti_multi_core_freertos/main.c`: Updated test code for ring buffer
+- `ccu_ti_multi_core_realtime/main.c`: Updated test code for ring buffer
+
+## 11. KNOWN ISSUES
+
+### ✅ Ethernet/UDP Not Working - FIXED (2026-03-26)
+- **Root Cause:** `enet_lwip_task_wrapper()` was missing CPSW driver initialization
+- **Previous Code:**
+  ```c
+  tcpip_init(lwip_init_callback, &init_sem);
+  sys_sem_wait(&init_sem);
+  // TODO: Initialize Ethernet driver (CPSW)  ← NOT DONE!
+  while (1) { vTaskDelay(1000); }  ← No actual Ethernet processing
+  ```
+- **Fixed Code (following ccu_ti pattern):**
+  ```c
+  enet_lwip_example(NULL);  // Initializes CPSW, PHY, and calls main_loop()
+  ```
+- **Changes Made:**
+  1. Added `#include "test_enet_lwip.h"` to main.c
+  2. Modified `enet_lwip_task_wrapper()` to call `enet_lwip_example()`
+  3. Copied SDK test.c and modified `test_init()` to call `xgw_udp_start()`
+  4. Updated build files to include test.c
+
+### ⚠️ Ethernet Status - NEEDS TESTING
+- **Next Steps:**
+  - Rebuild project in CCS
+  - Test with Wireshark to verify UDP traffic
+  - Verify PHY link status in logs
+
+## 12. NEXT STEPS
 1. ✅ IPC communication - DONE
 2. ✅ Shared memory test - DONE
-3. ⏳ CAN interface integration
-4. ✅ UDP/Ethernet integration - DONE (2026-03-24)
-5. ✅ Memory map fix - DONE (2026-03-25)
-   - Files added:
-     - `ccu_ti_multi_core_freertos/enet/xgw_udp_interface.h`
-     - `ccu_ti_multi_core_freertos/enet/xgw_udp_interface.c`
-     - `ccu_ti_multi_core_freertos/common/xgw_protocol.h`
-     - `ccu_ti_multi_core_freertos/common/xgw_protocol.c`
-     - `ccu_ti_multi_core_freertos/common/crc32.h`
-     - `ccu_ti_multi_core_freertos/common/crc32.c`
-     - `ccu_ti_multi_core_freertos/lwipcfg.h`
-     - `ccu_ti_multi_core_freertos/lwipopts.h`
-     - `ccu_ti_multi_core_freertos/lwippools.h`
-   - Need to rebuild in CCS and test
-5. ⏳ Motor command/state protocol implementation
-6. ✅ IMU interface porting - DONE (2026-03-24)
+3. ✅ Lock-free ring buffer - DONE (2026-03-26)
+4. ✅ Memory map fix - DONE (2026-03-25)
+5. ✅ UDP/Ethernet interface code - DONE (2026-03-24)
+6. ⏳ **ETHernet/UDP troubleshooting - IN PROGRESS**
+7. ⏳ CAN interface integration
+8. ⏳ Motor command/state protocol implementation
+9. ✅ IMU interface porting - DONE (2026-03-24)

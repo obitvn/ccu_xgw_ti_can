@@ -27,7 +27,8 @@ C_SRCS += \
 ../gateway_shared.c \
 ../ipc_spinlock_sharedmem.c \
 ../log_reader_task.c \
-../main.c 
+../main.c \
+../test.c 
 
 GEN_CMDS += \
 ./syscfg/linker.cmd 
@@ -71,7 +72,8 @@ C_DEPS += \
 ./gateway_shared.d \
 ./ipc_spinlock_sharedmem.d \
 ./log_reader_task.d \
-./main.d 
+./main.d \
+./test.d 
 
 OBJS += \
 ./syscfg/ti_dpl_config.o \
@@ -92,7 +94,8 @@ OBJS += \
 ./gateway_shared.o \
 ./ipc_spinlock_sharedmem.o \
 ./log_reader_task.o \
-./main.o 
+./main.o \
+./test.o 
 
 GEN_MISC_FILES += \
 ./syscfg/ti_dpl_config.h \
@@ -130,7 +133,8 @@ OBJS__QUOTED += \
 "gateway_shared.o" \
 "ipc_spinlock_sharedmem.o" \
 "log_reader_task.o" \
-"main.o" 
+"main.o" \
+"test.o" 
 
 GEN_MISC_FILES__QUOTED += \
 "syscfg\ti_dpl_config.h" \
@@ -165,7 +169,8 @@ C_DEPS__QUOTED += \
 "gateway_shared.d" \
 "ipc_spinlock_sharedmem.d" \
 "log_reader_task.d" \
-"main.d" 
+"main.d" \
+"test.d" 
 
 GEN_FILES__QUOTED += \
 "syscfg\ti_dpl_config.c" \
@@ -206,6 +211,7 @@ C_SRCS__QUOTED += \
 "../gateway_shared.c" \
 "../ipc_spinlock_sharedmem.c" \
 "../log_reader_task.c" \
-"../main.c" 
+"../main.c" \
+"../test.c" 
 
 

@@ -58,14 +58,14 @@
 #define LWIP_SNTP_APP                 0
 
 #define LWIP_SOCKET_EXAMPLES_APP      0
-#define LWIP_TCPECHO_APP              1
+#define LWIP_TCPECHO_APP              0
 #define LWIP_TCPECHO_APP_NETCONN	  0
 /* Set this to 1 to use the netconn tcpecho server,
  * otherwise the raw api server will be used. */
 /*#define LWIP_TCPECHO_APP_NETCONN   */
 #define LWIP_TFTP_APP                 0
 #define LWIP_UDPECHO_APP              0
-#define LWIP_LWIPERF_APP              1
+#define LWIP_LWIPERF_APP              0
 
 //Experimental port
 // MEMORY FIX: Disabled UDP iperf to free 283KB RAM (crash at 96% OCRAM usage)
