@@ -45,7 +45,7 @@
 #define IPC_TASK_PRI          (configMAX_PRIORITIES - 2)
 
 #define MAIN_TASK_SIZE        (4096U/sizeof(configSTACK_DEPTH_TYPE))
-#define ENET_LWIP_TASK_SIZE   (2048U/sizeof(configSTACK_DEPTH_TYPE))
+#define ENET_LWIP_TASK_SIZE   (16384U/sizeof(configSTACK_DEPTH_TYPE))  /* Increased from 2KB to 16KB to prevent stack overflow */
 #define UDP_TX_TASK_SIZE      (2048U/sizeof(configSTACK_DEPTH_TYPE))
 #define UDP_RX_TASK_SIZE      (2048U/sizeof(configSTACK_DEPTH_TYPE))
 #define IPC_TASK_SIZE         (1024U/sizeof(configSTACK_DEPTH_TYPE))

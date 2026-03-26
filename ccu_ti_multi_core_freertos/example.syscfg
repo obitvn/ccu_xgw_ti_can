@@ -22,6 +22,7 @@ const mpu_armv74      = mpu_armv7.addInstance();
 const mpu_armv75      = mpu_armv7.addInstance();
 const mpu_armv76      = mpu_armv7.addInstance();
 const mpu_armv77      = mpu_armv7.addInstance();
+const mpu_armv78      = mpu_armv7.addInstance();
 const default_linker  = scripting.addModule("/memory_configurator/default_linker", {}, false);
 const default_linker1 = default_linker.addInstance();
 const general         = scripting.addModule("/memory_configurator/general", {}, false);
@@ -41,6 +42,7 @@ const section9        = section.addInstance();
 const section10       = section.addInstance();
 const section11       = section.addInstance();
 const section12       = section.addInstance();
+const section13       = section.addInstance();
 const enet_cpsw       = scripting.addModule("/networking/enet_cpsw/enet_cpsw", {}, false);
 const enet_cpsw1      = enet_cpsw.addInstance();
 
@@ -109,6 +111,12 @@ mpu_armv77.allowExecute = false;
 mpu_armv77.size         = 16;
 mpu_armv77.attributes   = "NonCached";
 
+mpu_armv78.$name        = "CONFIG_MPU_REGION7";
+mpu_armv78.baseAddr     = 0x70240000;
+mpu_armv78.allowExecute = false;
+mpu_armv78.size         = 18;
+mpu_armv78.attributes   = "NonCached";
+
 default_linker1.$name = "memory_configurator_default_linker0";
 
 general1.$name        = "CONFIG_GENERAL0";
@@ -175,8 +183,8 @@ region1.memory_region[10].isShared           = true;
 region1.memory_region[10].shared_cores       = ["r5fss1-0","r5fss1-1"];
 region1.memory_region[11].$name              = "ENET_CPPI_DESC";
 region1.memory_region[11].auto               = false;
-region1.memory_region[11].manualStartAddress = 0x70210000;
-region1.memory_region[11].size               = 0x20000;
+region1.memory_region[11].manualStartAddress = 0x70240000;
+region1.memory_region[11].size               = 0x40000;
 
 section1.load_memory                  = "R5F_VECS";
 section1.group                        = false;
@@ -303,6 +311,15 @@ section12.type                        = "NOLOAD";
 section12.output_section.create(1);
 section12.output_section[0].$name     = ".bss.sipc_secure_host_queue_mem";
 section12.output_section[0].alignment = 0;
+
+/* Section 13: ENET CPPI DMA descriptors - must be in non-cached memory */
+section13.load_memory                 = "ENET_CPPI_DESC";
+section13.type                        = "NOLOAD";
+section13.$name                       = "ENET CPPI Descriptors";
+section13.group                       = false;
+section13.output_section.create(1);
+section13.output_section[0].$name     = ".bss:ENET_CPPI_DESC";
+section13.output_section[0].alignment = 0;
 
 enet_cpsw1.$name                              = "CONFIG_ENET_CPSW0";
 enet_cpsw1.BoardType                          = "am263px-lp";

@@ -87,7 +87,7 @@ const CacheP_Config gCacheConfig RODATA_CFG_SECTION = {
 };
 
 /* ----------- MpuP_armv7 ----------- */
-#define CONFIG_MPU_NUM_REGIONS  (7u)
+#define CONFIG_MPU_NUM_REGIONS  (8u)
 
 const MpuP_Config gMpuConfig RODATA_CFG_SECTION = {
     .numRegions = CONFIG_MPU_NUM_REGIONS,
@@ -184,6 +184,20 @@ const MpuP_RegionConfig gMpuRegionConfig[CONFIG_MPU_NUM_REGIONS] RODATA_CFG_SECT
     {
         .baseAddr = 0x701D0000u,
         .size = MpuP_RegionSize_64K,
+        .attrs = {
+            .isEnable = 1,
+            .isCacheable = 0,
+            .isBufferable = 0,
+            .isSharable = 1,
+            .isExecuteNever = 1,
+            .tex = 1,
+            .accessPerm = MpuP_AP_ALL_RW,
+            .subregionDisableMask = 0x0u
+        },
+    },
+    {
+        .baseAddr = 0x70240000u,
+        .size = MpuP_RegionSize_256K,
         .attrs = {
             .isEnable = 1,
             .isCacheable = 0,

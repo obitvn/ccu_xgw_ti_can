@@ -45,7 +45,12 @@
       "Bash(find D:VinDynamicsProjectCCU_TI_RS485_CAN2.Firmwareccu_ti_mutilcore -name *.map -type f)",
       "Bash(sort -k2 -r)",
       "Bash(grep -E \"\\\\.bss.*0x[0-9a-f]{8}\\\\s+[0-9a-f]{4,}\" \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\ccu_ti_mutilcore\\\\ccu_ti_multi_core_freertos\\\\Debug\\\\ipc_spinlock_sharedmem.Debug.map\")",
-      "Bash(sort -t' ' -k3 -rn)"
+      "Bash(sort -t' ' -k3 -rn)",
+      "Bash(\"C:/ti/ccs1270/ccs/eclipse/plugins/com.ti.ccstudio.apps.mcudesktop_1.3.0/win/x64_64/ticlang-arm64/sysconfig_cmd/windows/sysconfig_cli.bat\" --product \"MCU_PLUS_SDK_AM263Px@11.01.00\" --device \"AM263Px\" --part \"AM263P4\" --package \"ZCZ_C\" --context \"r5fss0-0\" example.syscfg)",
+      "Bash(cmd.exe /c \"C:\\\\ti\\\\ccs2031\\\\ccs\\\\utils\\\\sysconfig_1.26.0\\\\sysconfig_cli.bat\" --product \"MCU_PLUS_SDK_AM263Px@11.01.00\" --device \"AM263Px\" --part \"AM263P4\" --package \"ZCZ_C\" --context \"r5fss0-0\" example.syscfg)",
+      "Bash(cmd.exe /c \"C:\\\\ti\\\\ccs2031\\\\ccs\\\\utils\\\\sysconfig_1.26.0\\\\sysconfig_cli.bat\" -s example.syscfg -o Debug/syscfg)",
+      "Bash(find /c/ti/ccs2031 -name *.exe -path */node/*)",
+      "Bash(/c/ti/ccs2031/ccs/tools/node/node.exe /c/ti/ccs2031/ccs/utils/sysconfig_1.26.0/sysconfig_cli.js --product \"MCU_PLUS_SDK_AM263Px@11.01.00\" --device \"AM263Px\" --part \"AM263P4\" --package \"ZCZ_C\" --context \"r5fss0-0\" -s example.syscfg -o Debug/syscfg)"
     ]
   }
 }
