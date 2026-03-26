@@ -1,7 +1,7 @@
 ******************************************************************************
             TI ARM Clang Linker PC v4.0.4                      
 ******************************************************************************
->> Linked Wed Mar 25 16:16:18 2026
+>> Linked Thu Mar 26 09:36:48 2026
 
 OUTPUT FILE NAME:   <ccu_ti_multi_core_realtime.out>
 ENTRY POINT SYMBOL: "_vectors"  address: 00000000
@@ -17,7 +17,7 @@ MEMORY CONFIGURATION
   MAILBOX_HSM           44000000   000003ce  00000000  000003ce  RWIX
   MAILBOX_R5F           44000400   000003ce  00000000  000003ce  RWIX
   FLASH                 60180000   00080000  00000000  00080000  RWIX
-  OCRAM                 70040000   00040000  00014630  0002b9d0  RWIX
+  OCRAM                 70040000   00040000  00014638  0002b9c8  RWIX
   USER_SHM_MEM          701d0000   00004000  000001c0  00003e40  RWIX
   LOG_SHM_MEM           701d4000   00004000  00002000  00002000  RWIX
   RTOS_NORTOS_IPC_SHM_M 72000000   00003e80  00000000  00003e80  RWIX
@@ -29,25 +29,25 @@ run origin  load origin   length   init length attrs members
 ----------  ----------- ---------- ----------- ----- -------
 00000000    00000000    00000040   00000040    r-x
   00000000    00000000    00000040   00000040    r-x .vectors
-70040000    70040000    0000cad8   0000cad8    r-x
+70040000    70040000    0000cae0   0000cae0    r-x
   70040000    70040000    0000b5f0   0000b5f0    r-x .text
-  7004b5f0    7004b5f0    000014e8   000014e8    r-- .rodata
-7004cad8    7004cad8    00004c38   00000000    rw-
-  7004cad8    7004cad8    00000c38   00000000    rw- .bss
-  7004d710    7004d710    00004000   00000000    rw- .stack
-70051710    70051710    00001878   00001878    r-x
-  70051710    70051710    00000e50   00000e50    r-x .text.hwi
-  70052560    70052560    000004a0   000004a0    r-x .text.cache
-  70052a00    70052a00    000003c0   000003c0    r-x .text.mpu
-  70052dc0    70052dc0    000001c0   000001c0    r-x .text.boot
-  70052f80    70052f80    00000008   00000008    r-x .text:abort
-70052f88    70052f88    000016a8   000002a8    rw-
-  70052f88    70052f88    000002a8   000002a8    rw- .data
-  70053230    70053230    00000100   00000000    rw- .irqstack
-  70053330    70053330    00000100   00000000    rw- .fiqstack
-  70053430    70053430    00001000   00000000    rw- .svcstack
-  70054430    70054430    00000100   00000000    rw- .abortstack
-  70054530    70054530    00000100   00000000    rw- .undefinedstack
+  7004b5f0    7004b5f0    000014f0   000014f0    r-- .rodata
+7004cae0    7004cae0    00004c38   00000000    rw-
+  7004cae0    7004cae0    00000c38   00000000    rw- .bss
+  7004d718    7004d718    00004000   00000000    rw- .stack
+70051720    70051720    00001878   00001878    r-x
+  70051720    70051720    00000e50   00000e50    r-x .text.hwi
+  70052570    70052570    000004a0   000004a0    r-x .text.cache
+  70052a10    70052a10    000003c0   000003c0    r-x .text.mpu
+  70052dd0    70052dd0    000001c0   000001c0    r-x .text.boot
+  70052f90    70052f90    00000008   00000008    r-x .text:abort
+70052f98    70052f98    000016a8   000002a8    rw-
+  70052f98    70052f98    000002a8   000002a8    rw- .data
+  70053240    70053240    00000100   00000000    rw- .irqstack
+  70053340    70053340    00000100   00000000    rw- .fiqstack
+  70053440    70053440    00001000   00000000    rw- .svcstack
+  70054440    70054440    00000100   00000000    rw- .abortstack
+  70054540    70054540    00000100   00000000    rw- .undefinedstack
 
 
 SECTION ALLOCATION MAP
@@ -592,7 +592,7 @@ section   page    origin      length       input sections
                   7004b5e0    00000002     nortos.am263px.r5f.ti-arm-clang.debug.lib : TaskP_nortos.obj (.text.TaskP_yield)
                   7004b5e2    0000000e     --HOLE-- [fill = 0]
 
-.rodata    0    7004b5f0    000014e8     
+.rodata    0    7004b5f0    000014f0     
                   7004b5f0    00000084     ti_dpl_config.o (.rodata.cfg)
                   7004b674    00000004     nortos.am263px.r5f.ti-arm-clang.debug.lib : CacheP_armv7r.obj (.rodata.gCacheL1dCacheLineSize)
                   7004b678    00000050                                               : printf.obj (.rodata._ftoa.pow10)
@@ -643,258 +643,259 @@ section   page    origin      length       input sections
                   7004c012    0000002b     main.o (.rodata.str1.18227636981041470289.1)
                   7004c03d    0000002a     gateway_shared.o (.rodata.str1.17046880449980016103.1)
                   7004c067    0000002a     nortos.am263px.r5f.ti-arm-clang.debug.lib : DebugP_log.obj (.rodata.str1.227947788441500939.1)
-                  7004c091    0000002a     dispatcher_timer.o (.rodata.str1.8393228718863617781.1)
-                  7004c0bb    00000029     main.o (.rodata.str1.14402440632258215044.1)
-                  7004c0e4    00000029     main.o (.rodata.str1.18092426736022315238.1)
-                  7004c10d    00000028     dispatcher_timer.o (.rodata.str1.13215161723794722244.1)
-                  7004c135    00000028     main.o (.rodata.str1.15159059442110792349.1)
-                  7004c15d    00000027     nortos.am263px.r5f.ti-arm-clang.debug.lib : ClockP_nortos_r5.obj (.rodata.str1.12743090444791882666.1)
-                  7004c184    00000027     main.o (.rodata.str1.7996925722583989644.1)
-                  7004c1ab    00000026     gateway_shared.o (.rodata.str1.5327546541240122901.1)
-                  7004c1d1    00000026     gateway_shared.o (.rodata.str1.5761821093615868877.1)
-                  7004c1f7    00000025     main.o (.rodata.str1.2563708670032483588.1)
-                  7004c21c    00000024     main.o (.rodata.str1.14466178792657420020.1)
-                  7004c240    00000024     can_interface.o (.rodata.str1.14695538922052102695.1)
-                  7004c264    00000024     can_interface.o (.rodata.str1.17857559882412085052.1)
-                  7004c288    00000023     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : soc_rcm.obj (.rodata.str1.2078190104202520215.1)
-                  7004c2ab    00000023     main.o (.rodata.str1.2846389346932560359.1)
-                  7004c2ce    00000023     nortos.am263px.r5f.ti-arm-clang.debug.lib : ClockP_nortos_r5.obj (.rodata.str1.7689125538912326484.1)
-                  7004c2f1    00000022     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : edma.obj (.rodata.str1.12976018205622752890.1)
-                  7004c313    00000021     nortos.am263px.r5f.ti-arm-clang.debug.lib : ClockP_nortos_r5.obj (.rodata.str1.8559540482768925367.1)
-                  7004c334    00000020     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : mcan.obj (.rodata.gMsgObjSize)
-                  7004c354    00000020     can_interface.o (.rodata.g_mcan_base_addr)
-                  7004c374    00000020     can_interface.o (.rodata.g_mcan_intr_num)
-                  7004c394    00000020     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : uart_v0.obj (.rodata.str1.16594507886308206351.1)
-                  7004c3b4    00000020                                                       : ipc_notify_v1.obj (.rodata.str1.2046905611612007019.1)
-                  7004c3d4    0000001f     nortos.am263px.r5f.ti-arm-clang.debug.lib : ClockP_nortos_r5.obj (.rodata.str1.2746619892315392655.1)
-                  7004c3f3    0000001f     dispatcher_timer.o (.rodata.str1.5724006426700065890.1)
-                  7004c412    0000001e     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : ipc_notify_v1.obj (.rodata.str1.16593710740832512674.1)
-                  7004c430    0000001e                                                       : ipc_notify_v1.obj (.rodata.str1.9050127465416171240.1)
-                  7004c44e    0000001d     nortos.am263px.r5f.ti-arm-clang.debug.lib : TimerP_rti_priv.obj (.rodata.str1.1727973701797049581.1)
-                  7004c46b    0000001d                                               : TimerP_rti_priv.obj (.rodata.str1.4425773406285945039.1)
-                  7004c488    0000001d     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : uart_v0.obj (.rodata.str1.4697665093340446018.1)
-                  7004c4a5    0000001d     nortos.am263px.r5f.ti-arm-clang.debug.lib : TimerP_rti_priv.obj (.rodata.str1.7297095892955669843.1)
-                  7004c4c2    0000001b     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : edma.obj (.rodata.str1.16672221102796607080.1)
-                  7004c4dd    0000001b     ti_drivers_config.o (.rodata.str1.7767457247551078139.1)
-                  7004c4f8    0000001a     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : soc_rcm.obj (.rodata.str1.16907879152045164286.1)
-                  7004c512    0000001a     main.o (.rodata.str1.2763581881760962609.1)
-                  7004c52c    0000001a     main.o (.rodata.str1.288608917962107522.1)
-                  7004c546    0000001a     nortos.am263px.r5f.ti-arm-clang.debug.lib : ClockP_nortos_r5.obj (.rodata.str1.3810757863367538396.1)
-                  7004c560    00000019     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : ipc_notify_v1.obj (.rodata.str1.12253177398743541182.1)
-                  7004c579    00000019     nortos.am263px.r5f.ti-arm-clang.debug.lib : TimerP_rti_priv.obj (.rodata.str1.5494506574634759136.1)
-                  7004c592    00000019     main.o (.rodata.str1.7784929982665794503.1)
-                  7004c5ab    00000001     --HOLE-- [fill = 0]
-                  7004c5ac    00000018     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : soc_rcm.obj (.rodata.gControlssPllClkSrcValMap)
-                  7004c5c4    00000018                                                       : soc_rcm.obj (.rodata.gCptsClkSrcValMap)
-                  7004c5dc    00000018                                                       : soc_rcm.obj (.rodata.gI2cClkSrcValMap)
-                  7004c5f4    00000018                                                       : soc_rcm.obj (.rodata.gIcssmUartClkSrcValMap)
-                  7004c60c    00000018                                                       : soc_rcm.obj (.rodata.gLinUartClkSrcValMap)
-                  7004c624    00000018                                                       : soc_rcm.obj (.rodata.gMcSpiClkSrcValMap)
-                  7004c63c    00000018                                                       : soc_rcm.obj (.rodata.gMcanClkSrcValMap)
-                  7004c654    00000018                                                       : soc_rcm.obj (.rodata.gMmcClkSrcValMap)
-                  7004c66c    00000018                                                       : soc_rcm.obj (.rodata.gOspiClkSrcValMap)
-                  7004c684    00000018                                                       : soc_rcm.obj (.rodata.gPeripheralClkSrcInfoMap)
-                  7004c69c    00000018                                                       : soc_rcm.obj (.rodata.gRtiClkSrcValMap)
-                  7004c6b4    00000018                                                       : soc_rcm.obj (.rodata.gWdtClkSrcValMap)
-                  7004c6cc    00000018                                                       : uart_v0.obj (.rodata.str1.16507871919775359273.1)
-                  7004c6e4    00000018     ti_drivers_config.o (.rodata.str1.2211846465855763212.1)
-                  7004c6fc    00000017     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : soc_rcm.obj (.rodata.str1.1263028196474875090.1)
-                  7004c713    00000016                                                       : soc_rcm.obj (.rodata.str1.15837709475095375462.1)
-                  7004c729    00000016                                                       : soc_rcm.obj (.rodata.str1.18101715471844446405.1)
-                  7004c73f    00000016                                                       : soc_rcm.obj (.rodata.str1.503491203257075565.1)
-                  7004c755    00000015                                                       : ipc_notify_v1.obj (.rodata.str1.2749849238461102323.1)
-                  7004c76a    00000015                                                       : edma.obj (.rodata.str1.9771253703579349310.1)
-                  7004c77f    00000014     main.o (.rodata.str1.1311392489248731986.1)
-                  7004c793    00000014     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : edma.obj (.rodata.str1.14977302951450442404.1)
-                  7004c7a7    00000014                                                       : edma.obj (.rodata.str1.16586217098785273673.1)
-                  7004c7bb    00000014                                                       : ipc_notify_v1.obj (.rodata.str1.17722115868992979254.1)
-                  7004c7cf    00000014                                                       : ipc_notify_v1.obj (.rodata.str1.5235938544388580736.1)
-                  7004c7e3    00000014                                                       : edma.obj (.rodata.str1.6479261940699871955.1)
-                  7004c7f7    00000013     nortos.am263px.r5f.ti-arm-clang.debug.lib : DebugP_shmLogWriter.obj (.rodata.str1.14017905436770086454.1)
-                  7004c80a    00000013     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : soc_rcm.obj (.rodata.str1.1513614241493853460.1)
-                  7004c81d    00000013     main.o (.rodata.str1.16631870348416990953.1)
-                  7004c830    00000013     main.o (.rodata.str1.17376258722486336754.1)
-                  7004c843    00000013     main.o (.rodata.str1.3530083166107438000.1)
-                  7004c856    00000013     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : uart_v0.obj (.rodata.str1.8511823138002593779.1)
-                  7004c869    00000012                                                       : uart_v0.obj (.rodata.str1.10085477686273322470.1)
-                  7004c87b    00000012                                                       : uart_v0.obj (.rodata.str1.1906408950570946892.1)
-                  7004c88d    00000012                                                       : ipc_notify_v1.obj (.rodata.str1.4922609433019995091.1)
-                  7004c89f    00000012                                                       : soc_rcm.obj (.rodata.str1.6089483996110695684.1)
-                  7004c8b1    00000012                                                       : edma.obj (.rodata.str1.8988798825313313125.1)
-                  7004c8c3    00000011     main.o (.rodata.str1.11702106008850790973.1)
-                  7004c8d4    00000011     main.o (.rodata.str1.13288086030101331538.1)
-                  7004c8e5    00000011     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : edma.obj (.rodata.str1.13359792024450833872.1)
-                  7004c8f6    00000011                                                       : uart_v0.obj (.rodata.str1.18277465892467933209.1)
-                  7004c907    00000011     ti_drivers_open_close.o (.rodata.str1.6292539624901818759.1)
-                  7004c918    00000011     nortos.am263px.r5f.ti-arm-clang.debug.lib : TimerP_rti_priv.obj (.rodata.str1.7786169893402823657.1)
-                  7004c929    00000011     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : ipc_notify_v1.obj (.rodata.str1.9036292169629118271.1)
-                  7004c93a    00000010                                                       : edma.obj (.rodata.str1.16687974986316968853.1)
-                  7004c94a    0000000f                                                       : edma.obj (.rodata.str1.12381575634899622488.1)
-                  7004c959    0000000f                                                       : edma.obj (.rodata.str1.15707078201242323249.1)
-                  7004c968    0000000f                                                       : edma.obj (.rodata.str1.2781376525681532154.1)
-                  7004c977    0000000f                                                       : ipc_notify_v1.obj (.rodata.str1.4769539187903082080.1)
-                  7004c986    0000000f                                                       : edma.obj (.rodata.str1.4907917467944964367.1)
-                  7004c995    0000000e     main.o (.rodata.str1.10635229749459437609.1)
-                  7004c9a3    0000000e     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : edma.obj (.rodata.str1.1669868279207928169.1)
-                  7004c9b1    0000000e                                                       : edma.obj (.rodata.str1.6128441279204879358.1)
-                  7004c9bf    0000000e                                                       : edma.obj (.rodata.str1.6928588723460450634.1)
-                  7004c9cd    0000000d                                                       : edma.obj (.rodata.str1.14657363906792235350.1)
-                  7004c9da    0000000d     nortos.am263px.r5f.ti-arm-clang.debug.lib : TimerP_rti_priv.obj (.rodata.str1.15140844044942405278.1)
-                  7004c9e7    0000000c                                               : ClockP_nortos_r5.obj (.rodata.str1.13463193513887205357.1)
-                  7004c9f3    0000000c     ti_drivers_config.o (.rodata.str1.3145245972279493797.1)
-                  7004c9ff    0000000c     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : edma.obj (.rodata.str1.8587431144907355806.1)
-                  7004ca0b    0000000b                                                       : uart_v0.obj (.rodata.str1.1151567497034493012.1)
-                  7004ca16    0000000b     main.o (.rodata.str1.17279024933005395956.1)
-                  7004ca21    0000000b     can_interface.o (.rodata.str1.9513145012316062387.1)
-                  7004ca2c    0000000a     main.o (.rodata.str1.12180500075719773345.1)
-                  7004ca36    0000000a     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : soc_rcm.obj (.rodata.str1.3349473071634452315.1)
-                  7004ca40    0000000a                                                       : uart_v0.obj (.rodata.str1.7892831408302009747.1)
-                  7004ca4a    0000000a                                                       : uart_v0.obj (.rodata.str1.8477608605346433529.1)
-                  7004ca54    0000000a                                                       : ipc_notify_v1.obj (.rodata.str1.8751964444192423158.1)
-                  7004ca5e    00000002                                                       : soc_rcm.obj (.rodata.gCR5ClkSrcInfoMap)
-                  7004ca60    00000008                                                       : mcan.obj (.rodata.gMcanOffsetAddr)
-                  7004ca68    00000008                                                       : soc_rcm.obj (.rodata.gXTALInfo)
-                  7004ca70    00000008     nortos.am263px.r5f.ti-arm-clang.debug.lib : DebugP_shmLogWriter.obj (.rodata.str1.11364348920754194803.1)
-                  7004ca78    00000008     main.o (.rodata.str1.13782249893155712474.1)
-                  7004ca80    00000008     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : soc.obj (.rodata.str1.14910504016491482532.1)
-                  7004ca88    00000007                                                       : soc.obj (.rodata.str1.12179086363571468349.1)
-                  7004ca8f    00000007                                                       : soc.obj (.rodata.str1.12254199422641571827.1)
-                  7004ca96    00000007                                                       : soc.obj (.rodata.str1.15593236263752157262.1)
-                  7004ca9d    00000007                                                       : soc.obj (.rodata.str1.17262473269405332311.1)
-                  7004caa4    00000007                                                       : soc.obj (.rodata.str1.17795343983633703126.1)
-                  7004caab    00000006                                                       : soc_rcm.obj (.rodata.str1.12246138248821672736.1)
-                  7004cab1    00000006     gateway_shared.o (.rodata.str1.15257554646438059100.1)
-                  7004cab7    00000005     nortos.am263px.r5f.ti-arm-clang.debug.lib : printf.obj (.rodata.str1.8544352122861784523.1)
-                  7004cabc    00000005                                               : printf.obj (.rodata.str1.8812429412984920041.1)
-                  7004cac1    00000003     --HOLE-- [fill = 0]
-                  7004cac4    00000004                                               : CacheP_armv7r.obj (.rodata.gCacheL1pCacheLineSize)
-                  7004cac8    00000004                                               : printf.obj (.rodata.str1.13278797451342649413.1)
-                  7004cacc    00000004                                               : printf.obj (.rodata.str1.17155598869870286803.1)
-                  7004cad0    00000004     gateway_shared.o (.rodata.str1.9212167202343599910.1)
-                  7004cad4    00000004     --HOLE-- [fill = 0]
+                  7004c091    0000002a     main.o (.rodata.str1.2846389346932560359.1)
+                  7004c0bb    0000002a     dispatcher_timer.o (.rodata.str1.8393228718863617781.1)
+                  7004c0e5    00000029     main.o (.rodata.str1.14402440632258215044.1)
+                  7004c10e    00000029     main.o (.rodata.str1.18092426736022315238.1)
+                  7004c137    00000028     dispatcher_timer.o (.rodata.str1.13215161723794722244.1)
+                  7004c15f    00000028     main.o (.rodata.str1.15159059442110792349.1)
+                  7004c187    00000027     nortos.am263px.r5f.ti-arm-clang.debug.lib : ClockP_nortos_r5.obj (.rodata.str1.12743090444791882666.1)
+                  7004c1ae    00000027     main.o (.rodata.str1.7996925722583989644.1)
+                  7004c1d5    00000026     gateway_shared.o (.rodata.str1.5327546541240122901.1)
+                  7004c1fb    00000026     gateway_shared.o (.rodata.str1.5761821093615868877.1)
+                  7004c221    00000025     main.o (.rodata.str1.2563708670032483588.1)
+                  7004c246    00000024     main.o (.rodata.str1.14466178792657420020.1)
+                  7004c26a    00000024     can_interface.o (.rodata.str1.14695538922052102695.1)
+                  7004c28e    00000024     can_interface.o (.rodata.str1.17857559882412085052.1)
+                  7004c2b2    00000023     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : soc_rcm.obj (.rodata.str1.2078190104202520215.1)
+                  7004c2d5    00000023     nortos.am263px.r5f.ti-arm-clang.debug.lib : ClockP_nortos_r5.obj (.rodata.str1.7689125538912326484.1)
+                  7004c2f8    00000022     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : edma.obj (.rodata.str1.12976018205622752890.1)
+                  7004c31a    00000021     nortos.am263px.r5f.ti-arm-clang.debug.lib : ClockP_nortos_r5.obj (.rodata.str1.8559540482768925367.1)
+                  7004c33b    00000001     --HOLE-- [fill = 0]
+                  7004c33c    00000020     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : mcan.obj (.rodata.gMsgObjSize)
+                  7004c35c    00000020     can_interface.o (.rodata.g_mcan_base_addr)
+                  7004c37c    00000020     can_interface.o (.rodata.g_mcan_intr_num)
+                  7004c39c    00000020     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : uart_v0.obj (.rodata.str1.16594507886308206351.1)
+                  7004c3bc    00000020                                                       : ipc_notify_v1.obj (.rodata.str1.2046905611612007019.1)
+                  7004c3dc    0000001f     nortos.am263px.r5f.ti-arm-clang.debug.lib : ClockP_nortos_r5.obj (.rodata.str1.2746619892315392655.1)
+                  7004c3fb    0000001f     dispatcher_timer.o (.rodata.str1.5724006426700065890.1)
+                  7004c41a    0000001e     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : ipc_notify_v1.obj (.rodata.str1.16593710740832512674.1)
+                  7004c438    0000001e                                                       : ipc_notify_v1.obj (.rodata.str1.9050127465416171240.1)
+                  7004c456    0000001d     nortos.am263px.r5f.ti-arm-clang.debug.lib : TimerP_rti_priv.obj (.rodata.str1.1727973701797049581.1)
+                  7004c473    0000001d                                               : TimerP_rti_priv.obj (.rodata.str1.4425773406285945039.1)
+                  7004c490    0000001d     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : uart_v0.obj (.rodata.str1.4697665093340446018.1)
+                  7004c4ad    0000001d     nortos.am263px.r5f.ti-arm-clang.debug.lib : TimerP_rti_priv.obj (.rodata.str1.7297095892955669843.1)
+                  7004c4ca    0000001b     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : edma.obj (.rodata.str1.16672221102796607080.1)
+                  7004c4e5    0000001b     ti_drivers_config.o (.rodata.str1.7767457247551078139.1)
+                  7004c500    0000001a     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : soc_rcm.obj (.rodata.str1.16907879152045164286.1)
+                  7004c51a    0000001a     main.o (.rodata.str1.2763581881760962609.1)
+                  7004c534    0000001a     main.o (.rodata.str1.288608917962107522.1)
+                  7004c54e    0000001a     nortos.am263px.r5f.ti-arm-clang.debug.lib : ClockP_nortos_r5.obj (.rodata.str1.3810757863367538396.1)
+                  7004c568    00000019     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : ipc_notify_v1.obj (.rodata.str1.12253177398743541182.1)
+                  7004c581    00000019     nortos.am263px.r5f.ti-arm-clang.debug.lib : TimerP_rti_priv.obj (.rodata.str1.5494506574634759136.1)
+                  7004c59a    00000019     main.o (.rodata.str1.7784929982665794503.1)
+                  7004c5b3    00000001     --HOLE-- [fill = 0]
+                  7004c5b4    00000018     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : soc_rcm.obj (.rodata.gControlssPllClkSrcValMap)
+                  7004c5cc    00000018                                                       : soc_rcm.obj (.rodata.gCptsClkSrcValMap)
+                  7004c5e4    00000018                                                       : soc_rcm.obj (.rodata.gI2cClkSrcValMap)
+                  7004c5fc    00000018                                                       : soc_rcm.obj (.rodata.gIcssmUartClkSrcValMap)
+                  7004c614    00000018                                                       : soc_rcm.obj (.rodata.gLinUartClkSrcValMap)
+                  7004c62c    00000018                                                       : soc_rcm.obj (.rodata.gMcSpiClkSrcValMap)
+                  7004c644    00000018                                                       : soc_rcm.obj (.rodata.gMcanClkSrcValMap)
+                  7004c65c    00000018                                                       : soc_rcm.obj (.rodata.gMmcClkSrcValMap)
+                  7004c674    00000018                                                       : soc_rcm.obj (.rodata.gOspiClkSrcValMap)
+                  7004c68c    00000018                                                       : soc_rcm.obj (.rodata.gPeripheralClkSrcInfoMap)
+                  7004c6a4    00000018                                                       : soc_rcm.obj (.rodata.gRtiClkSrcValMap)
+                  7004c6bc    00000018                                                       : soc_rcm.obj (.rodata.gWdtClkSrcValMap)
+                  7004c6d4    00000018                                                       : uart_v0.obj (.rodata.str1.16507871919775359273.1)
+                  7004c6ec    00000018     ti_drivers_config.o (.rodata.str1.2211846465855763212.1)
+                  7004c704    00000017     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : soc_rcm.obj (.rodata.str1.1263028196474875090.1)
+                  7004c71b    00000016                                                       : soc_rcm.obj (.rodata.str1.15837709475095375462.1)
+                  7004c731    00000016                                                       : soc_rcm.obj (.rodata.str1.18101715471844446405.1)
+                  7004c747    00000016                                                       : soc_rcm.obj (.rodata.str1.503491203257075565.1)
+                  7004c75d    00000015                                                       : ipc_notify_v1.obj (.rodata.str1.2749849238461102323.1)
+                  7004c772    00000015                                                       : edma.obj (.rodata.str1.9771253703579349310.1)
+                  7004c787    00000014     main.o (.rodata.str1.1311392489248731986.1)
+                  7004c79b    00000014     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : edma.obj (.rodata.str1.14977302951450442404.1)
+                  7004c7af    00000014                                                       : edma.obj (.rodata.str1.16586217098785273673.1)
+                  7004c7c3    00000014                                                       : ipc_notify_v1.obj (.rodata.str1.17722115868992979254.1)
+                  7004c7d7    00000014                                                       : ipc_notify_v1.obj (.rodata.str1.5235938544388580736.1)
+                  7004c7eb    00000014                                                       : edma.obj (.rodata.str1.6479261940699871955.1)
+                  7004c7ff    00000013     nortos.am263px.r5f.ti-arm-clang.debug.lib : DebugP_shmLogWriter.obj (.rodata.str1.14017905436770086454.1)
+                  7004c812    00000013     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : soc_rcm.obj (.rodata.str1.1513614241493853460.1)
+                  7004c825    00000013     main.o (.rodata.str1.16631870348416990953.1)
+                  7004c838    00000013     main.o (.rodata.str1.17376258722486336754.1)
+                  7004c84b    00000013     main.o (.rodata.str1.3530083166107438000.1)
+                  7004c85e    00000013     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : uart_v0.obj (.rodata.str1.8511823138002593779.1)
+                  7004c871    00000012                                                       : uart_v0.obj (.rodata.str1.10085477686273322470.1)
+                  7004c883    00000012                                                       : uart_v0.obj (.rodata.str1.1906408950570946892.1)
+                  7004c895    00000012                                                       : ipc_notify_v1.obj (.rodata.str1.4922609433019995091.1)
+                  7004c8a7    00000012                                                       : soc_rcm.obj (.rodata.str1.6089483996110695684.1)
+                  7004c8b9    00000012                                                       : edma.obj (.rodata.str1.8988798825313313125.1)
+                  7004c8cb    00000011     main.o (.rodata.str1.11702106008850790973.1)
+                  7004c8dc    00000011     main.o (.rodata.str1.13288086030101331538.1)
+                  7004c8ed    00000011     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : edma.obj (.rodata.str1.13359792024450833872.1)
+                  7004c8fe    00000011                                                       : uart_v0.obj (.rodata.str1.18277465892467933209.1)
+                  7004c90f    00000011     ti_drivers_open_close.o (.rodata.str1.6292539624901818759.1)
+                  7004c920    00000011     nortos.am263px.r5f.ti-arm-clang.debug.lib : TimerP_rti_priv.obj (.rodata.str1.7786169893402823657.1)
+                  7004c931    00000011     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : ipc_notify_v1.obj (.rodata.str1.9036292169629118271.1)
+                  7004c942    00000010                                                       : edma.obj (.rodata.str1.16687974986316968853.1)
+                  7004c952    0000000f                                                       : edma.obj (.rodata.str1.12381575634899622488.1)
+                  7004c961    0000000f                                                       : edma.obj (.rodata.str1.15707078201242323249.1)
+                  7004c970    0000000f                                                       : edma.obj (.rodata.str1.2781376525681532154.1)
+                  7004c97f    0000000f                                                       : ipc_notify_v1.obj (.rodata.str1.4769539187903082080.1)
+                  7004c98e    0000000f                                                       : edma.obj (.rodata.str1.4907917467944964367.1)
+                  7004c99d    0000000e     main.o (.rodata.str1.10635229749459437609.1)
+                  7004c9ab    0000000e     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : edma.obj (.rodata.str1.1669868279207928169.1)
+                  7004c9b9    0000000e                                                       : edma.obj (.rodata.str1.6128441279204879358.1)
+                  7004c9c7    0000000e                                                       : edma.obj (.rodata.str1.6928588723460450634.1)
+                  7004c9d5    0000000d                                                       : edma.obj (.rodata.str1.14657363906792235350.1)
+                  7004c9e2    0000000d     nortos.am263px.r5f.ti-arm-clang.debug.lib : TimerP_rti_priv.obj (.rodata.str1.15140844044942405278.1)
+                  7004c9ef    0000000c                                               : ClockP_nortos_r5.obj (.rodata.str1.13463193513887205357.1)
+                  7004c9fb    0000000c     ti_drivers_config.o (.rodata.str1.3145245972279493797.1)
+                  7004ca07    0000000c     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : edma.obj (.rodata.str1.8587431144907355806.1)
+                  7004ca13    0000000b                                                       : uart_v0.obj (.rodata.str1.1151567497034493012.1)
+                  7004ca1e    0000000b     main.o (.rodata.str1.17279024933005395956.1)
+                  7004ca29    0000000b     can_interface.o (.rodata.str1.9513145012316062387.1)
+                  7004ca34    0000000a     main.o (.rodata.str1.12180500075719773345.1)
+                  7004ca3e    0000000a     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : soc_rcm.obj (.rodata.str1.3349473071634452315.1)
+                  7004ca48    0000000a                                                       : uart_v0.obj (.rodata.str1.7892831408302009747.1)
+                  7004ca52    0000000a                                                       : uart_v0.obj (.rodata.str1.8477608605346433529.1)
+                  7004ca5c    0000000a                                                       : ipc_notify_v1.obj (.rodata.str1.8751964444192423158.1)
+                  7004ca66    00000002                                                       : soc_rcm.obj (.rodata.gCR5ClkSrcInfoMap)
+                  7004ca68    00000008                                                       : mcan.obj (.rodata.gMcanOffsetAddr)
+                  7004ca70    00000008                                                       : soc_rcm.obj (.rodata.gXTALInfo)
+                  7004ca78    00000008     nortos.am263px.r5f.ti-arm-clang.debug.lib : DebugP_shmLogWriter.obj (.rodata.str1.11364348920754194803.1)
+                  7004ca80    00000008     main.o (.rodata.str1.13782249893155712474.1)
+                  7004ca88    00000008     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : soc.obj (.rodata.str1.14910504016491482532.1)
+                  7004ca90    00000007                                                       : soc.obj (.rodata.str1.12179086363571468349.1)
+                  7004ca97    00000007                                                       : soc.obj (.rodata.str1.12254199422641571827.1)
+                  7004ca9e    00000007                                                       : soc.obj (.rodata.str1.15593236263752157262.1)
+                  7004caa5    00000007                                                       : soc.obj (.rodata.str1.17262473269405332311.1)
+                  7004caac    00000007                                                       : soc.obj (.rodata.str1.17795343983633703126.1)
+                  7004cab3    00000006                                                       : soc_rcm.obj (.rodata.str1.12246138248821672736.1)
+                  7004cab9    00000006     gateway_shared.o (.rodata.str1.15257554646438059100.1)
+                  7004cabf    00000005     nortos.am263px.r5f.ti-arm-clang.debug.lib : printf.obj (.rodata.str1.8544352122861784523.1)
+                  7004cac4    00000005                                               : printf.obj (.rodata.str1.8812429412984920041.1)
+                  7004cac9    00000003     --HOLE-- [fill = 0]
+                  7004cacc    00000004                                               : CacheP_armv7r.obj (.rodata.gCacheL1pCacheLineSize)
+                  7004cad0    00000004                                               : printf.obj (.rodata.str1.13278797451342649413.1)
+                  7004cad4    00000004                                               : printf.obj (.rodata.str1.17155598869870286803.1)
+                  7004cad8    00000004     gateway_shared.o (.rodata.str1.9212167202343599910.1)
+                  7004cadc    00000004     --HOLE-- [fill = 0]
 
-.bss       0    7004cad8    00000c38     UNINITIALIZED
-                  7004cad8    0000080c     (.common:gHwiCtrl)
-                  7004d2e4    00000004     nortos.am263px.r5f.ti-arm-clang.debug.lib : HwiP_armv7r_vim.obj (.bss.gdummy)
-                  7004d2e8    000001b0     ti_drivers_config.o (.bss.gUartObjects)
-                  7004d498    000000b8     (.common:gIpcNotifyCtrl)
-                  7004d550    00000080     can_interface.o (.bss.g_can_stats)
-                  7004d5d0    0000007a     nortos.am263px.r5f.ti-arm-clang.debug.lib : DebugP_shmLogWriter.obj (.bss.DebugP_shmLogWriterPutChar.lineBuf)
-                  7004d64a    00000002     --HOLE--
-                  7004d64c    00000068     can_interface.o (.bss.g_rx_buffer)
-                  7004d6b4    00000020     can_interface.o (.bss.g_mcan_hwi_objects)
-                  7004d6d4    00000004     (.common:gTimerBaseAddr)
-                  7004d6d8    00000020     (.common:gClockCtrl)
-                  7004d6f8    00000010     (.common:virtToPhymap)
-                  7004d708    00000004     (.common:gTimerHwiObj)
-                  7004d70c    00000004     (.common:gUartHandle)
+.bss       0    7004cae0    00000c38     UNINITIALIZED
+                  7004cae0    0000080c     (.common:gHwiCtrl)
+                  7004d2ec    00000004     nortos.am263px.r5f.ti-arm-clang.debug.lib : HwiP_armv7r_vim.obj (.bss.gdummy)
+                  7004d2f0    000001b0     ti_drivers_config.o (.bss.gUartObjects)
+                  7004d4a0    000000b8     (.common:gIpcNotifyCtrl)
+                  7004d558    00000080     can_interface.o (.bss.g_can_stats)
+                  7004d5d8    0000007a     nortos.am263px.r5f.ti-arm-clang.debug.lib : DebugP_shmLogWriter.obj (.bss.DebugP_shmLogWriterPutChar.lineBuf)
+                  7004d652    00000002     --HOLE--
+                  7004d654    00000068     can_interface.o (.bss.g_rx_buffer)
+                  7004d6bc    00000020     can_interface.o (.bss.g_mcan_hwi_objects)
+                  7004d6dc    00000004     (.common:gTimerBaseAddr)
+                  7004d6e0    00000020     (.common:gClockCtrl)
+                  7004d700    00000010     (.common:virtToPhymap)
+                  7004d710    00000004     (.common:gTimerHwiObj)
+                  7004d714    00000004     (.common:gUartHandle)
 
-.sysmem    0    7004d710    00000000     UNINITIALIZED
+.sysmem    0    7004d718    00000000     UNINITIALIZED
 
-.stack     0    7004d710    00004000     UNINITIALIZED
-                  7004d710    00000004     nortos.am263px.r5f.ti-arm-clang.debug.lib : boot_armv7r_asm.obj (.stack)
-                  7004d714    00003ffc     --HOLE--
+.stack     0    7004d718    00004000     UNINITIALIZED
+                  7004d718    00000004     nortos.am263px.r5f.ti-arm-clang.debug.lib : boot_armv7r_asm.obj (.stack)
+                  7004d71c    00003ffc     --HOLE--
 
 .text.hwi 
-*          0    70051710    00000e50     
-                  70051710    000006c0     nortos.am263px.r5f.ti-arm-clang.debug.lib : HwiP_armv7r_vim.obj (.text.hwi)
-                  70051dd0    0000059a                                               : HwiP_armv7r_handlers_nortos.obj (.text.hwi)
-                  7005236a    00000002     --HOLE-- [fill = 0]
-                  7005236c    0000017c                                               : HwiP_armv7r_handlers_nortos_asm.obj (.text.hwi)
-                  700524e8    00000070                                               : HwiP_armv7r_asm.obj (.text.hwi)
-                  70052558    00000008     --HOLE-- [fill = 0]
+*          0    70051720    00000e50     
+                  70051720    000006c0     nortos.am263px.r5f.ti-arm-clang.debug.lib : HwiP_armv7r_vim.obj (.text.hwi)
+                  70051de0    0000059a                                               : HwiP_armv7r_handlers_nortos.obj (.text.hwi)
+                  7005237a    00000002     --HOLE-- [fill = 0]
+                  7005237c    0000017c                                               : HwiP_armv7r_handlers_nortos_asm.obj (.text.hwi)
+                  700524f8    00000070                                               : HwiP_armv7r_asm.obj (.text.hwi)
+                  70052568    00000008     --HOLE-- [fill = 0]
 
 .text.cache 
-*          0    70052560    000004a0     
-                  70052560    00000340     nortos.am263px.r5f.ti-arm-clang.debug.lib : CacheP_armv7r_asm.obj (.text.cache)
-                  700528a0    00000158                                               : CacheP_armv7r.obj (.text.cache)
-                  700529f8    00000008     --HOLE-- [fill = 0]
+*          0    70052570    000004a0     
+                  70052570    00000340     nortos.am263px.r5f.ti-arm-clang.debug.lib : CacheP_armv7r_asm.obj (.text.cache)
+                  700528b0    00000158                                               : CacheP_armv7r.obj (.text.cache)
+                  70052a08    00000008     --HOLE-- [fill = 0]
 
 .text.mpu 
-*          0    70052a00    000003c0     
-                  70052a00    00000340     nortos.am263px.r5f.ti-arm-clang.debug.lib : MpuP_armv7r.obj (.text.mpu)
-                  70052d40    00000078                                               : MpuP_armv7r_asm.obj (.text.mpu)
-                  70052db8    00000008     --HOLE-- [fill = 0]
+*          0    70052a10    000003c0     
+                  70052a10    00000340     nortos.am263px.r5f.ti-arm-clang.debug.lib : MpuP_armv7r.obj (.text.mpu)
+                  70052d50    00000078                                               : MpuP_armv7r_asm.obj (.text.mpu)
+                  70052dc8    00000008     --HOLE-- [fill = 0]
 
 .text.boot 
-*          0    70052dc0    000001c0     
-                  70052dc0    00000144     nortos.am263px.r5f.ti-arm-clang.debug.lib : boot_armv7r_asm.obj (.text.boot)
-                  70052f04    0000000c     --HOLE-- [fill = 0]
-                  70052f10    00000024                                               : DebugP_log.obj (.text.boot)
-                  70052f34    0000000c     --HOLE-- [fill = 0]
-                  70052f40    00000024                                               : boot_armv7r.obj (.text.boot)
-                  70052f64    0000000c     --HOLE-- [fill = 0]
-                  70052f70    0000000c     ti_dpl_config.o (.text.boot)
-                  70052f7c    00000004     --HOLE-- [fill = 0]
+*          0    70052dd0    000001c0     
+                  70052dd0    00000144     nortos.am263px.r5f.ti-arm-clang.debug.lib : boot_armv7r_asm.obj (.text.boot)
+                  70052f14    0000000c     --HOLE-- [fill = 0]
+                  70052f20    00000024                                               : DebugP_log.obj (.text.boot)
+                  70052f44    0000000c     --HOLE-- [fill = 0]
+                  70052f50    00000024                                               : boot_armv7r.obj (.text.boot)
+                  70052f74    0000000c     --HOLE-- [fill = 0]
+                  70052f80    0000000c     ti_dpl_config.o (.text.boot)
+                  70052f8c    00000004     --HOLE-- [fill = 0]
 
 .text:abort 
-*          0    70052f80    00000008     
-                  70052f80    00000008     libc.a : exit.c.obj (.text:abort)
+*          0    70052f90    00000008     
+                  70052f90    00000008     libc.a : exit.c.obj (.text:abort)
 
-.data      0    70052f88    000002a8     
-                  70052f88    00000100     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : ipc_notify_v1_cfg.obj (.data.gIpcNotifyMailboxConfig)
-                  70053088    00000058     ti_drivers_open_close.o (.data.gUartParams)
-                  700530e0    00000020     main.o (.data.g_test_data_values)
-                  70053100    00000018     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : soc.obj (.data.SOC_getCoreName.coreIdNames)
-                  70053118    00000018     ti_dpl_config.o (.data.gClockConfig)
-                  70053130    00000018     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : ipc_notify_v1_cfg.obj (.data.gIpcNotifyInterruptConfig_r5fss0_1)
-                  70053148    00000018     ti_pinmux_config.o (.data.gPinMuxMainDomainCfg)
-                  70053160    00000018     ti_power_clock_config.o (.data.gSocModulesClockFrequency)
-                  70053178    00000014     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : uart_v0.obj (.data.gUartDrvObj)
-                  7005318c    00000014     dispatcher_timer.o (.data.g_stats)
-                  700531a0    00000010     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : ipc_notify_v1_cfg.obj (.data.gIpcNotifyCoreIntrBitPos)
-                  700531b0    0000000c     nortos.am263px.r5f.ti-arm-clang.debug.lib : AddrTranslateP_32bit.obj (.data.gAddrTranslateConfig)
-                  700531bc    00000008     ti_power_clock_config.o (.data.gSocModules)
-                  700531c4    00000008     ti_drivers_config.o (.data.gUartAttrs)
-                  700531cc    00000008     ti_drivers_config.o (.data.gUartConfig)
-                  700531d4    00000004     nortos.am263px.r5f.ti-arm-clang.debug.lib : DebugP_shmLogWriter.obj (.data.DebugP_shmLogWriterPutChar.lineBufIndex)
-                  700531d8    00000008     main.o (.data.g_cycle_count)
-                  700531e0    00000008     nortos.am263px.r5f.ti-arm-clang.debug.lib : PmuP_armv7r.obj (.data.pmu)
-                  700531e8    00000004                                               : DebugP_log.obj (.data.gDebugLogZone)
-                  700531ec    00000004                                               : DebugP_shmLogWriter.obj (.data.gDebugShmLogWriter)
-                  700531f0    00000004                                               : DebugP_shmLogWriter.obj (.data.gDebugShmLogWriterSelfCoreName)
-                  700531f4    00000004     ti_drivers_open_close.o (.data.gEdmaConfigNum)
-                  700531f8    00000004     ti_dpl_config.o (.data.gHwiConfig)
-                  700531fc    00000004     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : ipc_notify_v1_cfg.obj (.data.gIpcNotifyInterruptConfigNum_r5fss0_1)
-                  70053200    00000004     timer.o (.data.gTimerIsrCounter)
-                  70053204    00000004     ti_drivers_config.o (.data.gUartConfigNum)
-                  70053208    00000004     ti_drivers_open_close.o (.data.gUartDmaChConfig)
-                  7005320c    00000004     dispatcher_timer.o (.data.g_disp_timer_isr_count)
-                  70053210    00000004     main.o (.data.g_heartbeat_count)
-                  70053214    00000004     main.o (.data.g_ipc_test_rx_count)
-                  70053218    00000004     can_interface.o (.data.g_rx_callback)
-                  7005321c    00000004     dispatcher_timer.o (.data.g_tick_count)
-                  70053220    00000004     dispatcher_timer.o (.data.g_user_callback)
-                  70053224    00000001     nortos.am263px.r5f.ti-arm-clang.debug.lib : DebugP_shmLogWriter.obj (.data.gDebugShmLogWriterPreludeEnabled)
-                  70053225    00000001     timer.o (.data.gTimerIsrFlag)
-                  70053226    00000001     dispatcher_timer.o (.data.g_callback_in_progress)
-                  70053227    00000001     main.o (.data.g_commands_ready)
-                  70053228    00000001     can_interface.o (.data.g_rx_interrupts_enabled)
-                  70053229    00000001     main.o (.data.g_test_data_received)
-                  7005322a    00000001     main.o (.data.g_timer_expired)
-                  7005322b    00000001     dispatcher_timer.o (.data.g_timer_state)
-                  7005322c    00000001     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : soc.obj (.data.isMapAvailable)
-                  7005322d    00000003     --HOLE-- [fill = 0]
+.data      0    70052f98    000002a8     
+                  70052f98    00000100     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : ipc_notify_v1_cfg.obj (.data.gIpcNotifyMailboxConfig)
+                  70053098    00000058     ti_drivers_open_close.o (.data.gUartParams)
+                  700530f0    00000020     main.o (.data.g_test_data_values)
+                  70053110    00000018     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : soc.obj (.data.SOC_getCoreName.coreIdNames)
+                  70053128    00000018     ti_dpl_config.o (.data.gClockConfig)
+                  70053140    00000018     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : ipc_notify_v1_cfg.obj (.data.gIpcNotifyInterruptConfig_r5fss0_1)
+                  70053158    00000018     ti_pinmux_config.o (.data.gPinMuxMainDomainCfg)
+                  70053170    00000018     ti_power_clock_config.o (.data.gSocModulesClockFrequency)
+                  70053188    00000014     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : uart_v0.obj (.data.gUartDrvObj)
+                  7005319c    00000014     dispatcher_timer.o (.data.g_stats)
+                  700531b0    00000010     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : ipc_notify_v1_cfg.obj (.data.gIpcNotifyCoreIntrBitPos)
+                  700531c0    0000000c     nortos.am263px.r5f.ti-arm-clang.debug.lib : AddrTranslateP_32bit.obj (.data.gAddrTranslateConfig)
+                  700531cc    00000008     ti_power_clock_config.o (.data.gSocModules)
+                  700531d4    00000008     ti_drivers_config.o (.data.gUartAttrs)
+                  700531dc    00000008     ti_drivers_config.o (.data.gUartConfig)
+                  700531e4    00000004     nortos.am263px.r5f.ti-arm-clang.debug.lib : DebugP_shmLogWriter.obj (.data.DebugP_shmLogWriterPutChar.lineBufIndex)
+                  700531e8    00000008     main.o (.data.g_cycle_count)
+                  700531f0    00000008     nortos.am263px.r5f.ti-arm-clang.debug.lib : PmuP_armv7r.obj (.data.pmu)
+                  700531f8    00000004                                               : DebugP_log.obj (.data.gDebugLogZone)
+                  700531fc    00000004                                               : DebugP_shmLogWriter.obj (.data.gDebugShmLogWriter)
+                  70053200    00000004                                               : DebugP_shmLogWriter.obj (.data.gDebugShmLogWriterSelfCoreName)
+                  70053204    00000004     ti_drivers_open_close.o (.data.gEdmaConfigNum)
+                  70053208    00000004     ti_dpl_config.o (.data.gHwiConfig)
+                  7005320c    00000004     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : ipc_notify_v1_cfg.obj (.data.gIpcNotifyInterruptConfigNum_r5fss0_1)
+                  70053210    00000004     timer.o (.data.gTimerIsrCounter)
+                  70053214    00000004     ti_drivers_config.o (.data.gUartConfigNum)
+                  70053218    00000004     ti_drivers_open_close.o (.data.gUartDmaChConfig)
+                  7005321c    00000004     dispatcher_timer.o (.data.g_disp_timer_isr_count)
+                  70053220    00000004     main.o (.data.g_heartbeat_count)
+                  70053224    00000004     main.o (.data.g_ipc_test_rx_count)
+                  70053228    00000004     can_interface.o (.data.g_rx_callback)
+                  7005322c    00000004     dispatcher_timer.o (.data.g_tick_count)
+                  70053230    00000004     dispatcher_timer.o (.data.g_user_callback)
+                  70053234    00000001     nortos.am263px.r5f.ti-arm-clang.debug.lib : DebugP_shmLogWriter.obj (.data.gDebugShmLogWriterPreludeEnabled)
+                  70053235    00000001     timer.o (.data.gTimerIsrFlag)
+                  70053236    00000001     dispatcher_timer.o (.data.g_callback_in_progress)
+                  70053237    00000001     main.o (.data.g_commands_ready)
+                  70053238    00000001     can_interface.o (.data.g_rx_interrupts_enabled)
+                  70053239    00000001     main.o (.data.g_test_data_received)
+                  7005323a    00000001     main.o (.data.g_timer_expired)
+                  7005323b    00000001     dispatcher_timer.o (.data.g_timer_state)
+                  7005323c    00000001     drivers.am263px.r5f.ti-arm-clang.nortos.debug.lib : soc.obj (.data.isMapAvailable)
+                  7005323d    00000003     --HOLE-- [fill = 0]
 
 .irqstack 
-*          0    70053230    00000100     UNINITIALIZED
-                  70053230    00000100     --HOLE--
+*          0    70053240    00000100     UNINITIALIZED
+                  70053240    00000100     --HOLE--
 
 .fiqstack 
-*          0    70053330    00000100     UNINITIALIZED
-                  70053330    00000100     --HOLE--
+*          0    70053340    00000100     UNINITIALIZED
+                  70053340    00000100     --HOLE--
 
 .svcstack 
-*          0    70053430    00001000     UNINITIALIZED
-                  70053430    00001000     --HOLE--
+*          0    70053440    00001000     UNINITIALIZED
+                  70053440    00001000     --HOLE--
 
 .abortstack 
-*          0    70054430    00000100     UNINITIALIZED
-                  70054430    00000100     --HOLE--
+*          0    70054440    00000100     UNINITIALIZED
+                  70054440    00000100     --HOLE--
 
 .undefinedstack 
-*          0    70054530    00000100     UNINITIALIZED
-                  70054530    00000100     --HOLE--
+*          0    70054540    00000100     UNINITIALIZED
+                  70054540    00000100     --HOLE--
 
 .init_array 
 *          0    70040000    00000000     UNINITIALIZED
@@ -912,13 +913,13 @@ MODULE SUMMARY
        Module                                code    ro data   rw data
        ------                                ----    -------   -------
     .\
-       main.o                                1732    1813      51     
+       main.o                                1732    1820      51     
        gateway_shared.o                      1084    677       448    
        can_interface.o                       622     300       269    
        dispatcher_timer.o                    318     158       34     
        timer.o                               28      0         5      
     +--+-------------------------------------+-------+---------+---------+
-       Total:                                3784    2948      807    
+       Total:                                3784    2955      807    
                                                                       
     .\syscfg\
        ti_dpl_config.o                       336     132       8228   
@@ -999,7 +1000,7 @@ MODULE SUMMARY
                                                                       
        Stack:                                0       0         16384  
     +--+-------------------------------------+-------+---------+---------+
-       Grand Total:                          50942   5344      28827  
+       Grand Total:                          50942   5351      28827  
 
 
 GLOBAL SYMBOLS: SORTED ALPHABETICALLY BY Name 
@@ -1014,27 +1015,27 @@ address   name
 70046731  CAN_StartRxInterrupts                
 7004ac31  CSL_armR5GetCpuID                    
 70041ce4  CSL_armR5ReadMpidrReg                
-70052870  CacheP_configForceWrThru             
-70052931  CacheP_disable                       
-70052560  CacheP_disableL1d                    
-70052588  CacheP_disableL1p                    
-70052981  CacheP_enable                        
-700525a0  CacheP_enableL1d                     
-700525b8  CacheP_enableL1p                     
-70052864  CacheP_getCacheLevelInfo             
-7005282c  CacheP_getEnabled                    
-700528a1  CacheP_init                          
-700529c1  CacheP_inv                           
-700525d0  CacheP_invL1d                        
-70052644  CacheP_invL1dAll                     
-70052608  CacheP_invL1p                        
-7005264c  CacheP_invL1pAll                     
-70052890  CacheP_setDLFO                       
-70052654  CacheP_wb                            
-700526cc  CacheP_wbAll                         
-70052690  CacheP_wbInv                         
-70052774  CacheP_wbInvAll                      
-7005278c  CacheP_wbInvAllAsm                   
+70052880  CacheP_configForceWrThru             
+70052941  CacheP_disable                       
+70052570  CacheP_disableL1d                    
+70052598  CacheP_disableL1p                    
+70052991  CacheP_enable                        
+700525b0  CacheP_enableL1d                     
+700525c8  CacheP_enableL1p                     
+70052874  CacheP_getCacheLevelInfo             
+7005283c  CacheP_getEnabled                    
+700528b1  CacheP_init                          
+700529d1  CacheP_inv                           
+700525e0  CacheP_invL1d                        
+70052654  CacheP_invL1dAll                     
+70052618  CacheP_invL1p                        
+7005265c  CacheP_invL1pAll                     
+700528a0  CacheP_setDLFO                       
+70052664  CacheP_wb                            
+700526dc  CacheP_wbAll                         
+700526a0  CacheP_wbInv                         
+70052784  CacheP_wbInvAll                      
+7005279c  CacheP_wbInvAllAsm                   
 7004af41  ClockP_Params_init                   
 70049c91  ClockP_construct                     
 70047cd1  ClockP_destruct                      
@@ -1100,49 +1101,49 @@ address   name
 70049801  EDMA_setPaRAM                        
 700480b1  EDMA_unmapChToEvtQ                   
 70044bb1  EDMA_unregisterIntr                  
-700524a8  GET_ADFSR                            
-700524c0  GET_AIFSR                            
-700524b0  GET_DFAR                             
-700524a0  GET_DFSR                             
-700524c8  GET_IFAR                             
-700524b8  GET_IFSR                             
-700524d0  GET_SPSR                             
+700524b8  GET_ADFSR                            
+700524d0  GET_AIFSR                            
+700524c0  GET_DFAR                             
+700524b0  GET_DFSR                             
+700524d8  GET_IFAR                             
+700524c8  GET_IFSR                             
+700524e0  GET_SPSR                             
 700410b8  HOSTexit                             
-70051861  HwiP_Params_init                     
-700517e1  HwiP_clearInt                        
-70051891  HwiP_construct                       
-700523e0  HwiP_data_abort_handler              
-70052271  HwiP_data_abort_handler_c            
-70051a81  HwiP_destruct                        
-700524e8  HwiP_disable                         
-700524f8  HwiP_disableFIQ                      
-70051751  HwiP_disableInt                      
-70052540  HwiP_disableVIC                      
-70052508  HwiP_enable                          
-70052518  HwiP_enableFIQ                       
-70051711  HwiP_enableInt                       
-70052530  HwiP_enableVIC                       
-70051f71  HwiP_fiq_handler                     
-70052550  HwiP_getCPSR                         
-70051ca1  HwiP_inISR                           
-70051af1  HwiP_init                            
-7005236c  HwiP_irq_handler                     
-70051dd1  HwiP_irq_handler_c                   
-70051821  HwiP_post                            
-70052424  HwiP_prefetch_abort_handler          
-70052191  HwiP_prefetch_abort_handler_c        
-700520d1  HwiP_reserved_handler                
-70052528  HwiP_restore                         
-700517b1  HwiP_restoreInt                      
-70051dc1  HwiP_restoreVimIrqPriMask            
-70051d21  HwiP_setVimIrqPriMaskAtomic          
-70051cd1  HwiP_setVimIrqPriMaskNonAtomic       
-70052151  HwiP_svc_handler                     
-70052470  HwiP_undefined_handler               
-70052111  HwiP_undefined_handler_c             
-70052331  HwiP_user_data_abort_handler_c       
-70052231  HwiP_user_prefetch_abort_handler_c   
-70052131  HwiP_user_undefined_handler_c        
+70051871  HwiP_Params_init                     
+700517f1  HwiP_clearInt                        
+700518a1  HwiP_construct                       
+700523f0  HwiP_data_abort_handler              
+70052281  HwiP_data_abort_handler_c            
+70051a91  HwiP_destruct                        
+700524f8  HwiP_disable                         
+70052508  HwiP_disableFIQ                      
+70051761  HwiP_disableInt                      
+70052550  HwiP_disableVIC                      
+70052518  HwiP_enable                          
+70052528  HwiP_enableFIQ                       
+70051721  HwiP_enableInt                       
+70052540  HwiP_enableVIC                       
+70051f81  HwiP_fiq_handler                     
+70052560  HwiP_getCPSR                         
+70051cb1  HwiP_inISR                           
+70051b01  HwiP_init                            
+7005237c  HwiP_irq_handler                     
+70051de1  HwiP_irq_handler_c                   
+70051831  HwiP_post                            
+70052434  HwiP_prefetch_abort_handler          
+700521a1  HwiP_prefetch_abort_handler_c        
+700520e1  HwiP_reserved_handler                
+70052538  HwiP_restore                         
+700517c1  HwiP_restoreInt                      
+70051dd1  HwiP_restoreVimIrqPriMask            
+70051d31  HwiP_setVimIrqPriMaskAtomic          
+70051ce1  HwiP_setVimIrqPriMaskNonAtomic       
+70052161  HwiP_svc_handler                     
+70052480  HwiP_undefined_handler               
+70052121  HwiP_undefined_handler_c             
+70052341  HwiP_user_data_abort_handler_c       
+70052241  HwiP_user_prefetch_abort_handler_c   
+70052141  HwiP_user_undefined_handler_c        
 70049e71  IpcNotify_Params_init                
 70049621  IpcNotify_allocSwQueue               
 7004ad51  IpcNotify_getConfig                  
@@ -1165,20 +1166,20 @@ address   name
 70045271  MCAN_readMsgRam                      
 70049e21  Module_clockEnable                   
 70049441  Module_clockSetFrequency             
-70052a61  MpuP_RegionAttrs_init                
-70052b31  MpuP_disable                         
-70052d40  MpuP_disableAsm                      
-70052d58  MpuP_disableBRAsm                    
-70052b71  MpuP_enable                          
-70052d68  MpuP_enableAsm                       
-70052d80  MpuP_enableBRAsm                     
-70052a01  MpuP_getAttrs                        
-70052bc1  MpuP_init                            
-70052b21  MpuP_isEnable                        
-70052d90  MpuP_isEnableAsm                     
-70052c61  MpuP_isUserAuthorizedToAccessMemory  
-70052a91  MpuP_setRegion                       
-70052da4  MpuP_setRegionAsm                    
+70052a71  MpuP_RegionAttrs_init                
+70052b41  MpuP_disable                         
+70052d50  MpuP_disableAsm                      
+70052d68  MpuP_disableBRAsm                    
+70052b81  MpuP_enable                          
+70052d78  MpuP_enableAsm                       
+70052d90  MpuP_enableBRAsm                     
+70052a11  MpuP_getAttrs                        
+70052bd1  MpuP_init                            
+70052b31  MpuP_isEnable                        
+70052da0  MpuP_isEnableAsm                     
+70052c71  MpuP_isUserAuthorizedToAccessMemory  
+70052aa1  MpuP_setRegion                       
+70052db4  MpuP_setRegionAsm                    
 700499c1  Pinmux_config                        
 7004b3b1  Pinmux_init                          
 7004a720  PmuP_clearOverflowStatus             
@@ -1255,24 +1256,24 @@ address   name
 7004a051  UART_readLineStatus                  
 7004a441  UART_spaceAvail                      
 70048b31  _DebugP_assert                       
-70052f11  _DebugP_assertNoLog                  
+70052f21  _DebugP_assertNoLog                  
 7004a1e1  _DebugP_logZone                      
-70054530  __ABORT_STACK_END                    
+70054540  __ABORT_STACK_END                    
 00000100  __ABORT_STACK_SIZE                   
-70054430  __ABORT_STACK_START                  
-7004d710  __BSS_END                            
-7004cad8  __BSS_START                          
-70053430  __FIQ_STACK_END                      
+70054440  __ABORT_STACK_START                  
+7004d718  __BSS_END                            
+7004cae0  __BSS_START                          
+70053440  __FIQ_STACK_END                      
 00000100  __FIQ_STACK_SIZE                     
-70053330  __FIQ_STACK_START                    
-70053330  __IRQ_STACK_END                      
+70053340  __FIQ_STACK_START                    
+70053340  __IRQ_STACK_END                      
 00000100  __IRQ_STACK_SIZE                     
-70053230  __IRQ_STACK_START                    
-70051710  __STACK_END                          
+70053240  __IRQ_STACK_START                    
+70051718  __STACK_END                          
 00004000  __STACK_SIZE                         
-70054430  __SVC_STACK_END                      
+70054440  __SVC_STACK_END                      
 00001000  __SVC_STACK_SIZE                     
-70053430  __SVC_STACK_START                    
+70053440  __SVC_STACK_START                    
 00000000  __TI_ATRegion0_region_sz             
 00000000  __TI_ATRegion0_src_addr              
 00000000  __TI_ATRegion0_trg_addr              
@@ -1291,9 +1292,9 @@ ffffffff  __TI_pprof_out_hndl
 ffffffff  __TI_prof_data_size                  
 ffffffff  __TI_prof_data_start                 
 00000000  __TI_static_base__                   
-70054630  __UNDEFINED_STACK_END                
+70054640  __UNDEFINED_STACK_END                
 00000100  __UNDEFINED_STACK_SIZE               
-70054530  __UNDEFINED_STACK_START              
+70054540  __UNDEFINED_STACK_START              
 700416f8  __aeabi_ldiv0                        
 70040a34  __aeabi_memclr                       
 70040a34  __aeabi_memclr4                      
@@ -1303,56 +1304,56 @@ ffffffff  __TI_prof_data_start
 700416fc  __aeabi_memcpy8                      
 7004ae34  __aeabi_uldivmod                     
 ffffffff  __binit__                            
-70052f71  __mpu_init                           
-7004d710  __stack                              
+70052f81  __mpu_init                           
+7004d718  __stack                              
 70045e6c  __udivmoddi4                         
-70052de4  _c_int00                             
-70052dc0  _c_int00_sbl                         
+70052df4  _c_int00                             
+70052dd0  _c_int00_sbl                         
 UNDEFED   _system_post_cinit                   
-70052f41  _system_pre_init                     
+70052f51  _system_pre_init                     
 00000000  _vectors                             
-70052f80  abort                                
+70052f90  abort                                
 ffffffff  binit                                
 700495c1  disp_timer_init                      
 70048541  disp_timer_isr_callback              
 700493e1  disp_timer_start                     
 7004b760  gADPLLJConfigTbl                     
-700531b0  gAddrTranslateConfig                 
-7004ca5e  gCR5ClkSrcInfoMap                    
+700531c0  gAddrTranslateConfig                 
+7004ca66  gCR5ClkSrcInfoMap                    
 7004b5f0  gCacheConfig                         
 7004b674  gCacheL1dCacheLineSize               
-7004cac4  gCacheL1pCacheLineSize               
-70053118  gClockConfig                         
-7004d6d8  gClockCtrl                           
-700531e8  gDebugLogZone                        
+7004cacc  gCacheL1pCacheLineSize               
+70053128  gClockConfig                         
+7004d6e0  gClockCtrl                           
+700531f8  gDebugLogZone                        
 701d4000  gDebugShmLog                         
-70052f88  gEdmaConfig                          
-700531f4  gEdmaConfigNum                       
+70052f98  gEdmaConfig                          
+70053204  gEdmaConfigNum                       
 701d0000  gGatewaySharedMem                    
-700531f8  gHwiConfig                           
-7004cad8  gHwiCtrl                             
-700531a0  gIpcNotifyCoreIntrBitPos             
-7004d498  gIpcNotifyCtrl                       
-700531fc  gIpcNotifyInterruptConfigNum_r5fss0_1
-70053130  gIpcNotifyInterruptConfig_r5fss0_1   
-70052f88  gIpcNotifyMailboxConfig              
+70053208  gHwiConfig                           
+7004cae0  gHwiCtrl                             
+700531b0  gIpcNotifyCoreIntrBitPos             
+7004d4a0  gIpcNotifyCtrl                       
+7005320c  gIpcNotifyInterruptConfigNum_r5fss0_1
+70053140  gIpcNotifyInterruptConfig_r5fss0_1   
+70052f98  gIpcNotifyMailboxConfig              
 7004b5f8  gMpuConfig                           
 7004b604  gMpuRegionConfig                     
-7004c684  gPeripheralClkSrcInfoMap             
-700531bc  gSocModules                          
-70053160  gSocModulesClockFrequency            
-7004d6d4  gTimerBaseAddr                       
-7004d708  gTimerHwiObj                         
-70053200  gTimerIsrCounter                     
-70053225  gTimerIsrFlag                        
-700531cc  gUartConfig                          
-70053204  gUartConfigNum                       
-70053208  gUartDmaChConfig                     
-70052f88  gUartDmaHandle                       
-7004d70c  gUartHandle                          
-70053088  gUartParams                          
-7004ca68  gXTALInfo                            
-7005320c  g_disp_timer_isr_count               
+7004c68c  gPeripheralClkSrcInfoMap             
+700531cc  gSocModules                          
+70053170  gSocModulesClockFrequency            
+7004d6dc  gTimerBaseAddr                       
+7004d710  gTimerHwiObj                         
+70053210  gTimerIsrCounter                     
+70053235  gTimerIsrFlag                        
+700531dc  gUartConfig                          
+70053214  gUartConfigNum                       
+70053218  gUartDmaChConfig                     
+70052f98  gUartDmaHandle                       
+7004d714  gUartHandle                          
+70053098  gUartParams                          
+7004ca70  gXTALInfo                            
+7005321c  g_disp_timer_isr_count               
 7004a481  gateway_core1_init                   
 70044a41  gateway_core1_ipc_callback           
 70047b71  gateway_core1_wait_for_ready         
@@ -1361,12 +1362,12 @@ ffffffff  binit
 70048ab1  gateway_read_test_data               
 7004a4c1  gateway_update_heartbeat             
 70048391  gateway_write_test_data              
-7005322c  isMapAvailable                       
+7005323c  isMapAvailable                       
 700498c1  main                                 
 7004b391  putchar_                             
 7004a681  snprintf_                            
 7004b061  timerISR                             
-7004d6f8  virtToPhymap                         
+7004d700  virtToPhymap                         
 7004ac61  vprintf_                             
 
 
@@ -1595,135 +1596,135 @@ address   name
 7004b604  gMpuRegionConfig                     
 7004b674  gCacheL1dCacheLineSize               
 7004b760  gADPLLJConfigTbl                     
-7004c684  gPeripheralClkSrcInfoMap             
-7004ca5e  gCR5ClkSrcInfoMap                    
-7004ca68  gXTALInfo                            
-7004cac4  gCacheL1pCacheLineSize               
-7004cad8  __BSS_START                          
-7004cad8  gHwiCtrl                             
-7004d498  gIpcNotifyCtrl                       
-7004d6d4  gTimerBaseAddr                       
-7004d6d8  gClockCtrl                           
-7004d6f8  virtToPhymap                         
-7004d708  gTimerHwiObj                         
-7004d70c  gUartHandle                          
-7004d710  __BSS_END                            
-7004d710  __stack                              
-70051710  __STACK_END                          
-70051711  HwiP_enableInt                       
-70051751  HwiP_disableInt                      
-700517b1  HwiP_restoreInt                      
-700517e1  HwiP_clearInt                        
-70051821  HwiP_post                            
-70051861  HwiP_Params_init                     
-70051891  HwiP_construct                       
-70051a81  HwiP_destruct                        
-70051af1  HwiP_init                            
-70051ca1  HwiP_inISR                           
-70051cd1  HwiP_setVimIrqPriMaskNonAtomic       
-70051d21  HwiP_setVimIrqPriMaskAtomic          
-70051dc1  HwiP_restoreVimIrqPriMask            
-70051dd1  HwiP_irq_handler_c                   
-70051f71  HwiP_fiq_handler                     
-700520d1  HwiP_reserved_handler                
-70052111  HwiP_undefined_handler_c             
-70052131  HwiP_user_undefined_handler_c        
-70052151  HwiP_svc_handler                     
-70052191  HwiP_prefetch_abort_handler_c        
-70052231  HwiP_user_prefetch_abort_handler_c   
-70052271  HwiP_data_abort_handler_c            
-70052331  HwiP_user_data_abort_handler_c       
-7005236c  HwiP_irq_handler                     
-700523e0  HwiP_data_abort_handler              
-70052424  HwiP_prefetch_abort_handler          
-70052470  HwiP_undefined_handler               
-700524a0  GET_DFSR                             
-700524a8  GET_ADFSR                            
-700524b0  GET_DFAR                             
-700524b8  GET_IFSR                             
-700524c0  GET_AIFSR                            
-700524c8  GET_IFAR                             
-700524d0  GET_SPSR                             
-700524e8  HwiP_disable                         
-700524f8  HwiP_disableFIQ                      
-70052508  HwiP_enable                          
-70052518  HwiP_enableFIQ                       
-70052528  HwiP_restore                         
-70052530  HwiP_enableVIC                       
-70052540  HwiP_disableVIC                      
-70052550  HwiP_getCPSR                         
-70052560  CacheP_disableL1d                    
-70052588  CacheP_disableL1p                    
-700525a0  CacheP_enableL1d                     
-700525b8  CacheP_enableL1p                     
-700525d0  CacheP_invL1d                        
-70052608  CacheP_invL1p                        
-70052644  CacheP_invL1dAll                     
-7005264c  CacheP_invL1pAll                     
-70052654  CacheP_wb                            
-70052690  CacheP_wbInv                         
-700526cc  CacheP_wbAll                         
-70052774  CacheP_wbInvAll                      
-7005278c  CacheP_wbInvAllAsm                   
-7005282c  CacheP_getEnabled                    
-70052864  CacheP_getCacheLevelInfo             
-70052870  CacheP_configForceWrThru             
-70052890  CacheP_setDLFO                       
-700528a1  CacheP_init                          
-70052931  CacheP_disable                       
-70052981  CacheP_enable                        
-700529c1  CacheP_inv                           
-70052a01  MpuP_getAttrs                        
-70052a61  MpuP_RegionAttrs_init                
-70052a91  MpuP_setRegion                       
-70052b21  MpuP_isEnable                        
-70052b31  MpuP_disable                         
-70052b71  MpuP_enable                          
-70052bc1  MpuP_init                            
-70052c61  MpuP_isUserAuthorizedToAccessMemory  
-70052d40  MpuP_disableAsm                      
-70052d58  MpuP_disableBRAsm                    
-70052d68  MpuP_enableAsm                       
-70052d80  MpuP_enableBRAsm                     
-70052d90  MpuP_isEnableAsm                     
-70052da4  MpuP_setRegionAsm                    
-70052dc0  _c_int00_sbl                         
-70052de4  _c_int00                             
-70052f11  _DebugP_assertNoLog                  
-70052f41  _system_pre_init                     
-70052f71  __mpu_init                           
-70052f80  abort                                
-70052f88  gEdmaConfig                          
-70052f88  gIpcNotifyMailboxConfig              
-70052f88  gUartDmaHandle                       
-70053088  gUartParams                          
-70053118  gClockConfig                         
-70053130  gIpcNotifyInterruptConfig_r5fss0_1   
-70053160  gSocModulesClockFrequency            
-700531a0  gIpcNotifyCoreIntrBitPos             
-700531b0  gAddrTranslateConfig                 
-700531bc  gSocModules                          
-700531cc  gUartConfig                          
-700531e8  gDebugLogZone                        
-700531f4  gEdmaConfigNum                       
-700531f8  gHwiConfig                           
-700531fc  gIpcNotifyInterruptConfigNum_r5fss0_1
-70053200  gTimerIsrCounter                     
-70053204  gUartConfigNum                       
-70053208  gUartDmaChConfig                     
-7005320c  g_disp_timer_isr_count               
-70053225  gTimerIsrFlag                        
-7005322c  isMapAvailable                       
-70053230  __IRQ_STACK_START                    
-70053330  __FIQ_STACK_START                    
-70053330  __IRQ_STACK_END                      
-70053430  __FIQ_STACK_END                      
-70053430  __SVC_STACK_START                    
-70054430  __ABORT_STACK_START                  
-70054430  __SVC_STACK_END                      
-70054530  __ABORT_STACK_END                    
-70054530  __UNDEFINED_STACK_START              
-70054630  __UNDEFINED_STACK_END                
+7004c68c  gPeripheralClkSrcInfoMap             
+7004ca66  gCR5ClkSrcInfoMap                    
+7004ca70  gXTALInfo                            
+7004cacc  gCacheL1pCacheLineSize               
+7004cae0  __BSS_START                          
+7004cae0  gHwiCtrl                             
+7004d4a0  gIpcNotifyCtrl                       
+7004d6dc  gTimerBaseAddr                       
+7004d6e0  gClockCtrl                           
+7004d700  virtToPhymap                         
+7004d710  gTimerHwiObj                         
+7004d714  gUartHandle                          
+7004d718  __BSS_END                            
+7004d718  __stack                              
+70051718  __STACK_END                          
+70051721  HwiP_enableInt                       
+70051761  HwiP_disableInt                      
+700517c1  HwiP_restoreInt                      
+700517f1  HwiP_clearInt                        
+70051831  HwiP_post                            
+70051871  HwiP_Params_init                     
+700518a1  HwiP_construct                       
+70051a91  HwiP_destruct                        
+70051b01  HwiP_init                            
+70051cb1  HwiP_inISR                           
+70051ce1  HwiP_setVimIrqPriMaskNonAtomic       
+70051d31  HwiP_setVimIrqPriMaskAtomic          
+70051dd1  HwiP_restoreVimIrqPriMask            
+70051de1  HwiP_irq_handler_c                   
+70051f81  HwiP_fiq_handler                     
+700520e1  HwiP_reserved_handler                
+70052121  HwiP_undefined_handler_c             
+70052141  HwiP_user_undefined_handler_c        
+70052161  HwiP_svc_handler                     
+700521a1  HwiP_prefetch_abort_handler_c        
+70052241  HwiP_user_prefetch_abort_handler_c   
+70052281  HwiP_data_abort_handler_c            
+70052341  HwiP_user_data_abort_handler_c       
+7005237c  HwiP_irq_handler                     
+700523f0  HwiP_data_abort_handler              
+70052434  HwiP_prefetch_abort_handler          
+70052480  HwiP_undefined_handler               
+700524b0  GET_DFSR                             
+700524b8  GET_ADFSR                            
+700524c0  GET_DFAR                             
+700524c8  GET_IFSR                             
+700524d0  GET_AIFSR                            
+700524d8  GET_IFAR                             
+700524e0  GET_SPSR                             
+700524f8  HwiP_disable                         
+70052508  HwiP_disableFIQ                      
+70052518  HwiP_enable                          
+70052528  HwiP_enableFIQ                       
+70052538  HwiP_restore                         
+70052540  HwiP_enableVIC                       
+70052550  HwiP_disableVIC                      
+70052560  HwiP_getCPSR                         
+70052570  CacheP_disableL1d                    
+70052598  CacheP_disableL1p                    
+700525b0  CacheP_enableL1d                     
+700525c8  CacheP_enableL1p                     
+700525e0  CacheP_invL1d                        
+70052618  CacheP_invL1p                        
+70052654  CacheP_invL1dAll                     
+7005265c  CacheP_invL1pAll                     
+70052664  CacheP_wb                            
+700526a0  CacheP_wbInv                         
+700526dc  CacheP_wbAll                         
+70052784  CacheP_wbInvAll                      
+7005279c  CacheP_wbInvAllAsm                   
+7005283c  CacheP_getEnabled                    
+70052874  CacheP_getCacheLevelInfo             
+70052880  CacheP_configForceWrThru             
+700528a0  CacheP_setDLFO                       
+700528b1  CacheP_init                          
+70052941  CacheP_disable                       
+70052991  CacheP_enable                        
+700529d1  CacheP_inv                           
+70052a11  MpuP_getAttrs                        
+70052a71  MpuP_RegionAttrs_init                
+70052aa1  MpuP_setRegion                       
+70052b31  MpuP_isEnable                        
+70052b41  MpuP_disable                         
+70052b81  MpuP_enable                          
+70052bd1  MpuP_init                            
+70052c71  MpuP_isUserAuthorizedToAccessMemory  
+70052d50  MpuP_disableAsm                      
+70052d68  MpuP_disableBRAsm                    
+70052d78  MpuP_enableAsm                       
+70052d90  MpuP_enableBRAsm                     
+70052da0  MpuP_isEnableAsm                     
+70052db4  MpuP_setRegionAsm                    
+70052dd0  _c_int00_sbl                         
+70052df4  _c_int00                             
+70052f21  _DebugP_assertNoLog                  
+70052f51  _system_pre_init                     
+70052f81  __mpu_init                           
+70052f90  abort                                
+70052f98  gEdmaConfig                          
+70052f98  gIpcNotifyMailboxConfig              
+70052f98  gUartDmaHandle                       
+70053098  gUartParams                          
+70053128  gClockConfig                         
+70053140  gIpcNotifyInterruptConfig_r5fss0_1   
+70053170  gSocModulesClockFrequency            
+700531b0  gIpcNotifyCoreIntrBitPos             
+700531c0  gAddrTranslateConfig                 
+700531cc  gSocModules                          
+700531dc  gUartConfig                          
+700531f8  gDebugLogZone                        
+70053204  gEdmaConfigNum                       
+70053208  gHwiConfig                           
+7005320c  gIpcNotifyInterruptConfigNum_r5fss0_1
+70053210  gTimerIsrCounter                     
+70053214  gUartConfigNum                       
+70053218  gUartDmaChConfig                     
+7005321c  g_disp_timer_isr_count               
+70053235  gTimerIsrFlag                        
+7005323c  isMapAvailable                       
+70053240  __IRQ_STACK_START                    
+70053340  __FIQ_STACK_START                    
+70053340  __IRQ_STACK_END                      
+70053440  __FIQ_STACK_END                      
+70053440  __SVC_STACK_START                    
+70054440  __ABORT_STACK_START                  
+70054440  __SVC_STACK_END                      
+70054540  __ABORT_STACK_END                    
+70054540  __UNDEFINED_STACK_START              
+70054640  __UNDEFINED_STACK_END                
 701d0000  gGatewaySharedMem                    
 701d4000  gDebugShmLog                         
 ffffffff  __TI_pprof_out_hndl                  

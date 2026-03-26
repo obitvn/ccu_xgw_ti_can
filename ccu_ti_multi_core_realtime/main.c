@@ -334,7 +334,7 @@ static int32_t core1_init(void)
 
     DebugP_log("\r\n");
     DebugP_log("========================================\r\n");
-    DebugP_log("  Core 1 (NoRTOS) Initialization\r\n");
+    DebugP_log("  Core 1 (NoRTOS) Initialization CCU TI\r\n");
     DebugP_log("========================================\r\n");
 
     /* Open drivers */
@@ -361,6 +361,7 @@ static int32_t core1_init(void)
 
     /* Register IPC callback - BOTH cores must use the SAME client ID */
     DebugP_log("[Core1] Registering IPC callback with client ID=%u\r\n", GATEWAY_IPC_CLIENT_ID);
+    
     status = IpcNotify_registerClient(GATEWAY_IPC_CLIENT_ID, (IpcNotify_FxnCallback)ipc_notify_callback_fxn, NULL);
     if (status != SystemP_SUCCESS) {
         DebugP_log("[Core1] ERROR: IpcNotify_registerClient failed! status=%d\r\n", status);

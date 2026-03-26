@@ -29,7 +29,10 @@
       "Bash(ls -la D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/ccu_ti_mutilcore/ccu_ti_multi_core_freertos/Debug/*.map)",
       "Bash(\"C:\\\\Users\\\\chuti\\\\.ccs\\\\tools\\\\2024.06\\\\sysconfig_1.26.0\\\\sysconfig_cli.bat\" --product \"MCU_PLUS_SDK_AM263Px@11.01.00\" example.syscfg)",
       "mcp__web-search-prime__web_search_prime",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(ls -la \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\ccu_ti_mutilcore\\\\ccu_ti_multi_core_realtime\\\\Debug\"/*.out)",
+      "Bash(dir \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\ccu_ti_mutilcore\\\\ccu_ti_multi_core_realtime\\\\Debug\\\\*.out\")",
+      "Bash(find D:VinDynamicsProjectCCU_TI_RS485_CAN2.Firmwareccu_ti_mutilcoreccu_ti_multi_core_realtimeDebug -name *.map -type f)"
     ]
   }
 }
