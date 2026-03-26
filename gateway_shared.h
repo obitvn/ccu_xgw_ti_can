@@ -34,7 +34,7 @@ extern "C" {
 #define GATEWAY_NUM_MOTORS          4       /* TEMP: Reduce from 23 to 4 for testing */
 #define GATEWAY_NUM_CAN_BUSES       8
 #define GATEWAY_SHARED_MEM_ADDR     0x701D0000
-#define GATEWAY_SHARED_MEM_SIZE     0x4000      /* 16KB */
+#define GATEWAY_SHARED_MEM_SIZE     0x8000      /* 32KB */
 
 /* IPC Message IDs (IpcNotify) */
 #define MSG_CAN_DATA_READY          0x01    /* Core 1 -> Core 0: Motor states available */

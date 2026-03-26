@@ -1,7 +1,7 @@
 ******************************************************************************
             TI ARM Clang Linker PC v4.0.4                      
 ******************************************************************************
->> Linked Thu Mar 26 09:36:48 2026
+>> Linked Thu Mar 26 13:41:35 2026
 
 OUTPUT FILE NAME:   <ccu_ti_multi_core_realtime.out>
 ENTRY POINT SYMBOL: "_vectors"  address: 00000000
@@ -18,8 +18,8 @@ MEMORY CONFIGURATION
   MAILBOX_R5F           44000400   000003ce  00000000  000003ce  RWIX
   FLASH                 60180000   00080000  00000000  00080000  RWIX
   OCRAM                 70040000   00040000  00014638  0002b9c8  RWIX
-  USER_SHM_MEM          701d0000   00004000  000001c0  00003e40  RWIX
-  LOG_SHM_MEM           701d4000   00004000  00002000  00002000  RWIX
+  USER_SHM_MEM          701d0000   00008000  000001c0  00007e40  RWIX
+  LOG_SHM_MEM           701d8000   00004000  00002000  00002000  RWIX
   RTOS_NORTOS_IPC_SHM_M 72000000   00003e80  00000000  00003e80  RWIX
 
 
@@ -905,8 +905,8 @@ section   page    origin      length       input sections
                   701d0000    000001c0     gateway_shared.o (.bss.user_shared_mem)
 
 .bss.log_shared_mem 
-*          0    701d4000    00002000     NOLOAD SECTION
-                  701d4000    00002000     ti_dpl_config.o (.bss.log_shared_mem)
+*          0    701d8000    00002000     NOLOAD SECTION
+                  701d8000    00002000     ti_dpl_config.o (.bss.log_shared_mem)
 
 MODULE SUMMARY
 
@@ -1326,7 +1326,7 @@ ffffffff  binit
 70053128  gClockConfig                         
 7004d6e0  gClockCtrl                           
 700531f8  gDebugLogZone                        
-701d4000  gDebugShmLog                         
+701d8000  gDebugShmLog                         
 70052f98  gEdmaConfig                          
 70053204  gEdmaConfigNum                       
 701d0000  gGatewaySharedMem                    
@@ -1726,7 +1726,7 @@ address   name
 70054540  __UNDEFINED_STACK_START              
 70054640  __UNDEFINED_STACK_END                
 701d0000  gGatewaySharedMem                    
-701d4000  gDebugShmLog                         
+701d8000  gDebugShmLog                         
 ffffffff  __TI_pprof_out_hndl                  
 ffffffff  __TI_prof_data_size                  
 ffffffff  __TI_prof_data_start                 

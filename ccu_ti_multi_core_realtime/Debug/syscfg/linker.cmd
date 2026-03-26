@@ -150,8 +150,8 @@ MEMORY
 
     /* For memory Regions not defined in this core but shared by other cores with the current core */
 
-    USER_SHM_MEM   : ORIGIN = 0x701D0000 , LENGTH = 0x4000  
-    LOG_SHM_MEM   : ORIGIN = 0x701D4000 , LENGTH = 0x4000  
+    USER_SHM_MEM   : ORIGIN = 0x701D0000 , LENGTH = 0x8000  
+    LOG_SHM_MEM   : ORIGIN = 0x701D8000 , LENGTH = 0x4000  
     RTOS_NORTOS_IPC_SHM_MEM   : ORIGIN = 0x72000000 , LENGTH = 0x3E80  
     MAILBOX_HSM   : ORIGIN = 0x44000000 , LENGTH = 0x3CE  
     MAILBOX_R5F   : ORIGIN = 0x44000400 , LENGTH = 0x3CE  
