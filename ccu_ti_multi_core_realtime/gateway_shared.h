@@ -24,17 +24,50 @@ extern "C" {
 #endif
 
 /*==============================================================================
+ * PLATFORM-SPECIFIC DEFINITIONS
+ *============================================================================*/
+
+/* Cache Line Size for Cortex-R5F (32 bytes) */
+#define CACHE_LINE_SIZE         32U
+
+/* Memory Barriers for ARM Cortex-R5F */
+/* Using inline assembly for tiarmclang compatibility */
+#define MEMORY_BARRIER_DMB()    __asm__ volatile("dmb 15" ::: "memory")   /* Data Memory Barrier */
+#define MEMORY_BARRIER_DSB()    __asm__ volatile("dsb 15" ::: "memory")   /* Data Synchronization Barrier */
+#define MEMORY_BARRIER_FULL()   do { __asm__ volatile("dmb 15" ::: "memory"); \
+                                     __asm__ volatile("dsb 15" ::: "memory"); } while(0)
+
+/*==============================================================================
  * CONSTANTS
  *============================================================================*/
 
 #define GATEWAY_SHARED_MAGIC        0x47444154  /* "GTAD" */
-#define GATEWAY_SHARED_VERSION      0x00030003  /* Version 3.0.0 */
+#define GATEWAY_SHARED_VERSION      0x00040000  /* Version 4.0.0 - Lock-free Ring Buffer */
 
 /* Shared Memory Configuration */
 #define GATEWAY_NUM_MOTORS          4       /* TEMP: Reduce from 23 to 4 for testing */
 #define GATEWAY_NUM_CAN_BUSES       8
 #define GATEWAY_SHARED_MEM_ADDR     0x701D0000
-#define GATEWAY_SHARED_MEM_SIZE     0x4000      /* 16KB */
+#define GATEWAY_SHARED_MEM_SIZE     0x8000      /* 32KB */
+
+/* Lock-free Ring Buffer Configuration */
+#define GATEWAY_USE_LOCKFREE_RINGBUF    1   /* Enable lock-free ring buffer */
+
+/* Ring Buffer Sizes (power of 2 for efficient modulo) */
+#define GATEWAY_RINGBUF_0_TO_1_SIZE     (8 * 1024)   /* 8KB: Core0 -> Core1 (power of 2) */
+#define GATEWAY_RINGBUF_1_TO_0_SIZE     (8 * 1024)   /* 8KB: Core1 -> Core0 (power of 2) */
+#define GATEWAY_RINGBUF_MAX_ITEM_SIZE   256          /* Max packet size */
+
+/* Verify power of 2 */
+#if (GATEWAY_RINGBUF_0_TO_1_SIZE & (GATEWAY_RINGBUF_0_TO_1_SIZE - 1)) != 0
+#error "GATEWAY_RINGBUF_0_TO_1_SIZE must be power of 2"
+#endif
+#if (GATEWAY_RINGBUF_1_TO_0_SIZE & (GATEWAY_RINGBUF_1_TO_0_SIZE - 1)) != 0
+#error "GATEWAY_RINGBUF_1_TO_0_SIZE must be power of 2"
+#endif
+
+#define GATEWAY_RINGBUF_0_TO_1_MASK     (GATEWAY_RINGBUF_0_TO_1_SIZE - 1)
+#define GATEWAY_RINGBUF_1_TO_0_MASK     (GATEWAY_RINGBUF_1_TO_0_SIZE - 1)
 
 /* IPC Message IDs (IpcNotify) */
 #define MSG_CAN_DATA_READY          0x01    /* Core 1 -> Core 0: Motor states available */
@@ -45,14 +78,70 @@ extern "C" {
 #define MSG_IMU_DATA_READY          0x06    /* Future: IMU data */
 #define MSG_HEARTBEAT               0x07    /* Heartbeat sync */
 #define MSG_EMERGENCY_STOP          0x08    /* Emergency stop signal */
-#define MSG_TEST_DATA_READY         0x09    /* Core 0 -> Core 1: Test data ready */
-#define MSG_TEST_DATA_FROM_CORE1    0x0A    /* Core 1 -> Core 0: Test data from Core 1 */
 
 /* Feature flag: Enable Ping-Pong Buffer (set to 1 to enable) */
 #define GATEWAY_USE_PINGPONG_BUFFER  0
 
 /* IPC Client ID - BOTH cores must register the SAME client ID for IPC communication */
 #define GATEWAY_IPC_CLIENT_ID        4U     /* Common client ID for both cores */
+
+/*==============================================================================
+ * LOCK-FREE RING BUFFER TYPE DEFINITIONS
+ *============================================================================*/
+
+/**
+ * @brief Lock-free Ring Buffer Error Codes
+ */
+typedef enum {
+    GATEWAY_RINGBUF_OK              = 0,   /* Operation successful */
+    GATEWAY_RINGBUF_FULL            = -1,  /* Producer: No space available */
+    GATEWAY_RINGBUF_EMPTY           = -2,  /* Consumer: No data available */
+    GATEWAY_RINGBUF_INVALID_PARAM   = -3,  /* Invalid parameter */
+    GATEWAY_RINGBUF_PARTIAL_WRITE   = -4,  /* Partial write (chunk too large) */
+} Gateway_RingBuf_Result_t;
+
+/**
+ * @brief Lock-free Ring Buffer Control Header
+ *
+ * Each control variable is aligned to its own cache line (32 bytes)
+ * to prevent false sharing between Producer and Consumer.
+ *
+ * Access Rights:
+ * - Producer: Only writes write_index, reads read_index
+ * - Consumer: Only writes read_index, reads write_index
+ */
+typedef struct {
+    /* === Producer State (Write-Only by Producer, Read-Only by Consumer) === */
+    volatile uint32_t write_index __attribute__((aligned(CACHE_LINE_SIZE)));
+    uint8_t _padding_write[CACHE_LINE_SIZE - sizeof(uint32_t)];
+
+    /* Reserved for future use */
+    uint32_t _reserved1[(CACHE_LINE_SIZE / sizeof(uint32_t))];
+
+    /* === Consumer State (Write-Only by Consumer, Read-Only by Producer) === */
+    volatile uint32_t read_index __attribute__((aligned(CACHE_LINE_SIZE)));
+    uint8_t _padding_read[CACHE_LINE_SIZE - sizeof(uint32_t)];
+
+    /* Reserved for future use */
+    uint32_t _reserved2[(CACHE_LINE_SIZE / sizeof(uint32_t))];
+
+} Gateway_RingBuf_Control_t;
+
+/* Verify alignment */
+_Static_assert(sizeof(Gateway_RingBuf_Control_t) == (4 * CACHE_LINE_SIZE),
+               "Gateway_RingBuf_Control_t size must be 4 cache lines");
+
+/**
+ * @brief Lock-free Ring Buffer
+ *
+ * Total size: Control header (128 bytes) + Data buffer
+ */
+typedef struct {
+    Gateway_RingBuf_Control_t ctrl;           /* Cache-aligned control variables */
+    uint32_t size;                            /* Buffer size (power of 2) */
+    uint32_t mask;                            /* Size mask for modulo */
+    uint8_t data[1];                          /* Flexible array member */
+} Gateway_RingBuf_t;
 
 /* Legacy definitions (kept for compatibility but not used for IPC Notify) */
 #define CLIENT_ID_CAN_RX            0       /* Core 1: CAN RX - DEPRECATED */
@@ -63,16 +152,6 @@ extern "C" {
 /*==============================================================================
  * TYPE DEFINITIONS
  *============================================================================*/
-
-/**
- * @brief Test data buffer for shared memory testing
- */
-typedef struct {
-    uint32_t data[16];          /* Test data array */
-    volatile uint32_t ready;    /* Data ready flag */
-    volatile uint32_t sequence; /* Sequence number */
-    uint32_t reserved[3];
-} test_data_buf_t;
 
 /**
  * @brief Motor command for IPC (Ethernet -> CAN)
@@ -106,6 +185,23 @@ typedef struct __attribute__((packed)) {
     int16_t  torque;        /* Torque (0.01 Nm) */
     int16_t  temperature;   /* Temperature (0.1 °C) */
 } motor_state_ipc_t;
+
+/**
+ * @brief IMU state for IPC (Core 1 -> Core 0)
+ *
+ * Optimized packed structure for shared memory transfer
+ * Based on xGW IMU state structure
+ */
+typedef struct __attribute__((packed)) {
+    uint8_t  imu_id;        /* IMU Sensor ID */
+    uint8_t  reserved;      /* Padding */
+    int16_t  temp_cdeg;     /* Temperature (0.01°C) - 4500 = 45.00°C */
+    float    gyro[3];       /* Angular velocity [rad/s] - [x, y, z] */
+    float    quat[4];       /* Quaternion [w, x, y, z] */
+    float    euler[3];      /* Euler angles [rad] - [roll, pitch, yaw] */
+    float    mag_val[3];    /* Raw magnetic field [Gauss] */
+    float    mag_norm[3];   /* Normalized magnetic vector */
+} imu_state_ipc_t;
 
 /**
  * @brief Double buffered motor state buffer
@@ -207,7 +303,7 @@ typedef struct {
 /**
  * @brief Gateway Shared Memory Structure
  *
- * Total size: ~2KB (single buffer) or ~4KB (ping-pong buffer)
+ * Total size: ~28KB (lock-free ring buffers + legacy buffers)
  * Placed at 0x701D0000 with non-cacheable MPU settings
  */
 typedef struct __attribute__((packed)) {
@@ -216,9 +312,18 @@ typedef struct __attribute__((packed)) {
     uint32_t version;                              /* Structure version */
     volatile uint32_t heartbeat_r5f0_0;            /* Core 0 heartbeat counter */
     volatile uint32_t heartbeat_r5f0_1;            /* Core 1 heartbeat counter */
-    test_data_buf_t test_data;                     /* NEW: Test data buffer (shared) */
-    uint32_t reserved[20];                         /* Reduced reserved for test_data */
+    uint32_t reserved[28];                         /* Alignment padding */
 
+#if GATEWAY_USE_LOCKFREE_RINGBUF
+    /* === Lock-free Ring Buffers === */
+    /* Buffer 0: Core0 (Producer) -> Core1 (Consumer) */
+    uint8_t ringbuf_0_to_1[sizeof(Gateway_RingBuf_Control_t) + GATEWAY_RINGBUF_0_TO_1_SIZE];
+
+    /* Buffer 1: Core1 (Producer) -> Core0 (Consumer) */
+    uint8_t ringbuf_1_to_0[sizeof(Gateway_RingBuf_Control_t) + GATEWAY_RINGBUF_1_TO_0_SIZE];
+#endif
+
+    /* === Legacy Buffers (for backward compatibility) === */
 #if GATEWAY_USE_PINGPONG_BUFFER
     /* === Ping-Pong Buffers === */
     can_to_eth_ppbuf_t can_to_eth_ppbuf;
@@ -228,6 +333,12 @@ typedef struct __attribute__((packed)) {
     can_to_eth_buf_t can_to_eth_buf;
     eth_to_can_buf_t eth_to_can_buf;
 #endif
+
+    /* === IMU Buffer (Core 1 -> Core 0) === */
+    imu_state_ipc_t imu_state;
+    volatile uint32_t imu_ready_flag;               /* IMU data ready flag */
+    volatile uint32_t imu_sequence;                 /* IMU sequence number */
+    uint32_t imu_reserved[3];                       /* Padding */
 
     /* === Statistics Section === */
     gateway_stats_t stats;
@@ -378,31 +489,261 @@ void gateway_update_stat(uint8_t core_id, uint8_t stat_id);
 int gateway_notify_commands_ready(void);
 int gateway_notify_states_ready(void);
 
+/**
+ * @brief Write IMU state to shared memory (Core 1 -> Core 0)
+ *
+ * @param imu_state IMU state data
+ * @return 0 on success, -1 on error
+ */
+int gateway_write_imu_state(const imu_state_ipc_t* imu_state);
+
+/**
+ * @brief Read IMU state from shared memory (Core 0 reads from Core 1)
+ *
+ * @param imu_state Output IMU state buffer
+ * @return 0 on success, -1 on error
+ */
+int gateway_read_imu_state(imu_state_ipc_t* imu_state);
+
+/**
+ * @brief Notify that IMU data is ready (Core 1 -> Core 0)
+ *
+ * @return 0 on success, -1 on error
+ */
+int gateway_notify_imu_ready(void);
+
+#if GATEWAY_USE_LOCKFREE_RINGBUF
 /*==============================================================================
- * TEST DATA API (Shared Memory Testing)
+ * LOCK-FREE RING BUFFER API
  *============================================================================*/
 
 /**
- * @brief Write test data to shared memory (Core 0 -> Core 1 or Core 1 -> Core 0)
+ * @brief Initialize lock-free ring buffer
  *
- * @param data Input array (up to 16 elements)
- * @param count Number of elements to write
+ * @param ringbuf Pointer to ring buffer
+ * @param size Buffer size (must be power of 2)
  * @return 0 on success, -1 on error
  */
-int gateway_write_test_data(const uint32_t* data, uint16_t count);
+int gateway_ringbuf_init(void* ringbuf, uint32_t size);
 
 /**
- * @brief Read test data from shared memory
+ * @brief Reset ring buffer indices
  *
- * @param data Output array (up to 16 elements)
- * @return Number of elements read, 0 if no data ready
+ * @param ringbuf Pointer to ring buffer
  */
-int gateway_read_test_data(uint32_t* data);
+void gateway_ringbuf_reset(void* ringbuf);
 
 /**
- * @brief Notify other core that test data is ready
+ * @brief Get available space for writing
+ *
+ * @param ringbuf Pointer to ring buffer
+ * @return Number of bytes available
  */
-int gateway_notify_test_data_ready(void);
+uint32_t gateway_ringbuf_get_free(void* ringbuf);
+
+/**
+ * @brief Get available data for reading
+ *
+ * @param ringbuf Pointer to ring buffer
+ * @return Number of bytes available
+ */
+uint32_t gateway_ringbuf_get_available(void* ringbuf);
+
+/**
+ * @brief Non-blocking write to ring buffer (Producer)
+ *
+ * @param ringbuf Pointer to ring buffer
+ * @param data Pointer to data to write
+ * @param size Size of data
+ * @param bytes_written (optional) Pointer to store actual bytes written
+ * @return GATEWAY_RINGBUF_OK on success, error code otherwise
+ */
+int gateway_ringbuf_write(void* ringbuf, const void* data, uint32_t size, uint32_t* bytes_written);
+
+/**
+ * @brief Non-blocking read from ring buffer (Consumer)
+ *
+ * @param ringbuf Pointer to ring buffer
+ * @param buffer Buffer to store read data
+ * @param size Size of buffer
+ * @param bytes_read (optional) Pointer to store actual bytes read
+ * @return GATEWAY_RINGBUF_OK on success, error code otherwise
+ */
+int gateway_ringbuf_read(void* ringbuf, void* buffer, uint32_t size, uint32_t* bytes_read);
+
+/**
+ * @brief Peek data without consuming (Consumer)
+ *
+ * @param ringbuf Pointer to ring buffer
+ * @param buffer Buffer to store peeked data
+ * @param size Size of buffer
+ * @param bytes_read (optional) Pointer to store actual bytes peeked
+ * @return GATEWAY_RINGBUF_OK on success, error code otherwise
+ */
+int gateway_ringbuf_peek(void* ringbuf, void* buffer, uint32_t size, uint32_t* bytes_read);
+
+/**
+ * @brief Skip bytes in buffer (Consumer)
+ *
+ * @param ringbuf Pointer to ring buffer
+ * @param size Number of bytes to skip
+ * @return GATEWAY_RINGBUF_OK on success, error code otherwise
+ */
+int gateway_ringbuf_skip(void* ringbuf, uint32_t size);
+
+/*==============================================================================
+ * LOCK-FREE RING BUFFER API - CORE 0 (Producer for buf_0_to_1, Consumer for buf_1_to_0)
+ *============================================================================*/
+
+/**
+ * @brief Initialize Core 0 ring buffers
+ *
+ * @return 0 on success, -1 on error
+ */
+int gateway_ringbuf_core0_init(void);
+
+/**
+ * @brief Send data to Core 1 (Producer for buf_0_to_1)
+ *
+ * @param data Pointer to data
+ * @param size Size of data
+ * @param bytes_written (optional) Pointer to store actual bytes written
+ * @return GATEWAY_RINGBUF_OK on success, error code otherwise
+ */
+int gateway_ringbuf_core0_send(const void* data, uint32_t size, uint32_t* bytes_written);
+
+/**
+ * @brief Receive data from Core 1 (Consumer for buf_1_to_0)
+ *
+ * @param buffer Buffer to store received data
+ * @param size Size of buffer
+ * @param bytes_read (optional) Pointer to store actual bytes read
+ * @return GATEWAY_RINGBUF_OK on success, error code otherwise
+ */
+int gateway_ringbuf_core0_receive(void* buffer, uint32_t size, uint32_t* bytes_read);
+
+/**
+ * @brief Check available space in TX buffer (buf_0_to_1)
+ *
+ * @return Number of bytes available for writing
+ */
+uint32_t gateway_ringbuf_core0_get_free(void);
+
+/**
+ * @brief Check available data in RX buffer (buf_1_to_0)
+ *
+ * @return Number of bytes available for reading
+ */
+uint32_t gateway_ringbuf_core0_get_available(void);
+
+/**
+ * @brief Trigger IPC notification to Core 1
+ *
+ * @return 0 on success, -1 on error
+ */
+int gateway_ringbuf_core0_notify(void);
+
+/*==============================================================================
+ * LOCK-FREE RING BUFFER API - CORE 1 (Consumer for buf_0_to_1, Producer for buf_1_to_0)
+ *============================================================================*/
+
+/**
+ * @brief Initialize Core 1 ring buffers
+ *
+ * @return 0 on success, -1 on error
+ */
+int gateway_ringbuf_core1_init(void);
+
+/**
+ * @brief Receive data from Core 0 (Consumer for buf_0_to_1)
+ *
+ * @param buffer Buffer to store received data
+ * @param size Size of buffer
+ * @param bytes_read (optional) Pointer to store actual bytes read
+ * @return GATEWAY_RINGBUF_OK on success, error code otherwise
+ */
+int gateway_ringbuf_core1_receive(void* buffer, uint32_t size, uint32_t* bytes_read);
+
+/**
+ * @brief Send data to Core 0 (Producer for buf_1_to_0)
+ *
+ * @param data Pointer to data
+ * @param size Size of data
+ * @param bytes_written (optional) Pointer to store actual bytes written
+ * @return GATEWAY_RINGBUF_OK on success, error code otherwise
+ */
+int gateway_ringbuf_core1_send(const void* data, uint32_t size, uint32_t* bytes_written);
+
+/**
+ * @brief Check available data in RX buffer (buf_0_to_1)
+ *
+ * @return Number of bytes available for reading
+ */
+uint32_t gateway_ringbuf_core1_get_available(void);
+
+/**
+ * @brief Check available space in TX buffer (buf_1_to_0)
+ *
+ * @return Number of bytes available for writing
+ */
+uint32_t gateway_ringbuf_core1_get_free(void);
+
+/**
+ * @brief Trigger IPC notification to Core 0
+ *
+ * @return 0 on success, -1 on error
+ */
+int gateway_ringbuf_core1_notify(void);
+
+/*==============================================================================
+ * LOCK-FREE RING BUFFER TEST DATA API
+ *============================================================================*/
+
+/**
+ * @brief Test data packet for ring buffer testing
+ */
+typedef struct {
+    uint32_t sequence;       /* Sequence number */
+    uint32_t timestamp;      /* Timestamp (cycle count) */
+    uint32_t data[8];        /* Test data */
+    uint32_t checksum;       /* Simple checksum */
+} ringbuf_test_data_t;
+
+_Static_assert(sizeof(ringbuf_test_data_t) < 256, "Test data too large");
+
+/**
+ * @brief Write test data to ring buffer (Core 0 -> Core 1)
+ *
+ * @param test_data Pointer to test data
+ * @return GATEWAY_RINGBUF_OK on success
+ */
+int gateway_ringbuf_write_test_core0(const ringbuf_test_data_t* test_data);
+
+/**
+ * @brief Read test data from ring buffer (Core 1 receives from Core 0)
+ *
+ * @param test_data Pointer to store test data
+ * @return GATEWAY_RINGBUF_OK on success
+ */
+int gateway_ringbuf_read_test_core1(ringbuf_test_data_t* test_data);
+
+/**
+ * @brief Write test data to ring buffer (Core 1 -> Core 0)
+ *
+ * @param test_data Pointer to test data
+ * @return GATEWAY_RINGBUF_OK on success
+ */
+int gateway_ringbuf_write_test_core1(const ringbuf_test_data_t* test_data);
+
+/**
+ * @brief Read test data from ring buffer (Core 0 receives from Core 1)
+ *
+ * @param test_data Pointer to store test data
+ * @return GATEWAY_RINGBUF_OK on success
+ */
+int gateway_ringbuf_read_test_core0(ringbuf_test_data_t* test_data);
+
+#endif /* GATEWAY_USE_LOCKFREE_RINGBUF */
 
 #if GATEWAY_USE_PINGPONG_BUFFER
 /*==============================================================================

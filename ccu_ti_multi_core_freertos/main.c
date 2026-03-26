@@ -101,7 +101,7 @@ static volatile uint32_t g_ipc_callback_count = 0;
 
 /* Test data received from Core 1 */
 static volatile bool g_test_data_from_core1_received = false;
-static volatile uint32_t g_test_data_from_core1_values[8] = {0};
+static volatile ringbuf_test_data_t g_test_data_from_core1 = {0};
 
 /*==============================================================================
  * FORWARD DECLARATIONS
@@ -139,13 +139,15 @@ static void ipc_notify_callback_fxn(uint32_t remoteCoreId, uint16_t localClientI
     /* Increment callback counter - works in ISR context! */
     g_ipc_callback_count++;
 
-    /* Check for test data from Core 1 */
-    if (remoteCoreId == CSL_CORE_ID_R5FSS0_1 && msgValue == MSG_TEST_DATA_FROM_CORE1) {
-        /* Copy test data to buffer for main loop to process */
-        for (int i = 0; i < 8; i++) {
-            g_test_data_from_core1_values[i] = gGatewaySharedMem.test_data.data[i];
+    /* Check for test data notification from Core 1 */
+    if (remoteCoreId == CSL_CORE_ID_R5FSS0_1 && msgValue == MSG_CAN_DATA_READY) {
+        /* Try to read test data from ring buffer */
+        ringbuf_test_data_t test_data;
+        int ret = gateway_ringbuf_read_test_core0(&test_data);
+        if (ret == GATEWAY_RINGBUF_OK) {
+            g_test_data_from_core1 = test_data;
+            g_test_data_from_core1_received = true;
         }
-        g_test_data_from_core1_received = true;
     }
 
     /* Call gateway shared memory callback */
@@ -326,40 +328,40 @@ static void ipc_process_task(void *args)
         /* Test shared memory + IPC every 20 notifications */
         if ((notify_count_for_test % 20) == 0) {
             /* Create test pattern: 1, 2, 3, 4, 5, 6, 7, 8 */
-            uint32_t test_pattern[] = {1, 2, 3, 4, 5, 6, 7, 8, 0, 0, 0, 0, 0, 0, 0, 0};
+            ringbuf_test_data_t test_data;
+            test_data.timestamp = g_ipc_callback_count;
+            for (int i = 0; i < 8; i++) {
+                test_data.data[i] = i + 1;
+            }
 
-            /* Write test data to shared memory */
-            int write_status = gateway_write_test_data(test_pattern, 8);
-            if (write_status == 0) {
-                DebugP_log("[Core0] SHMEM: Written test data [1,2,3,4,5,6,7,8] to shared memory\r\n");
-
-                /* Verify read-back */
-                uint32_t readback[16];
-                int read_count = gateway_read_test_data(readback);
-                if (read_count > 0) {
-                    DebugP_log("[Core0] SHMEM VERIFY: Read back %u elements: %u %u %u %u ...\r\n",
-                               read_count, readback[0], readback[1], readback[2], readback[3]);
-                }
+            /* Write test data to ring buffer */
+            int write_status = gateway_ringbuf_write_test_core0(&test_data);
+            if (write_status == GATEWAY_RINGBUF_OK) {
+                DebugP_log("[Core0] RINGBUF: Written test data [1,2,3,4,5,6,7,8] seq=%u\r\n",
+                           test_data.sequence);
 
                 /* Notify Core 1 that test data is ready */
-                int notify_status = gateway_notify_test_data_ready();
+                int notify_status = gateway_ringbuf_core0_notify();
                 if (notify_status == 0) {
-                    DebugP_log("[Core0] SHMEM: Test data notification sent to Core 1\r\n");
+                    DebugP_log("[Core0] RINGBUF: Test data notification sent to Core 1\r\n");
                 } else {
-                    DebugP_log("[Core0] SHMEM ERROR: Failed to notify Core 1! notify_status=%d\r\n", notify_status);
+                    DebugP_log("[Core0] RINGBUF ERROR: Failed to notify Core 1! notify_status=%d\r\n", notify_status);
                 }
+            } else if (write_status == GATEWAY_RINGBUF_FULL) {
+                DebugP_log("[Core0] RINGBUF: Buffer full - cannot write test data\r\n");
             } else {
-                DebugP_log("[Core0] SHMEM ERROR: Failed to write test data! status=%d\r\n", write_status);
+                DebugP_log("[Core0] RINGBUF ERROR: Failed to write test data! status=%d\r\n", write_status);
             }
         }
 
         /* Check for test data received from Core 1 */
         if (g_test_data_from_core1_received) {
-            DebugP_log("[Core0] *** TEST DATA from Core 1: %u %u %u %u %u %u %u %u ***\r\n",
-                       g_test_data_from_core1_values[0], g_test_data_from_core1_values[1],
-                       g_test_data_from_core1_values[2], g_test_data_from_core1_values[3],
-                       g_test_data_from_core1_values[4], g_test_data_from_core1_values[5],
-                       g_test_data_from_core1_values[6], g_test_data_from_core1_values[7]);
+            DebugP_log("[Core0] *** TEST DATA from Core 1: seq=%u [%u %u %u %u %u %u %u %u] ***\r\n",
+                       g_test_data_from_core1.sequence,
+                       g_test_data_from_core1.data[0], g_test_data_from_core1.data[1],
+                       g_test_data_from_core1.data[2], g_test_data_from_core1.data[3],
+                       g_test_data_from_core1.data[4], g_test_data_from_core1.data[5],
+                       g_test_data_from_core1.data[6], g_test_data_from_core1.data[7]);
             g_test_data_from_core1_received = false;  /* Clear flag */
         }
 
@@ -430,6 +432,16 @@ static int32_t core0_init(void)
         DebugP_log("[Core0] ERROR: Gateway shared memory init failed!\r\n");
         return -1;
     }
+
+#if GATEWAY_USE_LOCKFREE_RINGBUF
+    /* Initialize lock-free ring buffers */
+    status = gateway_ringbuf_core0_init();
+    if (status != 0) {
+        DebugP_log("[Core0] ERROR: Lock-free ring buffer init failed!\r\n");
+        return -1;
+    }
+    DebugP_log("[Core0] Lock-free ring buffers initialized\r\n");
+#endif
 
     /* Initialize Ethernet */
     status = init_ethernet();

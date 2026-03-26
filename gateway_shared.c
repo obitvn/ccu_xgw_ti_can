@@ -3,9 +3,12 @@
  * @brief Shared Memory IPC Implementation for CCU Multicore Gateway
  *
  * Lock-free shared memory communication between R5F0-0 and R5F0-1
+ * - Lock-free ring buffer with cache line alignment
+ * - Memory barriers for ARM Cortex-R5F
  *
  * @author CCU Multicore Project
  * @date 2026-03-18
+ * @date 2026-03-26 - Added lock-free ring buffer support
  */
 
 #include "gateway_shared.h"
@@ -688,3 +691,523 @@ void gateway_pp_reset_stats(void)
 }
 
 #endif /* GATEWAY_USE_PINGPONG_BUFFER */
+
+#if GATEWAY_USE_LOCKFREE_RINGBUF
+/*==============================================================================
+ * LOCK-FREE RING BUFFER IMPLEMENTATION
+ *============================================================================*/
+
+/**
+ * @brief Get ring buffer pointer from raw memory
+ */
+static inline Gateway_RingBuf_t* ringbuf_get_ptr(void* mem)
+{
+    return (Gateway_RingBuf_t*)mem;
+}
+
+/**
+ * @brief Initialize lock-free ring buffer
+ */
+int gateway_ringbuf_init(void* ringbuf, uint32_t size)
+{
+    if (ringbuf == NULL || (size & (size - 1)) != 0) {
+        return -1;  /* Size must be power of 2 */
+    }
+
+    Gateway_RingBuf_t* rb = ringbuf_get_ptr(ringbuf);
+
+    /* Initialize control structure */
+    rb->ctrl.write_index = 0;
+    rb->ctrl.read_index = 0;
+    rb->size = size;
+    rb->mask = size - 1;
+
+    MEMORY_BARRIER_FULL();
+
+    DebugP_log("[RingBuf] Initialized: size=%u, mask=0x%X\r\n", size, rb->mask);
+    return 0;
+}
+
+/**
+ * @brief Reset ring buffer indices
+ */
+void gateway_ringbuf_reset(void* ringbuf)
+{
+    if (ringbuf == NULL) {
+        return;
+    }
+
+    Gateway_RingBuf_t* rb = ringbuf_get_ptr(ringbuf);
+
+    rb->ctrl.write_index = 0;
+    rb->ctrl.read_index = 0;
+
+    MEMORY_BARRIER_FULL();
+}
+
+/**
+ * @brief Get available space for writing (Producer)
+ */
+uint32_t gateway_ringbuf_get_free(void* ringbuf)
+{
+    if (ringbuf == NULL) {
+        return 0;
+    }
+
+    Gateway_RingBuf_t* rb = ringbuf_get_ptr(ringbuf);
+
+    /* Read current indices */
+    MEMORY_BARRIER_DMB();
+    uint32_t write_idx = rb->ctrl.write_index;
+    uint32_t read_idx = rb->ctrl.read_index;
+
+    /* Calculate free space */
+    uint32_t free = (read_idx - write_idx - 1) & rb->mask;
+
+    return free;
+}
+
+/**
+ * @brief Get available data for reading (Consumer)
+ */
+uint32_t gateway_ringbuf_get_available(void* ringbuf)
+{
+    if (ringbuf == NULL) {
+        return 0;
+    }
+
+    Gateway_RingBuf_t* rb = ringbuf_get_ptr(ringbuf);
+
+    /* Read current indices */
+    MEMORY_BARRIER_DMB();
+    uint32_t write_idx = rb->ctrl.write_index;
+    uint32_t read_idx = rb->ctrl.read_index;
+
+    /* Calculate available data */
+    uint32_t available = (write_idx - read_idx) & rb->mask;
+
+    return available;
+}
+
+/**
+ * @brief Non-blocking write to ring buffer (Producer)
+ */
+int gateway_ringbuf_write(void* ringbuf, const void* data, uint32_t size, uint32_t* bytes_written)
+{
+    if (ringbuf == NULL || data == NULL || size == 0) {
+        return GATEWAY_RINGBUF_INVALID_PARAM;
+    }
+
+    Gateway_RingBuf_t* rb = ringbuf_get_ptr(ringbuf);
+
+    /* Get current write position */
+    MEMORY_BARRIER_DMB();
+    uint32_t write_idx = rb->ctrl.write_index;
+    uint32_t read_idx = rb->ctrl.read_index;
+
+    /* Calculate available space */
+    uint32_t free = (read_idx - write_idx - 1) & rb->mask;
+
+    if (free < size) {
+        /* Not enough space */
+        if (bytes_written != NULL) {
+            *bytes_written = 0;
+        }
+        return GATEWAY_RINGBUF_FULL;
+    }
+
+    /* Write data to buffer */
+    uint8_t* buf = rb->data;
+    const uint8_t* src = (const uint8_t*)data;
+
+    /* Handle wrap-around */
+    uint32_t first_part = rb->size - (write_idx & rb->mask);
+    if (size <= first_part) {
+        /* No wrap-around */
+        memcpy(&buf[write_idx & rb->mask], src, size);
+    } else {
+        /* Wrap-around */
+        memcpy(&buf[write_idx & rb->mask], src, first_part);
+        memcpy(buf, &src[first_part], size - first_part);
+    }
+
+    /* Update write index */
+    MEMORY_BARRIER_DMB();
+    rb->ctrl.write_index = (write_idx + size);
+    MEMORY_BARRIER_DMB();
+
+    if (bytes_written != NULL) {
+        *bytes_written = size;
+    }
+
+    return GATEWAY_RINGBUF_OK;
+}
+
+/**
+ * @brief Non-blocking read from ring buffer (Consumer)
+ */
+int gateway_ringbuf_read(void* ringbuf, void* buffer, uint32_t size, uint32_t* bytes_read)
+{
+    if (ringbuf == NULL || buffer == NULL || size == 0) {
+        return GATEWAY_RINGBUF_INVALID_PARAM;
+    }
+
+    Gateway_RingBuf_t* rb = ringbuf_get_ptr(ringbuf);
+
+    /* Get current read position */
+    MEMORY_BARRIER_DMB();
+    uint32_t write_idx = rb->ctrl.write_index;
+    uint32_t read_idx = rb->ctrl.read_index;
+
+    /* Calculate available data */
+    uint32_t available = (write_idx - read_idx) & rb->mask;
+
+    if (available < size) {
+        /* Not enough data */
+        if (bytes_read != NULL) {
+            *bytes_read = 0;
+        }
+        return GATEWAY_RINGBUF_EMPTY;
+    }
+
+    /* Read data from buffer */
+    uint8_t* buf = rb->data;
+    uint8_t* dst = (uint8_t*)buffer;
+
+    /* Handle wrap-around */
+    uint32_t first_part = rb->size - (read_idx & rb->mask);
+    if (size <= first_part) {
+        /* No wrap-around */
+        memcpy(dst, &buf[read_idx & rb->mask], size);
+    } else {
+        /* Wrap-around */
+        memcpy(dst, &buf[read_idx & rb->mask], first_part);
+        memcpy(&dst[first_part], buf, size - first_part);
+    }
+
+    /* Update read index */
+    MEMORY_BARRIER_DMB();
+    rb->ctrl.read_index = (read_idx + size);
+    MEMORY_BARRIER_DMB();
+
+    if (bytes_read != NULL) {
+        *bytes_read = size;
+    }
+
+    return GATEWAY_RINGBUF_OK;
+}
+
+/**
+ * @brief Peek data without consuming (Consumer)
+ */
+int gateway_ringbuf_peek(void* ringbuf, void* buffer, uint32_t size, uint32_t* bytes_read)
+{
+    if (ringbuf == NULL || buffer == NULL || size == 0) {
+        return GATEWAY_RINGBUF_INVALID_PARAM;
+    }
+
+    Gateway_RingBuf_t* rb = ringbuf_get_ptr(ringbuf);
+
+    /* Get current read position */
+    MEMORY_BARRIER_DMB();
+    uint32_t write_idx = rb->ctrl.write_index;
+    uint32_t read_idx = rb->ctrl.read_index;
+
+    /* Calculate available data */
+    uint32_t available = (write_idx - read_idx) & rb->mask;
+
+    if (available < size) {
+        /* Not enough data */
+        if (bytes_read != NULL) {
+            *bytes_read = 0;
+        }
+        return GATEWAY_RINGBUF_EMPTY;
+    }
+
+    /* Read data without updating index */
+    uint8_t* buf = rb->data;
+    uint8_t* dst = (uint8_t*)buffer;
+
+    /* Handle wrap-around */
+    uint32_t first_part = rb->size - (read_idx & rb->mask);
+    if (size <= first_part) {
+        memcpy(dst, &buf[read_idx & rb->mask], size);
+    } else {
+        memcpy(dst, &buf[read_idx & rb->mask], first_part);
+        memcpy(&dst[first_part], buf, size - first_part);
+    }
+
+    if (bytes_read != NULL) {
+        *bytes_read = size;
+    }
+
+    return GATEWAY_RINGBUF_OK;
+}
+
+/**
+ * @brief Skip bytes in buffer (Consumer)
+ */
+int gateway_ringbuf_skip(void* ringbuf, uint32_t size)
+{
+    if (ringbuf == NULL || size == 0) {
+        return GATEWAY_RINGBUF_INVALID_PARAM;
+    }
+
+    Gateway_RingBuf_t* rb = ringbuf_get_ptr(ringbuf);
+
+    /* Get current read position */
+    MEMORY_BARRIER_DMB();
+    uint32_t write_idx = rb->ctrl.write_index;
+    uint32_t read_idx = rb->ctrl.read_index;
+
+    /* Calculate available data */
+    uint32_t available = (write_idx - read_idx) & rb->mask;
+
+    if (available < size) {
+        return GATEWAY_RINGBUF_EMPTY;
+    }
+
+    /* Update read index */
+    MEMORY_BARRIER_DMB();
+    rb->ctrl.read_index = (read_idx + size);
+    MEMORY_BARRIER_DMB();
+
+    return GATEWAY_RINGBUF_OK;
+}
+
+/*==============================================================================
+ * LOCK-FREE RING BUFFER API - CORE 0
+ *============================================================================*/
+
+/**
+ * @brief Initialize Core 0 ring buffers
+ */
+int gateway_ringbuf_core0_init(void)
+{
+    DebugP_log("[Core0] Initializing lock-free ring buffers...\r\n");
+
+    /* Initialize buffer 0_to_1 (TX for Core0) */
+    gateway_ringbuf_init(gGatewaySharedMem.ringbuf_0_to_1, GATEWAY_RINGBUF_0_TO_1_SIZE);
+
+    /* Initialize buffer 1_to_0 (RX for Core0) */
+    gateway_ringbuf_init(gGatewaySharedMem.ringbuf_1_to_0, GATEWAY_RINGBUF_1_TO_0_SIZE);
+
+    return 0;
+}
+
+/**
+ * @brief Send data to Core 1 (Producer for buf_0_to_1)
+ */
+int gateway_ringbuf_core0_send(const void* data, uint32_t size, uint32_t* bytes_written)
+{
+    return gateway_ringbuf_write(gGatewaySharedMem.ringbuf_0_to_1, data, size, bytes_written);
+}
+
+/**
+ * @brief Receive data from Core 1 (Consumer for buf_1_to_0)
+ */
+int gateway_ringbuf_core0_receive(void* buffer, uint32_t size, uint32_t* bytes_read)
+{
+    return gateway_ringbuf_read(gGatewaySharedMem.ringbuf_1_to_0, buffer, size, bytes_read);
+}
+
+/**
+ * @brief Check available space in TX buffer (buf_0_to_1)
+ */
+uint32_t gateway_ringbuf_core0_get_free(void)
+{
+    return gateway_ringbuf_get_free(gGatewaySharedMem.ringbuf_0_to_1);
+}
+
+/**
+ * @brief Check available data in RX buffer (buf_1_to_0)
+ */
+uint32_t gateway_ringbuf_core0_get_available(void)
+{
+    return gateway_ringbuf_get_available(gGatewaySharedMem.ringbuf_1_to_0);
+}
+
+/**
+ * @brief Trigger IPC notification to Core 1
+ */
+int gateway_ringbuf_core0_notify(void)
+{
+    return IpcNotify_sendMsg(CSL_CORE_ID_R5FSS0_1, GATEWAY_IPC_CLIENT_ID, MSG_ETH_DATA_READY, 1);
+}
+
+/*==============================================================================
+ * LOCK-FREE RING BUFFER API - CORE 1
+ *============================================================================*/
+
+/**
+ * @brief Initialize Core 1 ring buffers
+ */
+int gateway_ringbuf_core1_init(void)
+{
+    DebugP_log("[Core1] Initializing lock-free ring buffers...\r\n");
+
+    /* Core 1 uses same buffers, but different access direction */
+    /* No need to re-initialize, just verify */
+
+    Gateway_RingBuf_t* rb_0_to_1 = ringbuf_get_ptr(gGatewaySharedMem.ringbuf_0_to_1);
+    Gateway_RingBuf_t* rb_1_to_0 = ringbuf_get_ptr(gGatewaySharedMem.ringbuf_1_to_0);
+
+    DebugP_log("[Core1] RingBuf 0->1: size=%u, wr=%u, rd=%u\r\n",
+               rb_0_to_1->size, rb_0_to_1->ctrl.write_index, rb_0_to_1->ctrl.read_index);
+    DebugP_log("[Core1] RingBuf 1->0: size=%u, wr=%u, rd=%u\r\n",
+               rb_1_to_0->size, rb_1_to_0->ctrl.write_index, rb_1_to_0->ctrl.read_index);
+
+    return 0;
+}
+
+/**
+ * @brief Receive data from Core 0 (Consumer for buf_0_to_1)
+ */
+int gateway_ringbuf_core1_receive(void* buffer, uint32_t size, uint32_t* bytes_read)
+{
+    return gateway_ringbuf_read(gGatewaySharedMem.ringbuf_0_to_1, buffer, size, bytes_read);
+}
+
+/**
+ * @brief Send data to Core 0 (Producer for buf_1_to_0)
+ */
+int gateway_ringbuf_core1_send(const void* data, uint32_t size, uint32_t* bytes_written)
+{
+    return gateway_ringbuf_write(gGatewaySharedMem.ringbuf_1_to_0, data, size, bytes_written);
+}
+
+/**
+ * @brief Check available data in RX buffer (buf_0_to_1)
+ */
+uint32_t gateway_ringbuf_core1_get_available(void)
+{
+    return gateway_ringbuf_get_available(gGatewaySharedMem.ringbuf_0_to_1);
+}
+
+/**
+ * @brief Check available space in TX buffer (buf_1_to_0)
+ */
+uint32_t gateway_ringbuf_core1_get_free(void)
+{
+    return gateway_ringbuf_get_free(gGatewaySharedMem.ringbuf_1_to_0);
+}
+
+/**
+ * @brief Trigger IPC notification to Core 0
+ */
+int gateway_ringbuf_core1_notify(void)
+{
+    return IpcNotify_sendMsg(CSL_CORE_ID_R5FSS0_0, GATEWAY_IPC_CLIENT_ID, MSG_CAN_DATA_READY, 1);
+}
+
+/*==============================================================================
+ * LOCK-FREE RING BUFFER TEST DATA API IMPLEMENTATION
+ *============================================================================*/
+
+/* Test sequence counters */
+static volatile uint32_t g_test_seq_core0 = 0;
+static volatile uint32_t g_test_seq_core1 = 0;
+
+/**
+ * @brief Calculate simple checksum for test data
+ */
+static inline uint32_t test_calc_checksum(const ringbuf_test_data_t* data)
+{
+    uint32_t sum = data->sequence + data->timestamp;
+    for (int i = 0; i < 8; i++) {
+        sum += data->data[i];
+    }
+    return sum;
+}
+
+/**
+ * @brief Write test data Core 0 -> Core 1
+ */
+int gateway_ringbuf_write_test_core0(const ringbuf_test_data_t* test_data)
+{
+    if (test_data == NULL) {
+        return GATEWAY_RINGBUF_INVALID_PARAM;
+    }
+
+    /* Prepare data */
+    ringbuf_test_data_t data = *test_data;
+    data.sequence = g_test_seq_core0++;
+    data.checksum = test_calc_checksum(&data);
+
+    /* Write to ring buffer */
+    uint32_t written;
+    return gateway_ringbuf_core0_send(&data, sizeof(data), &written);
+}
+
+/**
+ * @brief Read test data Core 1 <- Core 0
+ */
+int gateway_ringbuf_read_test_core1(ringbuf_test_data_t* test_data)
+{
+    if (test_data == NULL) {
+        return GATEWAY_RINGBUF_INVALID_PARAM;
+    }
+
+    /* Read from ring buffer */
+    uint32_t read;
+    int ret = gateway_ringbuf_core1_receive(test_data, sizeof(ringbuf_test_data_t), &read);
+
+    if (ret == GATEWAY_RINGBUF_OK && read == sizeof(ringbuf_test_data_t)) {
+        /* Verify checksum */
+        uint32_t expected = test_calc_checksum(test_data);
+        if (expected != test_data->checksum) {
+            DebugP_log("[Core1] TEST: Checksum mismatch! expected=0x%X, got=0x%X\r\n",
+                       expected, test_data->checksum);
+            return GATEWAY_RINGBUF_INVALID_PARAM;
+        }
+    }
+
+    return ret;
+}
+
+/**
+ * @brief Write test data Core 1 -> Core 0
+ */
+int gateway_ringbuf_write_test_core1(const ringbuf_test_data_t* test_data)
+{
+    if (test_data == NULL) {
+        return GATEWAY_RINGBUF_INVALID_PARAM;
+    }
+
+    /* Prepare data */
+    ringbuf_test_data_t data = *test_data;
+    data.sequence = g_test_seq_core1++;
+    data.checksum = test_calc_checksum(&data);
+
+    /* Write to ring buffer */
+    uint32_t written;
+    return gateway_ringbuf_core1_send(&data, sizeof(data), &written);
+}
+
+/**
+ * @brief Read test data Core 0 <- Core 1
+ */
+int gateway_ringbuf_read_test_core0(ringbuf_test_data_t* test_data)
+{
+    if (test_data == NULL) {
+        return GATEWAY_RINGBUF_INVALID_PARAM;
+    }
+
+    /* Read from ring buffer */
+    uint32_t read;
+    int ret = gateway_ringbuf_core0_receive(test_data, sizeof(ringbuf_test_data_t), &read);
+
+    if (ret == GATEWAY_RINGBUF_OK && read == sizeof(ringbuf_test_data_t)) {
+        /* Verify checksum */
+        uint32_t expected = test_calc_checksum(test_data);
+        if (expected != test_data->checksum) {
+            DebugP_log("[Core0] TEST: Checksum mismatch! expected=0x%X, got=0x%X\r\n",
+                       expected, test_data->checksum);
+            return GATEWAY_RINGBUF_INVALID_PARAM;
+        }
+    }
+
+    return ret;
+}
+
+#endif /* GATEWAY_USE_LOCKFREE_RINGBUF */
