@@ -47,9 +47,9 @@ const section12       = section.addInstance();
 /**
  * Write custom configuration values to the imported modules.
  */
-/* Moved from r5fss0-1 to r5fss1-1 to separate memory clusters */
+/* Explicitly configure all IPC routes for r5fss1-1 context */
 ipc.r5fss0_0 = "notify";
-ipc.r5fss0_1 = "notify";
+ipc.r5fss0_1 = "NONE";
 ipc.r5fss1_0 = "notify";
 
 uart1.$name            = "CONFIG_UART5";
@@ -103,7 +103,7 @@ mpu_armv77.attributes   = "NonCached";
 
 timer1.$name         = "CONFIG_TIMER0";
 timer1.timerCallback = "timerISR";
-timer1.RTI.$assign   = "RTI3";
+timer1.RTI.$assign   = "RTI2";
 
 default_linker1.$name = "memory_configurator_default_linker0";
 
@@ -124,8 +124,8 @@ region1.memory_region[2].size               = 0x8000;
 region1.memory_region[2].$name              = "R5F_TCMB";
 region1.memory_region[3].$name              = "OCRAM";
 region1.memory_region[3].auto               = false;
-region1.memory_region[3].manualStartAddress = 0x70040000;
-region1.memory_region[3].size               = 0x40000;
+region1.memory_region[3].manualStartAddress = 0x70100000;
+region1.memory_region[3].size               = 0x80000;
 region1.memory_region[4].type               = "FLASH";
 region1.memory_region[4].auto               = false;
 region1.memory_region[4].manualStartAddress = 0x60180000;

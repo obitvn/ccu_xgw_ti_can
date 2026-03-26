@@ -96,7 +96,7 @@
                                     <listOptionValue value="${SYSCONFIG_TOOL_SYSCONFIG_MANIFEST}"/>
                                     <listOptionValue value="${COM_TI_MCU_PLUS_SDK_AM263PX_SYSCONFIG_MANIFEST}"/>
                                 </option>
-                                <option id="com.ti.ccstudio.buildDefinitions.sysConfig.CONTEXT.1070363695" superClass="com.ti.ccstudio.buildDefinitions.sysConfig.CONTEXT" value="r5fss0-1" valueType="string"/>
+                                <option id="com.ti.ccstudio.buildDefinitions.sysConfig.CONTEXT.1070363695" superClass="com.ti.ccstudio.buildDefinitions.sysConfig.CONTEXT" value="r5fss1-1" valueType="string"/>
                                 <option id="com.ti.ccstudio.buildDefinitions.sysConfig.PART.1527344478" superClass="com.ti.ccstudio.buildDefinitions.sysConfig.PART" value="AM263P4" valueType="string"/>
                                 <option id="com.ti.ccstudio.buildDefinitions.sysConfig.PACKAGE.865977824" superClass="com.ti.ccstudio.buildDefinitions.sysConfig.PACKAGE" value="ZCZ_C" valueType="string"/>
                             </tool>
@@ -201,7 +201,7 @@
                                     <listOptionValue value="${SYSCONFIG_TOOL_SYSCONFIG_MANIFEST}"/>
                                     <listOptionValue value="${COM_TI_MCU_PLUS_SDK_AM263PX_SYSCONFIG_MANIFEST}"/>
                                 </option>
-                                <option id="com.ti.ccstudio.buildDefinitions.sysConfig.CONTEXT.1552233521" superClass="com.ti.ccstudio.buildDefinitions.sysConfig.CONTEXT" value="r5fss0-1" valueType="string"/>
+                                <option id="com.ti.ccstudio.buildDefinitions.sysConfig.CONTEXT.1552233521" superClass="com.ti.ccstudio.buildDefinitions.sysConfig.CONTEXT" value="r5fss1-1" valueType="string"/>
                                 <option id="com.ti.ccstudio.buildDefinitions.sysConfig.PART.519867109" superClass="com.ti.ccstudio.buildDefinitions.sysConfig.PART" value="AM263P4" valueType="string"/>
                                 <option id="com.ti.ccstudio.buildDefinitions.sysConfig.PACKAGE.62165636" superClass="com.ti.ccstudio.buildDefinitions.sysConfig.PACKAGE" value="ZCZ_C" valueType="string"/>
                             </tool>
@@ -213,6 +213,6 @@
         </cconfiguration>
     </storageModule>
     <storageModule moduleId="cdtBuildSystem" version="4.0.0">
-        <project id="ipc_spinlock_sharedmem_am263px-lp_r5fss0-1_nortos_ti-arm-clang.com.ti.ccstudio.buildDefinitions.TMS470.ProjectType.1188057696" name="TMS470" projectType="com.ti.ccstudio.buildDefinitions.TMS470.ProjectType"/>
+        <project id="ipc_spinlock_sharedmem_am263px-lp_r5fss1-1_nortos_ti-arm-clang.com.ti.ccstudio.buildDefinitions.TMS470.ProjectType.1188057696" name="TMS470" projectType="com.ti.ccstudio.buildDefinitions.TMS470.ProjectType"/>
     </storageModule>
 </cproject>

@@ -73,11 +73,11 @@
 void IpcNotify_getConfig(IpcNotify_InterruptConfig **interruptConfig, uint32_t *interruptConfigNum)
 {
     /* extern globals that are specific to this core */
-    extern IpcNotify_InterruptConfig gIpcNotifyInterruptConfig_r5fss0_1[];
-    extern uint32_t gIpcNotifyInterruptConfigNum_r5fss0_1;
+    extern IpcNotify_InterruptConfig gIpcNotifyInterruptConfig_r5fss1_1[];
+    extern uint32_t gIpcNotifyInterruptConfigNum_r5fss1_1;
 
-    *interruptConfig = &gIpcNotifyInterruptConfig_r5fss0_1[0];
-    *interruptConfigNum = gIpcNotifyInterruptConfigNum_r5fss0_1;
+    *interruptConfig = &gIpcNotifyInterruptConfig_r5fss1_1[0];
+    *interruptConfigNum = gIpcNotifyInterruptConfigNum_r5fss1_1;
 }
 
 /* This function is called within IpcNotify_init, this function allocates SW queue */
@@ -85,12 +85,10 @@ void IpcNotify_allocSwQueue(IpcNotify_MailboxConfig *mailboxConfig)
 {
     IpcNotify_MailboxConfig (*mailboxConfigPtr)[CSL_CORE_ID_MAX] = (void *)mailboxConfig;
 
-    mailboxConfigPtr[CSL_CORE_ID_R5FSS0_1][CSL_CORE_ID_R5FSS0_0].swQ = R5FSS0_1_TO_R5FSS0_0_SW_QUEUE;
-    mailboxConfigPtr[CSL_CORE_ID_R5FSS0_1][CSL_CORE_ID_R5FSS1_0].swQ = R5FSS0_1_TO_R5FSS1_0_SW_QUEUE;
-    mailboxConfigPtr[CSL_CORE_ID_R5FSS0_1][CSL_CORE_ID_R5FSS1_1].swQ = R5FSS0_1_TO_R5FSS1_1_SW_QUEUE;
-    mailboxConfigPtr[CSL_CORE_ID_R5FSS0_0][CSL_CORE_ID_R5FSS0_1].swQ = R5FSS0_0_TO_R5FSS0_1_SW_QUEUE;
-    mailboxConfigPtr[CSL_CORE_ID_R5FSS1_0][CSL_CORE_ID_R5FSS0_1].swQ = R5FSS1_0_TO_R5FSS0_1_SW_QUEUE;
-    mailboxConfigPtr[CSL_CORE_ID_R5FSS1_1][CSL_CORE_ID_R5FSS0_1].swQ = R5FSS1_1_TO_R5FSS0_1_SW_QUEUE;
+    mailboxConfigPtr[CSL_CORE_ID_R5FSS1_1][CSL_CORE_ID_R5FSS0_0].swQ = R5FSS1_1_TO_R5FSS0_0_SW_QUEUE;
+    mailboxConfigPtr[CSL_CORE_ID_R5FSS1_1][CSL_CORE_ID_R5FSS1_0].swQ = R5FSS1_1_TO_R5FSS1_0_SW_QUEUE;
+    mailboxConfigPtr[CSL_CORE_ID_R5FSS0_0][CSL_CORE_ID_R5FSS1_1].swQ = R5FSS0_0_TO_R5FSS1_1_SW_QUEUE;
+    mailboxConfigPtr[CSL_CORE_ID_R5FSS1_0][CSL_CORE_ID_R5FSS1_1].swQ = R5FSS1_0_TO_R5FSS1_1_SW_QUEUE;
 }
 
 
@@ -174,15 +172,14 @@ void System_init(void)
         notifyParams.intrPriority = 15U;
 
         /* specify the core on which this API is called */
-        notifyParams.selfCoreId = CSL_CORE_ID_R5FSS0_1;
+        notifyParams.selfCoreId = CSL_CORE_ID_R5FSS1_1;
 
         /* list the cores that will do IPC Notify with this core
         * Make sure to NOT list 'self' core in the list below
         */
-        notifyParams.numCores = 3;
+        notifyParams.numCores = 2;
         notifyParams.coreIdList[0] = CSL_CORE_ID_R5FSS0_0;
         notifyParams.coreIdList[1] = CSL_CORE_ID_R5FSS1_0;
-        notifyParams.coreIdList[2] = CSL_CORE_ID_R5FSS1_1;
 
         notifyParams.isMailboxIpcEnabled = 0;
 

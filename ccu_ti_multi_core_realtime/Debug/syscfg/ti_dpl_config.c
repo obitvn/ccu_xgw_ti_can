@@ -45,13 +45,13 @@ HwiP_Config gHwiConfig = {
 };
 
 /* ----------- ClockP ----------- */
-#define RTI1_CLOCK_SRC_MUX_ADDR (0x53208118u)
-#define RTI1_CLOCK_SRC_WUCPUCLK (0x0u)
-#define RTI1_BASE_ADDR     (0x52181000u)
+#define RTI3_CLOCK_SRC_MUX_ADDR (0x53208120u)
+#define RTI3_CLOCK_SRC_WUCPUCLK (0x0u)
+#define RTI3_BASE_ADDR     (0x52183000u)
 
 ClockP_Config gClockConfig = {
-    .timerBaseAddr = RTI1_BASE_ADDR, 
-    .timerHwiIntNum = 91,
+    .timerBaseAddr = RTI3_BASE_ADDR, 
+    .timerHwiIntNum = 105,
     .timerInputClkHz = 25000000,
     .timerInputPreScaler = 1,
     .usecPerTick = 1000,
@@ -195,7 +195,7 @@ const MpuP_RegionConfig gMpuRegionConfig[CONFIG_MPU_NUM_REGIONS] RODATA_CFG_SECT
 };
 
 /* ----------- TimerP ----------- */
-#define CONFIG_TIMER0_CLOCK_SRC_MUX_ADDR (0x53208120u)
+#define CONFIG_TIMER0_CLOCK_SRC_MUX_ADDR (0x5320811Cu)
 #define CONFIG_TIMER0_CLOCK_SRC_WUCPUCLK (0x0u)
 
 
@@ -269,12 +269,12 @@ void Dpl_init(void)
     DebugP_logZoneEnable(DebugP_LOG_ZONE_ERROR);
     DebugP_logZoneEnable(DebugP_LOG_ZONE_WARN);
     /* Initialize shared memory writer on this CPU */
-    DebugP_shmLogWriterInit(&gDebugShmLog[CSL_CORE_ID_R5FSS0_1], CSL_CORE_ID_R5FSS0_1);
+    DebugP_shmLogWriterInit(&gDebugShmLog[CSL_CORE_ID_R5FSS1_1], CSL_CORE_ID_R5FSS1_1);
 
 
     /* set timer clock source */
     SOC_controlModuleUnlockMMR(SOC_DOMAIN_ID_MAIN, MSS_RCM_PARTITION0);
-    *(volatile uint32_t*)(RTI1_CLOCK_SRC_MUX_ADDR) = RTI1_CLOCK_SRC_WUCPUCLK;
+    *(volatile uint32_t*)(RTI3_CLOCK_SRC_MUX_ADDR) = RTI3_CLOCK_SRC_WUCPUCLK;
     SOC_controlModuleLockMMR(SOC_DOMAIN_ID_MAIN, MSS_RCM_PARTITION0);
     /* initialize Clock */
     ClockP_init();

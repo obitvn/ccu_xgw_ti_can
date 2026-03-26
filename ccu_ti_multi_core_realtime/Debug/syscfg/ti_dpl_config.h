@@ -54,8 +54,8 @@ extern "C" {
 #include <kernel/dpl/TimerP.h>
 
 #define CONFIG_TIMER0                  (0u)
-#define CONFIG_TIMER0_BASE_ADDR        (0x52183000u)
-#define CONFIG_TIMER0_INT_NUM          (105u)
+#define CONFIG_TIMER0_BASE_ADDR        (0x52182000u)
+#define CONFIG_TIMER0_INT_NUM          (98u)
 #define CONFIG_TIMER0_INPUT_CLK_HZ     (25000000u)
 #define CONFIG_TIMER0_INPUT_PRE_SCALER (1u)
 /* This represents the required time period 'floored' to nearest usec */

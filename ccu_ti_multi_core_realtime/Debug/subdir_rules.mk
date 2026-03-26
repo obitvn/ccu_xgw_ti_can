@@ -15,7 +15,7 @@ SHELL = cmd.exe
 build-1352039491: ../example.syscfg
 	@echo 'Building file: "$<"'
 	@echo 'Invoking: SysConfig'
-	"C:/ti/ccs2031/ccs/utils/sysconfig_1.26.0/sysconfig_cli.bat" -s "C:/ti/mcu_plus_sdk_am263px_11_01_00_19/.metadata/product.json" -p "ZCZ_C" -r "AM263P4" --script "D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/ccu_ti_mutilcore/ccu_ti_multi_core_freertos/example.syscfg" --context "r5fss0-0" --script "D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/ccu_ti_mutilcore/ccu_ti_multi_core_realtime/example.syscfg" --context "r5fss0-1" -o "syscfg" --compiler ticlang
+	"C:/ti/ccs2031/ccs/utils/sysconfig_1.26.0/sysconfig_cli.bat" -s "C:/ti/mcu_plus_sdk_am263px_11_01_00_19/.metadata/product.json" -p "ZCZ_C" -r "AM263P4" --script "D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/ccu_ti_mutilcore/ccu_ti_multi_core_freertos/example.syscfg" --context "r5fss0-0" --script "D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/ccu_ti_mutilcore/ccu_ti_multi_core_realtime/example.syscfg" --context "r5fss1-1" -o "syscfg" --compiler ticlang
 	@echo 'Finished building: "$<"'
 	@echo ' '
 
