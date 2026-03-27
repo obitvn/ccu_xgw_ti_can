@@ -9,6 +9,8 @@ SYSCFG_SRCS += \
 ../example.syscfg 
 
 C_SRCS += \
+../ccu_diagnostics.c \
+../ccu_log.c \
 ./syscfg/ti_dpl_config.c \
 ./syscfg/ti_drivers_config.c \
 ./syscfg/ti_drivers_open_close.c \
@@ -28,6 +30,8 @@ C_SRCS += \
 ../ipc_spinlock_sharedmem.c \
 ../log_reader_task.c \
 ../main.c \
+../motor_mapping.c \
+../syslog.c \
 ../test.c 
 
 GEN_CMDS += \
@@ -54,6 +58,8 @@ GEN_MISC_DIRS += \
 ./syscfg 
 
 C_DEPS += \
+./ccu_diagnostics.d \
+./ccu_log.d \
 ./syscfg/ti_dpl_config.d \
 ./syscfg/ti_drivers_config.d \
 ./syscfg/ti_drivers_open_close.d \
@@ -73,9 +79,13 @@ C_DEPS += \
 ./ipc_spinlock_sharedmem.d \
 ./log_reader_task.d \
 ./main.d \
+./motor_mapping.d \
+./syslog.d \
 ./test.d 
 
 OBJS += \
+./ccu_diagnostics.o \
+./ccu_log.o \
 ./syscfg/ti_dpl_config.o \
 ./syscfg/ti_drivers_config.o \
 ./syscfg/ti_drivers_open_close.o \
@@ -95,6 +105,8 @@ OBJS += \
 ./ipc_spinlock_sharedmem.o \
 ./log_reader_task.o \
 ./main.o \
+./motor_mapping.o \
+./syslog.o \
 ./test.o 
 
 GEN_MISC_FILES += \
@@ -115,6 +127,8 @@ GEN_MISC_DIRS__QUOTED += \
 "syscfg" 
 
 OBJS__QUOTED += \
+"ccu_diagnostics.o" \
+"ccu_log.o" \
 "syscfg\ti_dpl_config.o" \
 "syscfg\ti_drivers_config.o" \
 "syscfg\ti_drivers_open_close.o" \
@@ -134,6 +148,8 @@ OBJS__QUOTED += \
 "ipc_spinlock_sharedmem.o" \
 "log_reader_task.o" \
 "main.o" \
+"motor_mapping.o" \
+"syslog.o" \
 "test.o" 
 
 GEN_MISC_FILES__QUOTED += \
@@ -151,6 +167,8 @@ GEN_MISC_FILES__QUOTED += \
 "syscfg\ti_sdl_config.h" 
 
 C_DEPS__QUOTED += \
+"ccu_diagnostics.d" \
+"ccu_log.d" \
 "syscfg\ti_dpl_config.d" \
 "syscfg\ti_drivers_config.d" \
 "syscfg\ti_drivers_open_close.d" \
@@ -170,6 +188,8 @@ C_DEPS__QUOTED += \
 "ipc_spinlock_sharedmem.d" \
 "log_reader_task.d" \
 "main.d" \
+"motor_mapping.d" \
+"syslog.d" \
 "test.d" 
 
 GEN_FILES__QUOTED += \
@@ -189,10 +209,9 @@ GEN_FILES__QUOTED += \
 "syscfg\linker.cmd" \
 "syscfg\ti_sdl_config.c" 
 
-SYSCFG_SRCS__QUOTED += \
-"../example.syscfg" 
-
 C_SRCS__QUOTED += \
+"../ccu_diagnostics.c" \
+"../ccu_log.c" \
 "./syscfg/ti_dpl_config.c" \
 "./syscfg/ti_drivers_config.c" \
 "./syscfg/ti_drivers_open_close.c" \
@@ -212,6 +231,11 @@ C_SRCS__QUOTED += \
 "../ipc_spinlock_sharedmem.c" \
 "../log_reader_task.c" \
 "../main.c" \
+"../motor_mapping.c" \
+"../syslog.c" \
 "../test.c" 
+
+SYSCFG_SRCS__QUOTED += \
+"../example.syscfg" 
 
 

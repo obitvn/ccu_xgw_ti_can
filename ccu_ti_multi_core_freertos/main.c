@@ -20,7 +20,7 @@
 #include "ti_board_config.h"
 #include "FreeRTOS.h"
 #include "task.h"
-#include "gateway_shared.h"
+#include "../gateway_shared.h"
 #include "log_reader_task.h"
 #include "enet/xgw_udp_interface.h"
 #include "lwip/tcpip.h"

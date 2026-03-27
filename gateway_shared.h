@@ -18,6 +18,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "common/motor_config_types.h"
 
 #ifdef __cplusplus
 extern "C" {

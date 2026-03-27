@@ -18,6 +18,7 @@
 #include <kernel/dpl/HwiP.h>
 #include <kernel/dpl/DebugP.h>
 #include <kernel/dpl/ClockP.h>
+#include "../../../gateway_shared.h"
 #include <string.h>
 
 /*==============================================================================
@@ -332,13 +333,16 @@ static void parse_yis320_frame(const uint8_t* buffer, uint8_t frame_size)
 
 /**
  * @brief Update IMU state atomically (critical section)
+ *
+ * [MIGRATED FROM draft/ccu_ti/imu/imu_interface_isr.c:336]
+ * [MODIFIED: Added IPC integration for Core1 -> Core0 communication]
  */
 static void update_imu_state_atomic(const float gyro[3], const float rpy[3],
                                      const float quat[4])
 {
     IMU_ENTER_CRITICAL();
 
-    /* Copy data */
+    /* Copy data to local atomic state */
     memcpy((void*)g_imu_atomic_state.gyroscope, gyro, sizeof(g_imu_atomic_state.gyroscope));
     memcpy((void*)g_imu_atomic_state.rpy, rpy, sizeof(g_imu_atomic_state.rpy));
     memcpy((void*)g_imu_atomic_state.quaternion, quat, sizeof(g_imu_atomic_state.quaternion));
@@ -347,7 +351,23 @@ static void update_imu_state_atomic(const float gyro[3], const float rpy[3],
     g_imu_atomic_state.timestamp = (uint32_t)(ClockP_getTimeUsec() / 1000ULL);
     g_imu_atomic_state.updated = true;
 
+    /* ========== IPC INTEGRATION: Write to shared memory for Core0 ========== */
+    /* [NEW: Added for multicore communication] */
+    imu_state_ipc_t ipc_imu = {0};
+    ipc_imu.imu_id = 0;  /* Default IMU ID */
+    ipc_imu.temp_cdeg = 0;  /* Temperature not available in ISR */
+    memcpy(ipc_imu.gyro, gyro, sizeof(ipc_imu.gyro));
+    memcpy(ipc_imu.quat, quat, sizeof(ipc_imu.quat));
+    memcpy(ipc_imu.euler, rpy, sizeof(ipc_imu.euler));
+    /* mag_val and mag_norm left as 0.0f */
+
+    gateway_write_imu_state(&ipc_imu);
+    /* ========== END IPC INTEGRATION ========== */
+
     IMU_EXIT_CRITICAL();
+
+    /* Notify Core0 after critical section (avoid deadlock) */
+    gateway_notify_imu_ready();
 }
 
 /*==============================================================================

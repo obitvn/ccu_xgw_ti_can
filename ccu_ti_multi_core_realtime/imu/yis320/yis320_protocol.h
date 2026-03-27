@@ -1,11 +1,14 @@
 /**
  * @file yis320_protocol.h
- * @brief YIS320 IMU protocol implementation for ccu_ti xGW Gateway
+ * @brief YIS320 IMU protocol implementation for CCU Multicore Gateway (Core 1 - Bare Metal)
  *
- * Adapted from freertos_xgw for TI AM263Px
+ * Migrated from draft/ccu_ti/imu/yis320/yis320_protocol.h
+ * - Removed FreeRTOS dependencies
+ * - Added IPC support for gateway_shared.h
+ * - Bare metal critical sections
  *
- * @author Adapted from freertos_xgw by Chu Tien Thinh
- * @date 2025
+ * @author Migrated from draft/ccu_ti by Chu Tien Thinh
+ * @date 2026-03-27
  */
 
 #ifndef CCU_TI_YIS320_PROTOCOL_H_
@@ -13,9 +16,10 @@
 
 #include "../imu_protocol_handler.h"
 #include "../../motor_mapping.h"
+#include "../../../gateway_shared.h"
 #include <stdint.h>
 #include <stdbool.h>
-#include <stddef.h>  /* For NULL */
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,11 +35,14 @@ extern "C" {
 #define YIS320_DEFAULT_BAUD_RATE 921600
 
 // Degrees to radians conversion
+// [MIGRATED FROM draft/ccu_ti/imu/yis320/yis320_protocol.h:34]
 #define YIS320_DEG_TO_RAD        (3.14159265358979323846f / 180.0f)
 // Data factor for NOT_MAG_DATA
+// [MIGRATED FROM draft/ccu_ti/imu/yis320/yis320_protocol.h:36]
 #define YIS320_DATA_FACTOR       0.000001f
 
 // YIS320 Data IDs
+// [MIGRATED FROM draft/ccu_ti/imu/yis320/yis320_protocol.h:38-52]
 #define YIS320_DATA_ID_TEMPERATURE       0x01
 #define YIS320_DATA_ID_ACCELEROMETER     0x10
 #define YIS320_DATA_ID_GYROSCOPE         0x20
@@ -63,6 +70,8 @@ extern "C" {
  * - Data is appended at read_pos
  * - Parser tracks consumed bytes separately
  * - Single memmove at END of parsing (not after each frame)
+ *
+ * [MIGRATED FROM draft/ccu_ti/imu/yis320/yis320_protocol.h:67-73]
  */
 typedef struct {
     uint8_t  rx_buffer[YIS320_BUFFER_SIZE];  // RX buffer for incoming data
@@ -81,6 +90,8 @@ typedef struct {
  * - Memory leaks
  *
  * Only one IMU is supported at a time with this approach.
+ *
+ * [MIGRATED FROM draft/ccu_ti/imu/yis320/yis320_protocol.h:85]
  */
 extern yis320_private_data_t g_yis320_private_data;
 
@@ -91,6 +102,8 @@ extern yis320_private_data_t g_yis320_private_data;
 /**
  * @brief Initialize YIS320 protocol handler
  *
+ * [MIGRATED FROM draft/ccu_ti/imu/yis320/yis320_protocol.h:97]
+ *
  * @param handler IMU protocol handler instance to initialize
  * @return 0 on success, -1 on error
  */
@@ -98,6 +111,8 @@ int yis320_protocol_handler_init(imu_protocol_handler_t* handler);
 
 /**
  * @brief Initialize YIS320 IMU hardware connection
+ *
+ * [MIGRATED FROM draft/ccu_ti/imu/yis320/yis320_protocol.h:105]
  *
  * @param handler IMU protocol handler instance
  * @return 0 on success, -1 on error
@@ -110,6 +125,8 @@ int yis320_initialize(imu_protocol_handler_t* handler);
  * Note: For YIS320, this is a no-op since data is processed
  * incrementally via process_rx_data callback.
  *
+ * [MIGRATED FROM draft/ccu_ti/imu/yis320/yis320_protocol.h:117]
+ *
  * @param handler IMU protocol handler instance
  * @param imu_state Output IMU state structure
  * @return true if new data was decoded
@@ -119,6 +136,8 @@ bool yis320_read_data(imu_protocol_handler_t* handler, imu_state_t* imu_state);
 /**
  * @brief Check if YIS320 IMU is connected
  *
+ * [MIGRATED FROM draft/ccu_ti/imu/yis320/yis320_protocol.h:125]
+ *
  * @param handler IMU protocol handler instance
  * @return true if connected
  */
@@ -126,6 +145,8 @@ bool yis320_is_connected(imu_protocol_handler_t* handler);
 
 /**
  * @brief Close YIS320 IMU connection
+ *
+ * [MIGRATED FROM draft/ccu_ti/imu/yis320/yis320_protocol.h:132]
  *
  * @param handler IMU protocol handler instance
  */
@@ -135,7 +156,14 @@ void yis320_close(imu_protocol_handler_t* handler);
  * @brief Process received UART data
  *
  * This function is called from UART RX interrupt context.
- * It processes the data and updates the shared IMU state buffer.
+ * It processes the data and:
+ * 1. Updates local imu_state_t
+ * 2. Converts to imu_state_ipc_t
+ * 3. Writes to shared memory via gateway_write_imu_state()
+ * 4. Notifies Core 0 via gateway_notify_imu_ready()
+ *
+ * [MIGRATED FROM draft/ccu_ti/imu/yis320/yis320_protocol.h:144]
+ * [MODIFIED: Added IPC integration for Core 1 -> Core 0 communication]
  *
  * @param handler IMU protocol handler instance
  * @param data Received data buffer
@@ -144,11 +172,33 @@ void yis320_close(imu_protocol_handler_t* handler);
 void yis320_process_rx_data(imu_protocol_handler_t* handler, const uint8_t* data, uint16_t length);
 
 /*==============================================================================
+ * IPC CONVERSION FUNCTIONS
+ *============================================================================*/
+
+/**
+ * @brief Convert imu_state_t to imu_state_ipc_t for IPC
+ *
+ * Converts local IMU state to IPC format for shared memory transfer.
+ * Maps:
+ * - imu_state_t.gyroscope[3] -> imu_state_ipc_t.gyro[3]
+ * - imu_state_t.quaternion[4] -> imu_state_ipc_t.quat[4]
+ * - imu_state_t.rpy[3] -> imu_state_ipc_t.euler[3]
+ *
+ * [NEW: Added for IPC integration]
+ *
+ * @param src Source imu_state_t structure
+ * @param dst Destination imu_state_ipc_t structure
+ */
+void yis320_convert_to_ipc(const imu_state_t* src, imu_state_ipc_t* dst);
+
+/*==============================================================================
  * PLATFORM-SPECIFIC FUNCTIONS (Implemented in imu_interface.c)
  *============================================================================*/
 
 /**
  * @brief Configure UART for YIS320 IMU
+ *
+ * [MIGRATED FROM draft/ccu_ti/imu/yis320/yis320_protocol.h:157]
  *
  * @param uart_port UART port number
  * @param baud_rate Baud rate (typically 921600)
@@ -159,6 +209,8 @@ int yis320_uart_configure(uint8_t uart_port, uint32_t baud_rate);
 /**
  * @brief Send data to YIS320 IMU via UART
  *
+ * [MIGRATED FROM draft/ccu_ti/imu/yis320/yis320_protocol.h:167]
+ *
  * @param uart_port UART port number
  * @param data Data to send
  * @param length Data length
@@ -168,6 +220,8 @@ int yis320_uart_send(uint8_t uart_port, const uint8_t* data, uint16_t length);
 
 /**
  * @brief Get current timestamp in milliseconds
+ *
+ * [MIGRATED FROM draft/ccu_ti/imu/yis320/yis320_protocol.h:174]
  *
  * @return Timestamp in milliseconds
  */

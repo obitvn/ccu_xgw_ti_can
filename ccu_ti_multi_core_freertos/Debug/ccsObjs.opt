@@ -1,3 +1,5 @@
+"./ccu_diagnostics.o"
+"./ccu_log.o"
 "./syscfg/ti_dpl_config.o"
 "./syscfg/ti_drivers_config.o"
 "./syscfg/ti_drivers_open_close.o"
@@ -17,6 +19,8 @@
 "./ipc_spinlock_sharedmem.o"
 "./log_reader_task.o"
 "./main.o"
+"./motor_mapping.o"
+"./syslog.o"
 "./test.o"
 "./common/crc32.o"
 "./common/xgw_protocol.o"
@@ -28,6 +32,7 @@
 "./extPhyMgmt/enetextphy.o"
 "./extPhyMgmt/enetextphy_phymdio_dflt.o"
 "./extPhyMgmt/generic_phy.o"
+"./xgw_gateway/ccu_xgw_gateway.o"
 -l"syscfg/linker.cmd"
 -lfreertos.am263px.r5f.ti-arm-clang.debug.lib
 -ldrivers.am263px.r5f.ti-arm-clang.freertos.debug.lib

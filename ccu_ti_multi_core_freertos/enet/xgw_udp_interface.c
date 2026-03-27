@@ -10,7 +10,9 @@
  */
 
 #include "xgw_udp_interface.h"
-#include "../gateway_shared.h"
+#include "../../gateway_shared.h"
+#include "../common/crc32.h"
+#include "kernel/dpl/ClockP.h"
 #include "kernel/dpl/DebugP.h"
 #include "FreeRTOS.h"
 #include "task.h"
@@ -18,7 +20,6 @@
 #include "lwip/udp.h"
 #include "lwip/mem.h"
 #include "lwip/sys.h"
-#include "../common/crc32.h"
 #include <string.h>
 
 /*==============================================================================
@@ -360,8 +361,9 @@ int xgw_udp_process_motor_cmd(const uint8_t* data, uint16_t length)
         ipc_cmds[i].kd = (uint16_t)(cmds[i].kd * 100);             /* -> 0.01 */
     }
 
-    /* Write to shared memory */
-    int ret = gateway_write_motor_commands(ipc_cmds, count);
+    /* Write to shared memory via ring buffer */
+    uint32_t bytes_written = 0;
+    int ret = gateway_ringbuf_core0_send(ipc_cmds, count * sizeof(motor_cmd_ipc_t), &bytes_written);
 
     if (ret == 0) {
         /* Notify Core 1 */
@@ -403,10 +405,9 @@ int xgw_udp_process_motor_set(const uint8_t* data, uint16_t length)
     }
 
     /* Extract motor set commands */
-    const xgw_motor_set_t* sets = (const xgw_motor_set_t*)(data + sizeof(xgw_header_t));
     uint8_t count = header->count;
+    (void)count;  /* TODO: Process motor set commands */
 
-    /* TODO: Process motor set commands */
     DebugP_log("[xGW UDP] Received %d motor set commands\r\n", count);
 
     g_udp_state.rx_count++;

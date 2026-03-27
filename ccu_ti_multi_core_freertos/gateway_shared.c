@@ -11,7 +11,7 @@
  * @date 2026-03-26 - Added lock-free ring buffer support
  */
 
-#include "gateway_shared.h"
+#include "../gateway_shared.h"
 #include <kernel/dpl/DebugP.h>
 #include <string.h>
 
