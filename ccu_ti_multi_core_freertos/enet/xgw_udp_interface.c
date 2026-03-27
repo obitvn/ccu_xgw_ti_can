@@ -60,8 +60,9 @@ static xgw_udp_rx_callback_t g_rx_callback = NULL;
 /* Task handle */
 static TaskHandle_t g_udp_task_handle = NULL;
 
-/* PC IP address (default: broadcast) */
+/* PC IP address (default: broadcast - can be changed at runtime) */
 static ip_addr_t g_pc_ip_addr = IPADDR4_INIT(0xFFFFFFFF);
+static bool g_pc_ip_configured = false;  /* Track if IP was explicitly set */
 
 /*==============================================================================
  * FORWARD DECLARATIONS
@@ -303,6 +304,46 @@ bool xgw_udp_is_initialized(void)
     return g_udp_state.started;
 }
 
+/**
+ * @brief Set PC IP address for UDP TX
+ *
+ * @param ip_addr Pointer to IP address (4 bytes for IPv4)
+ * @return 0 on success, -1 on error
+ */
+int xgw_udp_set_pc_ip(const uint8_t* ip_addr)
+{
+    if (ip_addr == NULL) {
+        return -1;
+    }
+
+    IP4_ADDR(&g_pc_ip_addr, ip_addr[0], ip_addr[1], ip_addr[2], ip_addr[3]);
+    g_pc_ip_configured = true;
+
+    DebugP_log("[xGW UDP] PC IP set to %u.%u.%u.%u\r\n",
+               ip_addr[0], ip_addr[1], ip_addr[2], ip_addr[3]);
+    return 0;
+}
+
+/**
+ * @brief Get current PC IP address
+ *
+ * @param ip_addr Pointer to store IP address (4 bytes)
+ * @return 0 on success, -1 on error
+ */
+int xgw_udp_get_pc_ip(uint8_t* ip_addr)
+{
+    if (ip_addr == NULL) {
+        return -1;
+    }
+
+    ip_addr[0] = ip4_addr_get_u32(&g_pc_ip_addr) & 0xFF;
+    ip_addr[1] = (ip4_addr_get_u32(&g_pc_ip_addr) >> 8) & 0xFF;
+    ip_addr[2] = (ip4_addr_get_u32(&g_pc_ip_addr) >> 16) & 0xFF;
+    ip_addr[3] = (ip4_addr_get_u32(&g_pc_ip_addr) >> 24) & 0xFF;
+
+    return 0;
+}
+
 /*==============================================================================
  * PACKET PROCESSING
  *============================================================================*/
@@ -405,13 +446,48 @@ int xgw_udp_process_motor_set(const uint8_t* data, uint16_t length)
     }
 
     /* Extract motor set commands */
+    const xgw_motor_set_t* sets = (const xgw_motor_set_t*)(data + sizeof(xgw_header_t));
     uint8_t count = header->count;
-    (void)count;  /* TODO: Process motor set commands */
 
-    DebugP_log("[xGW UDP] Received %d motor set commands\r\n", count);
+    if (count > XGW_MAX_MOTORS) {
+        DebugP_log("[xGW UDP] ERROR: Too many motor sets: %d\r\n", count);
+        g_udp_state.parse_errors++;
+        return -1;
+    }
 
-    g_udp_state.rx_count++;
-    return 0;
+    /* Convert motor set commands to motor commands and send to Core1
+     * Motor set commands are used to configure motor mode (disable, enable, etc)
+     * The motor_id will be used to look up the CAN bus from motor_config table */
+    motor_cmd_ipc_t ipc_cmds[XGW_MAX_MOTORS];
+
+    for (uint8_t i = 0; i < count; i++) {
+        ipc_cmds[i].motor_id = sets[i].motor_id;
+        /* can_bus will be determined by motor_id lookup in Core1 */
+        ipc_cmds[i].can_bus = 0;  /* Will be filled by Core1 based on motor_id */
+        ipc_cmds[i].mode = sets[i].mode;
+        ipc_cmds[i].reserved = 0;
+        ipc_cmds[i].position = 0;  /* Motor set doesn't include position */
+        ipc_cmds[i].velocity = 0;  /* Motor set doesn't include velocity */
+        ipc_cmds[i].torque = 0;    /* Motor set doesn't include torque */
+        ipc_cmds[i].kp = 0;        /* Motor set doesn't include Kp */
+        ipc_cmds[i].kd = 0;        /* Motor set doesn't include Kd */
+    }
+
+    /* Write to shared memory via ring buffer */
+    uint32_t bytes_written = 0;
+    int ret = gateway_ringbuf_core0_send(ipc_cmds, count * sizeof(motor_cmd_ipc_t), &bytes_written);
+
+    if (ret == 0) {
+        /* Notify Core 1 */
+        gateway_notify_commands_ready();
+        g_udp_state.rx_count++;
+        DebugP_log("[xGW UDP] Processed %d motor set commands\r\n", count);
+        return 0;
+    } else {
+        DebugP_log("[xGW UDP] ERROR: Failed to write motor set commands!\r\n");
+        g_udp_state.rx_errors++;
+        return -1;
+    }
 }
 
 /*==============================================================================
@@ -442,10 +518,12 @@ static void xgw_udp_recv_callback(void* arg, struct udp_pcb* pcb, struct pbuf* p
                 switch (header->msg_type) {
                     case XGW_MSG_TYPE_MOTOR_CMD:
                         xgw_udp_process_motor_cmd(data, length);
+                        g_udp_state.rx_count++;
                         break;
 
                     case XGW_MSG_TYPE_MOTOR_SET:
                         xgw_udp_process_motor_set(data, length);
+                        g_udp_state.rx_count++;
                         break;
 
                     default:
@@ -454,11 +532,8 @@ static void xgw_udp_recv_callback(void* arg, struct udp_pcb* pcb, struct pbuf* p
                         break;
                 }
             }
-
-            /* Call user callback if registered */
-            if (g_rx_callback != NULL) {
-                g_rx_callback(data, length, (const uint8_t*)addr, port);
-            }
+            /* NOTE: User callback (g_rx_callback) removed to prevent duplicate processing.
+             * All UDP packet processing is now handled directly in this callback. */
         }
     }
 

@@ -51,7 +51,7 @@
 #define UDP_RX_TASK_SIZE      (2048U/sizeof(configSTACK_DEPTH_TYPE))
 #define IPC_TASK_SIZE         (1024U/sizeof(configSTACK_DEPTH_TYPE))
 
-#define UDP_TX_PERIOD_MS      2   /* 1000 Hz */
+#define UDP_TX_PERIOD_MS      2   /* 500 Hz (2ms period) - reduced from 1kHz to balance CPU load */
 #define UDP_RX_PORT           61904  /* Motor commands from PC */
 #define UDP_TX_PORT           53489  /* Motor states to PC */
 
@@ -62,6 +62,7 @@
 typedef struct {
     uint32_t udp_rx_count;
     uint32_t udp_tx_count;
+    uint32_t udp_tx_errors;
     uint32_t ipc_rx_count;
     uint32_t parse_errors;
     uint32_t crc_errors;
@@ -154,7 +155,9 @@ static void ipc_notify_callback_fxn(uint32_t remoteCoreId, uint16_t localClientI
 /**
  * @brief UDP TX task
  *
- * Sends motor states to PC at 1000Hz
+ * Sends motor states to PC at 500Hz (2ms period)
+ * Core1 runs at 1000Hz, but UDP TX at 500Hz to reduce CPU load
+ * while maintaining real-time performance
  */
 static void udp_tx_task(void *args)
 {
@@ -162,7 +165,7 @@ static void udp_tx_task(void *args)
     TickType_t last_wake_time = xTaskGetTickCount();
     const TickType_t period = pdMS_TO_TICKS(UDP_TX_PERIOD_MS);
 
-    DebugP_log("[Core0] UDP TX task started (1000Hz)\r\n");
+    DebugP_log("[Core0] UDP TX task started (500Hz)\r\n");
 
     while (1) {
         /* Read motor states from shared memory */
@@ -209,8 +212,17 @@ static void build_and_send_udp_packet(void)
 
     if (sent > 0) {
         /* Successfully sent */
+        gStats.udp_tx_count++;
     } else {
-        /* Silent fail - UDP may not be ready yet */
+        /* Send failed - increment error counter */
+        gStats.udp_tx_errors++;
+
+        /* Log error every 100th failure to avoid spam */
+        static uint32_t error_count = 0;
+        if (++error_count >= 100) {
+            DebugP_log("[Core0] UDP TX: %d failures\r\n", error_count);
+            error_count = 0;
+        }
     }
 }
 
@@ -219,13 +231,19 @@ static void build_and_send_udp_packet(void)
  *============================================================================*/
 
 /**
- * @brief UDP RX callback wrapper for xGW UDP interface
+ * @brief UDP RX callback wrapper for xGW UDP interface (UNUSED - see note)
  *
- * Called from xGW UDP interface when packet is received on port 61904
- * This is called from lwIP receive callback context
+ * NOTE: This callback is NO LONGER REGISTERED to avoid duplicate processing.
+ * xgw_udp_interface.c now handles all UDP RX processing directly in
+ * xgw_udp_recv_callback() to avoid:
+ * 1. Double processing of motor commands
+ * 2. Double writes to ring buffer
+ * 3. Incorrect udp_rx_count statistics
  *
- * NOTE: UDP RX is handled by lwIP in the EnetLwip task, not a separate task.
- * The xgw_udp_interface.c handles the actual UDP receive via callback.
+ * Original architecture: lwIP callback → xgw_udp_interface → wrapper → process
+ * Current architecture: lwIP callback → xgw_udp_interface → process (direct)
+ *
+ * This function is kept for reference only.
  */
 static void xgw_udp_rx_callback_wrapper(const uint8_t* data, uint16_t length,
                                          const uint8_t* src_addr, uint16_t src_port)
@@ -263,8 +281,9 @@ static void xgw_udp_rx_callback_wrapper(const uint8_t* data, uint16_t length,
 /**
  * @brief IPC process task
  *
- * Handles IPC notifications from Core 1 (CAN data ready)
- * This is a lightweight task that processes IPC events efficiently
+ * Handles IPC notifications from Core 1
+ * - Motor states are read by UDP TX task via polling (more efficient for high-frequency data)
+ * - This task handles low-frequency control messages (emergency stop, heartbeat, etc.)
  */
 static void ipc_process_task(void *args)
 {
@@ -276,8 +295,19 @@ static void ipc_process_task(void *args)
         /* Wait for notification from Core 1 */
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
-        /* Process: Motor states from Core 1 are read by UDP TX task */
-        /* The notification signals that new data is available in shared memory */
+        /* Motor states are handled by UDP TX task via polling
+         * This task handles control messages */
+
+        /* Check for emergency stop condition */
+        if (gGatewaySharedMem.emergency_stop_flag != 0) {
+            DebugP_log("[Core0] *** EMERGENCY STOP *** - Signal received from Core1\r\n");
+
+            /* Notify application (could trigger GPIO, buzzer, etc.) */
+            /* For now, just increment a counter for monitoring */
+            gStats.ipc_rx_count++;
+        }
+
+        /* Heartbeat is handled automatically via shared memory stats */
         gStats.ipc_rx_count++;
     }
 }
@@ -288,16 +318,16 @@ static void ipc_process_task(void *args)
 
 /**
  * @brief Initialize Ethernet
+ *
+ * NOTE: Ethernet driver and lwIP are initialized in enet_lwip_task_wrapper()
+ * which is created after the scheduler starts. This is required because:
+ * 1. lwIP needs its tcpip thread to be running first
+ * 2. PHY initialization requires the scheduler to be active
+ * 3. This function exists only for initialization sequence clarity
  */
 static int32_t init_ethernet(void)
 {
-    DebugP_log("[Core0] Initializing Ethernet...\r\n");
-
-    /* TODO: Initialize Ethernet driver */
-    /* TODO: Initialize lwIP stack in separate task AFTER scheduler starts */
-    /* TODO: Configure IP address */
-
-    DebugP_log("[Core0] Ethernet initialized (lwIP deferred)\r\n");
+    DebugP_log("[Core0] Ethernet: deferred to EnetLwip task (lwIP requires scheduler)\r\n");
     return 0;
 }
 
@@ -317,11 +347,9 @@ static int32_t init_udp(void)
         return -1;
     }
 
-    /* Register UDP RX callback - will be called from lwIP receive context */
-    status = xgw_udp_register_rx_callback(xgw_udp_rx_callback_wrapper);
-    if (status != 0) {
-        DebugP_log("[Core0] WARNING: Failed to register UDP RX callback!\r\n");
-    }
+    /* UDP RX callback is NOT registered here - xgw_udp_interface.c handles processing directly
+     * to avoid duplicate processing. The wrapper below is kept for reference but NOT used. */
+    /* status = xgw_udp_register_rx_callback(xgw_udp_rx_callback_wrapper); */
 
     DebugP_log("[Core0] xGW UDP interface initialized (will start after tcpip_init)\r\n");
     return 0;

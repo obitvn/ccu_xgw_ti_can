@@ -113,6 +113,22 @@ void xgw_udp_get_state(xgw_udp_state_t* state);
 bool xgw_udp_is_initialized(void);
 
 /**
+ * @brief Set PC IP address for UDP TX
+ *
+ * @param ip_addr Pointer to IP address (4 bytes for IPv4)
+ * @return 0 on success, -1 on error
+ */
+int xgw_udp_set_pc_ip(const uint8_t* ip_addr);
+
+/**
+ * @brief Get current PC IP address
+ *
+ * @param ip_addr Pointer to store IP address (4 bytes)
+ * @return 0 on success, -1 on error
+ */
+int xgw_udp_get_pc_ip(uint8_t* ip_addr);
+
+/**
  * @brief Process received motor command packet
  *
  * @param data Packet data

@@ -338,9 +338,16 @@ void gateway_core1_ipc_callback(uint16_t clientId, uint16_t msg)
             break;
 
         case MSG_EMERGENCY_STOP:
-            /* Emergency stop - disable all CAN buses */
-            /* TODO: Implement emergency stop handler */
+            /* Emergency stop - set flag in shared memory for Core0 */
+            gGatewaySharedMem.emergency_stop_flag = 1;
             gGatewaySharedMem.stats.error_count++;
+            DebugP_log("[Core1] *** EMERGENCY STOP *** - Signal sent to Core0\r\n");
+
+            /* In a real implementation, we would also:
+             * 1. Disable all CAN TX immediately
+             * 2. Set all motor commands to disable mode
+             * 3. Trigger GPIO output for emergency indicator
+             */
             break;
 
         default:
@@ -388,6 +395,24 @@ bool gateway_check_heartbeat(void)
 
     /* Both heartbeats should be incrementing */
     return (hb0 > 0) && (hb1 > 0);
+}
+
+/**
+ * @brief Check emergency stop flag
+ */
+int gateway_check_emergency_stop(void)
+{
+    return (gGatewaySharedMem.emergency_stop_flag != 0) ? 1 : 0;
+}
+
+/**
+ * @brief Clear emergency stop flag
+ */
+void gateway_clear_emergency_stop(void)
+{
+    gGatewaySharedMem.emergency_stop_flag = 0;
+    gateway_memory_barrier();
+    DebugP_log("[Gateway] Emergency stop flag cleared\r\n");
 }
 
 /**

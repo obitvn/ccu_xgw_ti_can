@@ -348,7 +348,8 @@ typedef struct __attribute__((packed)) {
     uint32_t version;                              /* Structure version */
     volatile uint32_t heartbeat_r5f0_0;            /* Core 0 heartbeat counter */
     volatile uint32_t heartbeat_r5f0_1;            /* Core 1 heartbeat counter */
-    uint32_t reserved[28];                         /* Alignment padding */
+    volatile uint32_t emergency_stop_flag;         /* Emergency stop signal (Core1->Core0) */
+    uint32_t reserved[27];                         /* Alignment padding */
 
 #if GATEWAY_USE_LOCKFREE_RINGBUF
     /* === Lock-free Ring Buffers === */
@@ -522,6 +523,20 @@ uint32_t gateway_get_heartbeat(uint8_t core_id);
  * @return true if both hearts beating, false otherwise
  */
 bool gateway_check_heartbeat(void);
+
+/**
+ * @brief Check emergency stop flag
+ *
+ * @return 1 if emergency stop is active, 0 otherwise
+ */
+int gateway_check_emergency_stop(void);
+
+/**
+ * @brief Clear emergency stop flag
+ *
+ * Should be called after handling the emergency stop condition
+ */
+void gateway_clear_emergency_stop(void);
 
 /**
  * @brief Update statistics

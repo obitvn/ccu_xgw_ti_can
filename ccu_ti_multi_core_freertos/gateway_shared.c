@@ -184,6 +184,13 @@ void gateway_core0_ipc_callback(uint16_t clientId, uint16_t msg)
             gGatewaySharedMem.stats.ipc_notify_count[clientId & 0x3]++;
             break;
 
+        case MSG_EMERGENCY_STOP:
+            /* Emergency stop from Core 1 - set flag for main loop to handle */
+            gGatewaySharedMem.emergency_stop_flag = 1;
+            gGatewaySharedMem.stats.error_count++;
+            DebugP_log("[Core0] *** EMERGENCY STOP *** received from Core1\r\n");
+            break;
+
         default:
             DebugP_log("[Core0] Unknown IPC message: 0x%02X\r\n", msg);
             break;
@@ -388,6 +395,24 @@ bool gateway_check_heartbeat(void)
 
     /* Both heartbeats should be incrementing */
     return (hb0 > 0) && (hb1 > 0);
+}
+
+/**
+ * @brief Check emergency stop flag
+ */
+int gateway_check_emergency_stop(void)
+{
+    return (gGatewaySharedMem.emergency_stop_flag != 0) ? 1 : 0;
+}
+
+/**
+ * @brief Clear emergency stop flag
+ */
+void gateway_clear_emergency_stop(void)
+{
+    gGatewaySharedMem.emergency_stop_flag = 0;
+    gateway_memory_barrier();
+    DebugP_log("[Gateway] Emergency stop flag cleared\r\n");
 }
 
 /**
