@@ -18,7 +18,6 @@
 "./ipc_spinlock_sharedmem.o"
 "./main.o"
 "./motor_mapping.o"
-"./timer.o"
 "./imu/imu_interface_isr.o"
 "./imu/imu_protocol_handler.o"
 "./imu/yis320/yis320_protocol.o"

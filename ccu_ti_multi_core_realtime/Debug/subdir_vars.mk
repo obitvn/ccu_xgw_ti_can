@@ -28,8 +28,7 @@ C_SRCS += \
 ../gateway_shared.c \
 ../ipc_spinlock_sharedmem.c \
 ../main.c \
-../motor_mapping.c \
-../timer.c 
+../motor_mapping.c 
 
 GEN_CMDS += \
 ./syscfg/linker.cmd 
@@ -74,8 +73,7 @@ C_DEPS += \
 ./gateway_shared.d \
 ./ipc_spinlock_sharedmem.d \
 ./main.d \
-./motor_mapping.d \
-./timer.d 
+./motor_mapping.d 
 
 OBJS += \
 ./can_interface.o \
@@ -97,8 +95,7 @@ OBJS += \
 ./gateway_shared.o \
 ./ipc_spinlock_sharedmem.o \
 ./main.o \
-./motor_mapping.o \
-./timer.o 
+./motor_mapping.o 
 
 GEN_MISC_FILES += \
 ./syscfg/ti_dpl_config.h \
@@ -137,8 +134,7 @@ OBJS__QUOTED += \
 "gateway_shared.o" \
 "ipc_spinlock_sharedmem.o" \
 "main.o" \
-"motor_mapping.o" \
-"timer.o" 
+"motor_mapping.o" 
 
 GEN_MISC_FILES__QUOTED += \
 "syscfg\ti_dpl_config.h" \
@@ -174,8 +170,7 @@ C_DEPS__QUOTED += \
 "gateway_shared.d" \
 "ipc_spinlock_sharedmem.d" \
 "main.d" \
-"motor_mapping.d" \
-"timer.d" 
+"motor_mapping.d" 
 
 GEN_FILES__QUOTED += \
 "syscfg\ti_dpl_config.c" \
@@ -214,8 +209,7 @@ C_SRCS__QUOTED += \
 "../gateway_shared.c" \
 "../ipc_spinlock_sharedmem.c" \
 "../main.c" \
-"../motor_mapping.c" \
-"../timer.c" 
+"../motor_mapping.c" 
 
 SYSCFG_SRCS__QUOTED += \
 "../example.syscfg" 

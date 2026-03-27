@@ -24,13 +24,11 @@
 /*==============================================================================
  * CRITICAL SECTION WRAPPERS (NoRTOS)
  *============================================================================*/
-#ifdef __TI_ARM_CLANG__
-    #define IMU_ENTER_CRITICAL()    uint32_t imu_cs_key = __get_CPU_state()
-    #define IMU_EXIT_CRITICAL()     __set_CPU_state(imu_cs_key)
-#else
-    #define IMU_ENTER_CRITICAL()    __disable_irq()
-    #define IMU_EXIT_CRITICAL()     __enable_irq()
-#endif
+/* Use HwiP API from SDK for critical sections */
+#include <kernel/dpl/HwiP.h>
+
+#define IMU_ENTER_CRITICAL()    uintptr_t imu_cs_key = HwiP_disable()
+#define IMU_EXIT_CRITICAL()     HwiP_restore(imu_cs_key)
 
 /*==============================================================================
  * CONSTANTS

@@ -747,50 +747,6 @@ int gateway_ringbuf_core1_notify(void);
  * LOCK-FREE RING BUFFER TEST DATA API
  *============================================================================*/
 
-/**
- * @brief Test data packet for ring buffer testing
- */
-typedef struct {
-    uint32_t sequence;       /* Sequence number */
-    uint32_t timestamp;      /* Timestamp (cycle count) */
-    uint32_t data[8];        /* Test data */
-    uint32_t checksum;       /* Simple checksum */
-} ringbuf_test_data_t;
-
-_Static_assert(sizeof(ringbuf_test_data_t) < 256, "Test data too large");
-
-/**
- * @brief Write test data to ring buffer (Core 0 -> Core 1)
- *
- * @param test_data Pointer to test data
- * @return GATEWAY_RINGBUF_OK on success
- */
-int gateway_ringbuf_write_test_core0(const ringbuf_test_data_t* test_data);
-
-/**
- * @brief Read test data from ring buffer (Core 1 receives from Core 0)
- *
- * @param test_data Pointer to store test data
- * @return GATEWAY_RINGBUF_OK on success
- */
-int gateway_ringbuf_read_test_core1(ringbuf_test_data_t* test_data);
-
-/**
- * @brief Write test data to ring buffer (Core 1 -> Core 0)
- *
- * @param test_data Pointer to test data
- * @return GATEWAY_RINGBUF_OK on success
- */
-int gateway_ringbuf_write_test_core1(const ringbuf_test_data_t* test_data);
-
-/**
- * @brief Read test data from ring buffer (Core 0 receives from Core 1)
- *
- * @param test_data Pointer to store test data
- * @return GATEWAY_RINGBUF_OK on success
- */
-int gateway_ringbuf_read_test_core0(ringbuf_test_data_t* test_data);
-
 #endif /* GATEWAY_USE_LOCKFREE_RINGBUF */
 
 #if GATEWAY_USE_PINGPONG_BUFFER

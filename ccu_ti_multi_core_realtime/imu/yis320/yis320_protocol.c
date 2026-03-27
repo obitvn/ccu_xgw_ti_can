@@ -26,17 +26,12 @@
 #include "../../../gateway_shared.h"
 #include <string.h>
 #include <stddef.h>
+#include <kernel/dpl/ClockP.h>
+#include <kernel/dpl/HwiP.h>
 
-/* Bare metal critical section support */
-#if defined (__ARM_FEATURE_CMSE) && (__ARM_FEATURE_CMSE == 3U)
-    /* ARMv8-M with Security Extension */
-    #define YIS320_ENTER_CRITICAL()    uint32_t yis320_cs_key = __get_CPU_state()
-    #define YIS320_EXIT_CRITICAL()     __set_CPU_state(yis320_cs_key)
-#else
-    /* Fallback - simple disable/enable (bare metal) */
-    #define YIS320_ENTER_CRITICAL()    __disable_irq()
-    #define YIS320_EXIT_CRITICAL()     __enable_irq()
-#endif
+/* Bare metal critical section support using HwiP API */
+#define YIS320_ENTER_CRITICAL()    uintptr_t yis320_cs_key = HwiP_disable()
+#define YIS320_EXIT_CRITICAL()     HwiP_restore(yis320_cs_key)
 
 /* Debug logging - uncomment to enable verbose IMU logs */
 // #define YIS320_DEBUG_VERBOSE 1
@@ -721,4 +716,36 @@ static void vtable_process_rx_data(imu_protocol_handler_t* handler, const uint8_
     if ((current_time - g_last_log_time) >= 5000) {
         g_last_log_time = current_time;
     }
+}
+
+/*==============================================================================
+ * MISSING FUNCTIONS ADDED FOR LINKING
+ *==============================================================================*/
+
+/**
+ * @brief Get current timestamp in milliseconds
+ * Used for timing statistics in YIS320 parser
+ */
+uint32_t yis320_get_timestamp_ms(void)
+{
+    /* Use ClockP_getTimeUsec() / 1000 for milliseconds */
+    return (uint32_t)(ClockP_getTimeUsec() / 1000);
+}
+
+/**
+ * @brief Configure UART for YIS320 IMU
+ * @param uart_port UART port number (not used, always CONFIG_UART0)
+ * @param baud_rate Baud rate (not used, always 115200)
+ * @return 0 on success, -1 on error
+ */
+int yis320_uart_configure(uint8_t uart_port, uint32_t baud_rate)
+{
+    (void)uart_port;
+    (void)baud_rate;
+
+    /* UART is already configured by SysConfig in ti_dpl_config.c
+     * This function is a placeholder for compatibility
+     * with the original draft code structure */
+
+    return 0;  /* Success - UART already configured */
 }
