@@ -1,7 +1,7 @@
 ******************************************************************************
             TI ARM Clang Linker PC v4.0.4                      
 ******************************************************************************
->> Linked Sat Mar 28 00:38:27 2026
+>> Linked Sat Mar 28 01:07:03 2026
 
 OUTPUT FILE NAME:   <ccu_ti_multi_core_freertos.out>
 ENTRY POINT SYMBOL: "_vectors"  address: 00000000
@@ -3198,8 +3198,8 @@ section   page    origin      length       input sections
                   700d2631    00000045                                                           : enet_cpdma_priv.obj (.rodata.str1.7512090951573238737.1)
                   700d2676    00000045                                                           : enet_cpdma.obj (.rodata.str1.7874173225874812361.1)
                   700d26bb    00000044                                                           : enetphy.obj (.rodata.str1.4349290807701126881.1)
-                  700d26ff    00000044     gateway_shared.o (.rodata.str1.6238718661883364096.1)
-                  700d2743    00000044     ti_enet_open_close.o (.rodata.str1.7846596442985950969.1)
+                  700d26ff    00000044     ti_enet_open_close.o (.rodata.str1.7846596442985950969.1)
+                  700d2743    00000044     gateway_shared.o (.rodata.str1.9859227269409816370.1)
                   700d2787    00000043     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : enet_cpdma.obj (.rodata.str1.11501971104363923048.1)
                   700d27ca    00000043                                                           : cpsw.obj (.rodata.str1.4326749996743608542.1)
                   700d280d    00000043                                                           : cpsw.obj (.rodata.str1.8449921067382980847.1)
@@ -3240,9 +3240,9 @@ section   page    origin      length       input sections
                   700d307d    0000003c     main.o (.rodata.str1.17376258722486336754.1)
                   700d30b9    0000003c     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : enet_rm.obj (.rodata.str1.17687335823099772454.1)
                   700d30f5    0000003c     freertos.am263px.r5f.ti-arm-clang.debug.lib : TaskP_freertos.obj (.rodata.str1.4998565174988217158.1)
-                  700d3131    0000003c     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : enet_cpdma.obj (.rodata.str1.69611259640802490.1)
-                  700d316d    0000003c     gateway_shared.o (.rodata.str1.8195260966165303577.1)
-                  700d31a9    0000003c     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : enet_rm.obj (.rodata.str1.9055907631341248950.1)
+                  700d3131    0000003c     gateway_shared.o (.rodata.str1.6238718661883364096.1)
+                  700d316d    0000003c     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : enet_cpdma.obj (.rodata.str1.69611259640802490.1)
+                  700d31a9    0000003c                                                           : enet_rm.obj (.rodata.str1.9055907631341248950.1)
                   700d31e5    0000003b     ti_enet_config.o (.rodata.str1.11600583813923558375.1)
                   700d3220    0000003b     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : cpsw_stats.obj (.rodata.str1.1314831196708279949.1)
                   700d325b    0000003b                                                           : enet_rm.obj (.rodata.str1.14226814324640956955.1)
@@ -3360,15 +3360,15 @@ section   page    origin      length       input sections
                   700d4a54    00000033     board.am263px.r5f.ti-arm-clang.freertos.debug.lib : dp83869.obj (.rodata.str1.4845656231878996969.1)
                   700d4a87    00000033     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : mdio_ioctl.obj (.rodata.str1.5914836460951123392.1)
                   700d4aba    00000033                                                           : enet_cpdma.obj (.rodata.str1.983245651720238547.1)
-                  700d4aed    00000032                                                           : cpsw_macport.obj (.rodata.str1.13462446817596067798.1)
-                  700d4b1f    00000032     gateway_shared.o (.rodata.str1.151310420356374389.1)
-                  700d4b51    00000032     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : mdio_ioctl.obj (.rodata.str1.433638344217081060.1)
+                  700d4aed    00000032     gateway_shared.o (.rodata.str1.12080221302489731862.1)
+                  700d4b1f    00000032     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : cpsw_macport.obj (.rodata.str1.13462446817596067798.1)
+                  700d4b51    00000032                                                           : mdio_ioctl.obj (.rodata.str1.433638344217081060.1)
                   700d4b83    00000032                                                           : mdio_manual_ioctl.obj (.rodata.str1.6645146301386383300.1)
                   700d4bb5    00000032     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : tcp.obj (.rodata.str1.6836851536028981090.1)
                   700d4be7    00000032     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : enet_phymdio_dflt.obj (.rodata.str1.7126562964255145211.1)
                   700d4c19    00000032     gateway_shared.o (.rodata.str1.940762523524635611.1)
-                  700d4c4b    00000031     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : cpsw_ale.obj (.rodata.str1.11329280457805669945.1)
-                  700d4c7c    00000031     gateway_shared.o (.rodata.str1.12080221302489731862.1)
+                  700d4c4b    00000031     gateway_shared.o (.rodata.str1.11051107022181534624.1)
+                  700d4c7c    00000031     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : cpsw_ale.obj (.rodata.str1.11329280457805669945.1)
                   700d4cad    00000031     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : tcp.obj (.rodata.str1.12094379248646405071.1)
                   700d4cde    00000031                                                      : ethernet.obj (.rodata.str1.12678188756789644368.1)
                   700d4d0f    00000031     freertos.am263px.r5f.ti-arm-clang.debug.lib : timers.obj (.rodata.str1.12905175610507169212.1)
