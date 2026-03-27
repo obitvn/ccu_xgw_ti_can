@@ -20,6 +20,7 @@
 
 #include "motor_mapping.h"
 #include <string.h>
+#include <kernel/dpl/DebugP.h>
 #include "../gateway_shared.h"
 #include "../common/motor_config_types.h"
 
@@ -339,6 +340,10 @@ int motor_mapping_init_core1(void)
     if (ret != 0) {
         return -1;  /* Failed to write to shared memory */
     }
+
+    /* Signal Core 0 that motor configuration is ready */
+    gateway_signal_motor_config_ready();
+    DebugP_log("[Core1] Motor configuration signaled to Core 0\r\n");
 
     return 0;
 }

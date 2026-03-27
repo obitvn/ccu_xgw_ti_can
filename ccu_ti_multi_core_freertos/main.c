@@ -21,6 +21,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "../gateway_shared.h"
+#include "motor_mapping.h"
 #include "log_reader_task.h"
 #include "enet/xgw_udp_interface.h"
 #include "lwip/tcpip.h"
@@ -74,18 +75,15 @@ typedef struct {
 static StackType_t gMainTaskStack[MAIN_TASK_SIZE] __attribute__((aligned(32)));
 static StackType_t gEnetLwipTaskStack[ENET_LWIP_TASK_SIZE] __attribute__((aligned(32)));
 static StackType_t gUdpTxTaskStack[UDP_TX_TASK_SIZE] __attribute__((aligned(32)));
-static StackType_t gUdpRxTaskStack[UDP_RX_TASK_SIZE] __attribute__((aligned(32)));
 static StackType_t gIpcTaskStack[IPC_TASK_SIZE] __attribute__((aligned(32)));
 
 static StaticTask_t gMainTaskObj;
 static StaticTask_t gEnetLwipTaskObj;
 static StaticTask_t gUdpTxTaskObj;
-static StaticTask_t gUdpRxTaskObj;
 static StaticTask_t gIpcTaskObj;
 
 TaskHandle_t gMainTask = NULL;
 TaskHandle_t gUdpTxTask = NULL;
-TaskHandle_t gUdpRxTask = NULL;
 TaskHandle_t gIpcTask = NULL;
 
 /* Statistics */
@@ -108,13 +106,13 @@ static void freertos_main(void *args);
 static void enet_lwip_task_wrapper(void *args);
 static void lwip_init_callback(void *arg);
 static void udp_tx_task(void *args);
-static void udp_rx_task(void *args);
 static void ipc_process_task(void *args);
 static void ipc_notify_callback_fxn(uint32_t remoteCoreId, uint16_t localClientId,
                                       uint32_t msgValue, int32_t crcStatus, void *args);
+static void xgw_udp_rx_callback_wrapper(const uint8_t* data, uint16_t length,
+                                         const uint8_t* src_addr, uint16_t src_port);
 static int32_t init_ethernet(void);
 static int32_t init_udp(void);
-static void process_udp_packet(const uint8_t *data, uint16_t length);
 static void build_and_send_udp_packet(void);
 
 /*==============================================================================
@@ -217,42 +215,45 @@ static void build_and_send_udp_packet(void)
 }
 
 /*==============================================================================
- * UDP RX TASK
+ * UDP RX CALLBACK WRAPPER
  *============================================================================*/
 
 /**
- * @brief UDP RX task
+ * @brief UDP RX callback wrapper for xGW UDP interface
  *
- * Receives motor commands from PC
+ * Called from xGW UDP interface when packet is received on port 61904
+ * This is called from lwIP receive callback context
+ *
+ * NOTE: UDP RX is handled by lwIP in the EnetLwip task, not a separate task.
+ * The xgw_udp_interface.c handles the actual UDP receive via callback.
  */
-static void udp_rx_task(void *args)
+static void xgw_udp_rx_callback_wrapper(const uint8_t* data, uint16_t length,
+                                         const uint8_t* src_addr, uint16_t src_port)
 {
-    (void)args;
+    (void)src_addr;
+    (void)src_port;
 
-    DebugP_log("[Core0] UDP RX task started\r\n");
+    /* Process motor command packet */
+    if (length >= sizeof(xgw_header_t)) {
+        const xgw_header_t* header = (const xgw_header_t*)data;
 
-    while (1) {
-        /* TODO: Wait for UDP packet on port 61904 */
-        /* This will be implemented when lwIP is integrated */
+        switch (header->msg_type) {
+            case XGW_MSG_TYPE_MOTOR_CMD:
+                xgw_udp_process_motor_cmd(data, length);
+                gStats.udp_rx_count++;
+                break;
 
-        /* Simulate receiving motor commands */
-        vTaskDelay(pdMS_TO_TICKS(10));
+            case XGW_MSG_TYPE_MOTOR_SET:
+                xgw_udp_process_motor_set(data, length);
+                gStats.udp_rx_count++;
+                break;
+
+            default:
+                gStats.parse_errors++;
+                DebugP_log("[Core0] Unknown xGW message type: 0x%02X\r\n", header->msg_type);
+                break;
+        }
     }
-}
-
-/**
- * @brief Process UDP packet (motor commands from PC)
- */
-static void process_udp_packet(const uint8_t *data, uint16_t length)
-{
-    /* TODO: Parse xGW protocol header */
-    /* TODO: Extract motor commands */
-    /* TODO: Validate CRC32 */
-    /* TODO: Write to shared memory */
-    /* TODO: Notify Core 1 */
-
-    DebugP_log("[Core0] Received UDP packet: %u bytes\r\n", length);
-    gStats.udp_rx_count++;
 }
 
 /*==============================================================================
@@ -316,6 +317,12 @@ static int32_t init_udp(void)
         return -1;
     }
 
+    /* Register UDP RX callback - will be called from lwIP receive context */
+    status = xgw_udp_register_rx_callback(xgw_udp_rx_callback_wrapper);
+    if (status != 0) {
+        DebugP_log("[Core0] WARNING: Failed to register UDP RX callback!\r\n");
+    }
+
     DebugP_log("[Core0] xGW UDP interface initialized (will start after tcpip_init)\r\n");
     return 0;
 }
@@ -352,6 +359,12 @@ static int32_t core0_init(void)
         return -1;
     }
     DebugP_log("[Core0] Lock-free ring buffers initialized\r\n");
+
+    /* Initialize motor mapping (wait for Core 1 to populate config) */
+    status = motor_mapping_init_core0();
+    if (status != 0) {
+        DebugP_log("[Core0] WARNING: Motor mapping init failed!\r\n");
+    }
 #endif
 
     /* Initialize Ethernet */
@@ -427,17 +440,8 @@ static void freertos_main(void *args)
     );
     configASSERT(gUdpTxTask != NULL);
 
-    /* Create UDP RX task */
-    gUdpRxTask = xTaskCreateStatic(
-        udp_rx_task,
-        "UdpRx",
-        UDP_RX_TASK_SIZE,
-        NULL,
-        UDP_RX_TASK_PRI,
-        gUdpRxTaskStack,
-        &gUdpRxTaskObj
-    );
-    configASSERT(gUdpRxTask != NULL);
+    /* Note: UDP RX is handled by lwIP in EnetLwip task via callback */
+    /* xgw_udp_interface registers a callback with lwIP for receiving packets */
 
     /* Create IPC process task */
     gIpcTask = xTaskCreateStatic(

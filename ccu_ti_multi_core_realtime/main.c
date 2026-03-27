@@ -20,10 +20,11 @@
 #include "ti_drivers_config.h"
 #include "ti_drivers_open_close.h"
 #include "ti_board_open_close.h"
-#include "gateway_shared.h"
+#include "../gateway_shared.h"
 #include "can_interface.h"
 #include "motor_mapping.h"
 #include "dispatcher_timer.h"
+#include "../common/motor_config_types.h"
 
 /* Core ID definitions from CSL */
 #ifndef CSL_CORE_ID_R5FSS0_0
@@ -192,10 +193,15 @@ static void process_can_rx(uint8_t bus_id, const can_frame_t *frame)
  */
 static void process_motor_commands(void)
 {
-    int32_t count = gateway_read_motor_commands_core1(g_motor_commands);
+    /* Read motor commands from ring buffer (populated by Core 0) */
+    uint32_t bytes_read = 0;
+    int32_t ret = gateway_ringbuf_core1_receive(g_motor_commands,
+                                                 sizeof(g_motor_commands),
+                                                 &bytes_read);
 
-    if (count > 0) {
-        DebugP_log("[Core1] Received %d motor commands from Core 0\r\n", count);
+    if (ret == GATEWAY_RINGBUF_OK && bytes_read > 0) {
+        uint8_t count = bytes_read / sizeof(motor_cmd_ipc_t);
+        DebugP_log("[Core1] Received %u motor commands from Core 0\r\n", count);
     }
 }
 
@@ -315,14 +321,16 @@ static int32_t core1_init(void)
     }
 
     /* Initialize motor mapping */
-    // motor_mapping_init();
-    // DebugP_log("[Core1] Motor mapping initialized\r\n");
+    motor_mapping_init_core1();
+    DebugP_log("[Core1] Motor mapping initialized\r\n");
 
     /* Initialize CAN buses */
-    // CAN_Init();
+    CAN_Init();
+    DebugP_log("[Core1] CAN buses initialized\r\n");
 
     /* Register CAN RX callback */
-    // CAN_RegisterRxCallback(process_can_rx);
+    CAN_RegisterRxCallback(process_can_rx);
+    DebugP_log("[Core1] CAN RX callback registered\r\n");
 
     /* Register IPC callback - BOTH cores must use the SAME client ID */
     DebugP_log("[Core1] Registering IPC callback with client ID=%u\r\n", GATEWAY_IPC_CLIENT_ID);
@@ -375,8 +383,9 @@ static int32_t core1_init(void)
         DebugP_log("[Core1] WARNING: Dispatcher timer start failed!\r\n");
     }
 
-    /* Start CAN RX interrupts - DISABLED FOR TESTING */
-    // CAN_StartRxInterrupts();
+    /* Start CAN RX interrupts */
+    CAN_StartRxInterrupts();
+    DebugP_log("[Core1] CAN RX interrupts started\r\n");
 
     DebugP_log("\r\n========================================\r\n");
     DebugP_log("  Core 1 Init Complete!\r\n");
@@ -407,27 +416,27 @@ static void main_loop(void)
     volatile uint32_t busy_wait;
 
     while (1) {
-        /* Simple busy wait for 1ms timing */
-        for (busy_wait = 0; busy_wait < 10000; busy_wait++) {
-            /* Wait approximately 1ms */
+        /* Wait for timer flag from ISR */
+        while (!g_timer_expired) {
+            /* Busy wait for timer interrupt */
+            for (busy_wait = 0; busy_wait < 100; busy_wait++) {
+                /* Short wait */
+            }
         }
 
-        /* Manually set timer flag to allow processing */
-        g_timer_expired = true;
-        g_cycle_count++;
-        gateway_update_heartbeat(1);
-        g_heartbeat_count++;
+        /* Clear timer flag */
+        g_timer_expired = false;
 
         /* === 1000Hz Processing Start === */
 
         /* 1. Process motor commands from shared memory */
         if (g_commands_ready) {
-            /* TODO: process_motor_commands(); */
+            process_motor_commands();
             g_commands_ready = false;
         }
 
         /* 2. Transmit CAN frames to all motors */
-        /* TODO: transmit_can_frames(); */
+        transmit_can_frames();
 
         /* 3. Periodic heartbeat log every 1000 cycles (1 second) */
         if ((g_cycle_count - last_heartbeat_log) >= 1000) {

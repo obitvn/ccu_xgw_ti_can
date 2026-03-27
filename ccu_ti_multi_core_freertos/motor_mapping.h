@@ -59,31 +59,6 @@ const motor_limits_t* motor_get_limits(motor_type_t type);
 const motor_config_t* motor_get_config(uint8_t index);
 
 /**
- * @brief Get motor index by CAN ID and bus (O(1) lookup table)
- *
- * [MIGRATED FROM draft/ccu_ti/motor_mapping.h:234-254]
- *
- * @param motor_id CAN motor ID
- * @param can_bus CAN bus number
- * @return Motor index (0-22) or 0xFF if not found
- *
- * @note This is now O(1) using lookup table instead of O(n) linear search.
- * @note Critical for 1000Hz operation - called 23 times per cycle!
- * @note Implementation is inline for maximum performance.
- * @note Reads lookup table from shared memory populated by Core 1.
- */
-static inline uint8_t motor_get_index(uint8_t motor_id, uint8_t can_bus)
-{
-    /* External reference to lookup table in shared memory */
-    extern const uint8_t g_motor_lookup[128][8];
-
-    if (motor_id < 128 && can_bus < 8) {
-        return g_motor_lookup[motor_id][can_bus];
-    }
-    return 0xFF;  /* Not found - invalid input */
-}
-
-/**
  * @brief Initialize motor mapping shared memory access on Core 0
  *
  * [MIGRATED FROM draft/ccu_ti/motor_mapping.h:256-262]

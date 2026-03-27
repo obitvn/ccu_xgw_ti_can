@@ -33,7 +33,7 @@
  *============================================================================*/
 
 /**
- * @brief Pointer to O(1) motor lookup table in shared memory
+ * @brief Motor lookup table access
  *
  * [MIGRATED FROM draft/ccu_ti/motor_mapping.c:112]
  *
@@ -47,9 +47,9 @@
  *
  * CRITICAL for 1000Hz operation - saves ~23 * 22 = 506 comparisons per cycle!
  *
- * Core 1 builds this table at startup, Core 0 reads from it.
+ * Core 1 builds this table at startup and writes to shared memory.
+ * Core 0 reads from shared memory via gateway_get_motor_index() inline function.
  */
-extern const uint8_t g_motor_lookup[128][8];
 
 /**
  * @brief Local motor configuration table for Core0
@@ -147,7 +147,8 @@ int motor_mapping_init_core0(void)
             g_local_motor_config_table[i].can_bus < 8) {
             uint8_t motor_id = g_local_motor_config_table[i].motor_id;
             uint8_t can_bus = g_local_motor_config_table[i].can_bus;
-            uint8_t idx = g_motor_lookup[motor_id][can_bus];
+            /* Use gateway_get_motor_index() to read from shared memory */
+            uint8_t idx = gateway_get_motor_index(motor_id, can_bus);
             if (idx == i) {
                 found_count++;
             }

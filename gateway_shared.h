@@ -46,7 +46,7 @@ extern "C" {
 #define GATEWAY_SHARED_VERSION      0x00040000  /* Version 4.0.0 - Lock-free Ring Buffer */
 
 /* Shared Memory Configuration */
-#define GATEWAY_NUM_MOTORS          4       /* TEMP: Reduce from 23 to 4 for testing */
+#define GATEWAY_NUM_MOTORS          23      /* Number of motors in VD1 robot */
 #define GATEWAY_NUM_CAN_BUSES       8
 #define GATEWAY_SHARED_MEM_ADDR     0x701D0000
 #define GATEWAY_SHARED_MEM_SIZE     0x8000      /* 32KB */
@@ -881,6 +881,28 @@ void gateway_pp_print_status(uint8_t core_id);
 void gateway_pp_reset_stats(void);
 
 #endif /* GATEWAY_USE_PINGPONG_BUFFER */
+
+/*==============================================================================
+ * MOTOR CONFIGURATION SYNCHRONIZATION API
+ *============================================================================*/
+
+/**
+ * @brief Wait for Core 1 to populate motor configuration in shared memory
+ *
+ * Core 0 calls this to wait for Core 1 to initialize motor configuration.
+ * Core 1 builds the motor lookup table and configuration after startup.
+ *
+ * @param timeout_ms Timeout in milliseconds
+ * @return 0 on success, -1 on timeout
+ */
+int gateway_wait_motor_config_ready(uint32_t timeout_ms);
+
+/**
+ * @brief Signal that motor configuration is ready (called by Core 1)
+ *
+ * Core 1 calls this after populating motor_config[] and g_motor_lookup[]
+ */
+void gateway_signal_motor_config_ready(void);
 
 #ifdef __cplusplus
 }

@@ -1210,4 +1210,126 @@ int gateway_ringbuf_read_test_core0(ringbuf_test_data_t* test_data)
     return ret;
 }
 
+/*==============================================================================
+ * MOTOR CONFIGURATION SYNCHRONIZATION
+ *============================================================================*/
+
+/**
+ * @brief Wait for Core 1 to populate motor configuration in shared memory
+ *
+ * Core 0 calls this to wait for Core 1 to initialize motor configuration.
+ * Core 1 builds the motor lookup table and configuration after startup.
+ *
+ * @param timeout_ms Timeout in milliseconds
+ * @return 0 on success, -1 on timeout
+ *
+ * @note This function polls the motor_config_ready flag in shared memory
+ * @note Core 1 sets this flag after populating motor_config[] and g_motor_lookup[]
+ */
+int gateway_wait_motor_config_ready(uint32_t timeout_ms)
+{
+    uint32_t timeout_cycles = timeout_ms * 1000;  /* Approximate: 1ms = 1000 cycles */
+
+    DebugP_log("[Gateway] Waiting for motor config from Core 1 (timeout=%u ms)...\r\n", timeout_ms);
+
+    /* Wait for Core 1 to set motor_config_ready flag */
+    while (gGatewaySharedMem.motor_config_ready == 0 && timeout_cycles > 0) {
+        /* Short delay to reduce bus contention */
+        for (volatile int i = 0; i < 100; i++);
+
+        timeout_cycles--;
+
+        /* Check heartbeat - if Core 1 is alive, we should get config soon */
+        if (timeout_cycles % 100000 == 0) {
+            DebugP_log("[Gateway] Still waiting... heartbeat_r5f0_1=%u\r\n",
+                       gGatewaySharedMem.heartbeat_r5f0_1);
+        }
+    }
+
+    if (gGatewaySharedMem.motor_config_ready == 0) {
+        DebugP_log("[Gateway] ERROR: Timeout waiting for motor configuration!\r\n");
+        return -1;
+    }
+
+    gateway_memory_barrier();
+
+    DebugP_log("[Gateway] Motor configuration ready from Core 1\r\n");
+    return 0;
+}
+
+/**
+ * @brief Signal that motor configuration is ready (called by Core 1)
+ *
+ * Core 1 calls this after populating motor_config[] and g_motor_lookup[]
+ */
+void gateway_signal_motor_config_ready(void)
+{
+    gateway_memory_barrier();
+    gGatewaySharedMem.motor_config_ready = 1;
+    gateway_memory_barrier();
+
+    DebugP_log("[Gateway] Core 1: Motor configuration signaled ready\r\n");
+}
+
+/**
+ * @brief Core 1: Write motor configuration to shared memory
+ *
+ * Core 1 calls this after building the lookup table to share config with Core 0.
+ *
+ * @param motor_config Local motor configuration table (23 motors)
+ * @param motor_lookup Local motor lookup table (128x8)
+ * @return 0 on success, -1 on error
+ *
+ * @note This is a CORE 1 ONLY function
+ */
+int gateway_write_motor_config(const SharedMotorConfig_t* motor_config,
+                                const uint8_t motor_lookup[128][8])
+{
+    if (motor_config == NULL || motor_lookup == NULL) {
+        return -1;
+    }
+
+    /* Copy motor configuration to shared memory */
+    gateway_memory_barrier();
+    for (uint8_t i = 0; i < VD1_NUM_MOTORS; i++) {
+        gGatewaySharedMem.motor_config[i] = motor_config[i];
+    }
+
+    /* Copy motor lookup table to shared memory */
+    gateway_memory_barrier();
+    for (uint16_t motor_id = 0; motor_id < 128; motor_id++) {
+        for (uint8_t bus = 0; bus < 8; bus++) {
+            gGatewaySharedMem.motor_lookup[motor_id][bus] = motor_lookup[motor_id][bus];
+        }
+    }
+    gateway_memory_barrier();
+
+    DebugP_log("[Gateway] Core 1: Motor configuration written to shared memory (%u motors)\r\n",
+               VD1_NUM_MOTORS);
+
+    return 0;
+}
+
+/**
+ * @brief Core 0: Read motor configuration from shared memory
+ *
+ * Core 0 calls this function to access motor configuration data
+ * maintained by Core 1.
+ *
+ * @param index Motor index (0-22)
+ * @return Pointer to motor configuration in shared memory, or NULL if invalid
+ *
+ * @note This is a CORE 0 ONLY function - read-only access
+ * @note Returns pointer to shared memory - do not modify!
+ */
+const SharedMotorConfig_t* gateway_get_motor_config(uint8_t index)
+{
+    if (index >= VD1_NUM_MOTORS) {
+        return NULL;
+    }
+
+    gateway_memory_barrier();
+    return &gGatewaySharedMem.motor_config[index];
+}
+
 #endif /* GATEWAY_USE_LOCKFREE_RINGBUF */

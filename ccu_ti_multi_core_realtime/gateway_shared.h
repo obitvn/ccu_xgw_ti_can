@@ -18,6 +18,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "../common/motor_config_types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -45,7 +46,7 @@ extern "C" {
 #define GATEWAY_SHARED_VERSION      0x00040000  /* Version 4.0.0 - Lock-free Ring Buffer */
 
 /* Shared Memory Configuration */
-#define GATEWAY_NUM_MOTORS          4       /* TEMP: Reduce from 23 to 4 for testing */
+#define GATEWAY_NUM_MOTORS          23      /* Number of motors in VD1 robot */
 #define GATEWAY_NUM_CAN_BUSES       8
 #define GATEWAY_SHARED_MEM_ADDR     0x701D0000
 #define GATEWAY_SHARED_MEM_SIZE     0x8000      /* 32KB */
@@ -290,6 +291,41 @@ typedef struct {
 } gateway_stats_t;
 
 /**
+ * @brief Shared Motor Configuration Structure
+ *
+ * [MIGRATED FROM draft/ccu_ti/motor_mapping.h:93-100]
+ *
+ * This structure provides read-only access to motor configuration data
+ * maintained by Core 1. Core 0 can query this data via shared memory
+ * without needing to access Core 1's local memory directly.
+ *
+ * Access Rights:
+ * - Core 1 (NoRTOS): Writes to shared memory at initialization
+ * - Core 0 (FreeRTOS): Read-only access for queries
+ *
+ * @note This is a read-only snapshot - Core 0 cannot modify configuration
+ * @note Configuration is static after Core 1 initialization
+ */
+typedef struct __attribute__((packed)) {
+    uint8_t  motor_id;       /* CAN motor ID (1-127) */
+    uint8_t  can_bus;        /* CAN bus number (0-7) */
+    uint8_t  motor_type;     /* Motor type (motor_type_t) */
+    uint8_t  reserved;       /* Padding/Reserved */
+    float    direction;      /* Direction multiplier (1.0 or -1.0) */
+    /* Motor limits embedded directly for read-only access */
+    float    p_min;          /* Position minimum (radians) */
+    float    p_max;          /* Position maximum (radians) */
+    float    v_min;          /* Velocity minimum (radians/sec) */
+    float    v_max;          /* Velocity maximum (radians/sec) */
+    float    kp_min;         /* Kp minimum */
+    float    kp_max;         /* Kp maximum */
+    float    kd_min;         /* Kd minimum */
+    float    kd_max;         /* Kd maximum */
+    float    t_min;          /* Torque minimum (Nm) */
+    float    t_max;          /* Torque maximum (Nm) */
+} SharedMotorConfig_t;
+
+/**
  * @brief Diagnostics section
  */
 typedef struct {
@@ -322,6 +358,18 @@ typedef struct __attribute__((packed)) {
     /* Buffer 1: Core1 (Producer) -> Core0 (Consumer) */
     uint8_t ringbuf_1_to_0[sizeof(Gateway_RingBuf_Control_t) + GATEWAY_RINGBUF_1_TO_0_SIZE];
 #endif
+
+    /* === Read-Only Motor Configuration (Core 1 -> Core 0) === */
+    /* [MIGRATED FROM draft/ccu_ti/motor_mapping.c:114-160] */
+    SharedMotorConfig_t motor_config[VD1_NUM_MOTORS];  /* 23 motor configurations */
+    volatile uint32_t motor_config_ready;              /* Configuration ready flag */
+
+    /* === Motor Lookup Table (O(1) Index Lookup) === */
+    /* [MIGRATED FROM draft/ccu_ti/motor_mapping.c:93-112] */
+    /* Maps (motor_id, can_bus) -> motor_idx for constant-time lookup */
+    uint8_t motor_lookup[128][8];                      /* 128 motor IDs x 8 buses = 1024 bytes */
+
+    uint32_t motor_config_reserved[2];                 /* Padding */
 
     /* === Legacy Buffers (for backward compatibility) === */
 #if GATEWAY_USE_PINGPONG_BUFFER
@@ -763,6 +811,83 @@ void gateway_pp_print_status(uint8_t core_id);
 void gateway_pp_reset_stats(void);
 
 #endif /* GATEWAY_USE_PINGPONG_BUFFER */
+
+/*==============================================================================
+ * MOTOR CONFIGURATION API (Shared Memory Sync)
+ *==============================================================================*/
+
+/**
+ * @brief Wait for Core 1 to populate motor configuration in shared memory
+ *
+ * Core 0 calls this to wait for Core 1 to initialize the motor configuration.
+ * Blocks until motor_config_ready flag is set or timeout expires.
+ *
+ * @param timeout_ms Timeout in milliseconds
+ * @return 0 on success, -1 on timeout
+ *
+ * @note This is a CORE 0 ONLY function
+ * @note Must be called before accessing motor_config[] or motor_lookup[][]
+ */
+int gateway_wait_motor_config_ready(uint32_t timeout_ms);
+
+/**
+ * @brief Signal that motor configuration is ready (called by Core 1)
+ *
+ * Core 1 calls this after populating motor_config[] and g_motor_lookup[]
+ */
+void gateway_signal_motor_config_ready(void);
+
+/**
+ * @brief Core 1: Write motor configuration to shared memory
+ *
+ * Core 1 calls this function to populate the shared memory with
+ * motor configuration data after initializing its local tables.
+ *
+ * @param motor_config Local motor configuration table (23 motors)
+ * @param motor_lookup Local motor lookup table (128x8)
+ * @return 0 on success, -1 on error
+ *
+ * @note This is a CORE 1 ONLY function
+ * @note Must be called after motor_mapping_init_core1()
+ */
+int gateway_write_motor_config(const SharedMotorConfig_t* motor_config,
+                                const uint8_t motor_lookup[128][8]);
+
+/**
+ * @brief Core 0: Read motor configuration from shared memory
+ *
+ * Core 0 calls this function to access motor configuration data
+ * that was written by Core 1.
+ *
+ * @param index Motor index (0-22)
+ * @return Pointer to motor configuration, or NULL if invalid index
+ *
+ * @note This is a CORE 0 ONLY function
+ * @note Must call gateway_wait_motor_config_ready() first
+ */
+const SharedMotorConfig_t* gateway_get_motor_config(uint8_t index);
+
+/**
+ * @brief Get motor index by CAN ID and bus (O(1) lookup table)
+ *
+ * @param motor_id CAN motor ID
+ * @param can_bus CAN bus number
+ * @return Motor index (0-22) or 0xFF if not found
+ *
+ * @note This is now O(1) using lookup table instead of O(n) linear search.
+ * @note Critical for 1000Hz operation - called 23 times per cycle!
+ * @note Implementation is inline for maximum performance.
+ * @note Reads lookup table from shared memory populated by Core 1.
+ */
+static inline uint8_t gateway_get_motor_index(uint8_t motor_id, uint8_t can_bus)
+{
+    extern volatile GatewaySharedData_t gGatewaySharedMem;
+
+    if (motor_id < 128 && can_bus < 8) {
+        return gGatewaySharedMem.motor_lookup[motor_id][can_bus];
+    }
+    return 0xFF;  /* Not found - invalid input */
+}
 
 #ifdef __cplusplus
 }
