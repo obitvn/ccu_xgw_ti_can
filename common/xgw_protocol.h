@@ -14,6 +14,9 @@
  * @author Chu Tien Thinh
  * @date 2025-12-24
  * @version 2.0
+ *
+ * [MIGRATED FROM draft/ccu_ti/xgw_protocol.h 2026-03-27]
+ * Multi-core compatible: Core0 (RTOS) + Core3 (bare metal)
  */
 
 #ifndef XGW_PROTOCOL_H_
@@ -21,9 +24,46 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
+#endif
+
+/*==============================================================================
+ * FEATURE FLAGS & CONFIGURATION
+ *============================================================================*/
+
+/**
+ * @brief Feature flags for xGW protocol module
+ *
+ * These flags allow selective compilation of features based on core requirements:
+ * - Core0 (RTOS): Full features including debug logging
+ * - Core3 (bare metal): Minimal features, no dynamic allocation
+ */
+
+/* Enable/disable debug logging (conditional on core type) */
+#ifndef XGW_PROTOCOL_ENABLE_LOG
+    #ifdef CORE_BAREMETAL
+        #define XGW_PROTOCOL_ENABLE_LOG 0  /* Disable on bare metal by default */
+    #else
+        #define XGW_PROTOCOL_ENABLE_LOG 1  /* Enable on RTOS cores by default */
+    #endif
+#endif
+
+/* Enable/disable runtime validation (NULL checks, bounds checking) */
+#ifndef XGW_PROTOCOL_ENABLE_VALIDATION
+    #define XGW_PROTOCOL_ENABLE_VALIDATION 1  /* Always enable for safety */
+#endif
+
+/* Maximum CRC buffer size (stack allocation for bare metal compatibility) */
+#ifndef XGW_PROTOCOL_CRC_BUFFER_SIZE
+    #define XGW_PROTOCOL_CRC_BUFFER_SIZE 256  /* 1024 bytes - covers max packet */
+#endif
+
+/* Compile-time assertion for buffer size */
+#if XGW_PROTOCOL_CRC_BUFFER_SIZE < 146
+    #error "XGW_PROTOCOL_CRC_BUFFER_SIZE must be >= 146 words (584 bytes) to support max xGW packet"
 #endif
 
 /*==============================================================================
@@ -65,6 +105,7 @@ extern "C" {
  * @brief Common packet header (32 bytes)
  *
  * All UDP packets start with this header followed by payload
+ * [MIGRATED FROM draft/ccu_ti/xgw_protocol.h:69]
  */
 typedef struct __attribute__((packed)) {
     uint16_t magic;         /* 0x5A5A - Protocol signature */
@@ -91,6 +132,7 @@ _Static_assert(sizeof(xgw_header_t) == 32, "xgw_header_t must be 32 bytes");
  * @brief Motor State payload element (20 bytes)
  * Type: 0x01 (MSG_TYPE_MOTOR_STATE)
  * Direction: xGW -> Linux
+ * [MIGRATED FROM draft/ccu_ti/xgw_protocol.h:95]
  */
 typedef struct __attribute__((packed)) {
     uint8_t  motor_id;      /* Unique Motor ID */
@@ -110,6 +152,7 @@ _Static_assert(sizeof(xgw_motor_state_t) == 20, "xgw_motor_state_t must be 20 by
  * @brief Motor Command payload element (24 bytes)
  * Type: 0x02 (MSG_TYPE_MOTOR_CMD)
  * Direction: Linux -> xGW
+ * [MIGRATED FROM draft/ccu_ti/xgw_protocol.h:114]
  */
 typedef struct __attribute__((packed)) {
     uint8_t  motor_id;      /* Target Motor ID */
@@ -129,6 +172,7 @@ _Static_assert(sizeof(xgw_motor_cmd_t) == 24, "xgw_motor_cmd_t must be 24 bytes"
  * @brief IMU State payload (68 bytes)
  * Type: 0x03 (MSG_TYPE_IMU_STATE)
  * Direction: xGW -> Linux
+ * [MIGRATED FROM draft/ccu_ti/xgw_protocol.h:133]
  */
 typedef struct __attribute__((packed)) {
     uint8_t  imu_id;        /* IMU Sensor ID */
@@ -149,6 +193,7 @@ _Static_assert(sizeof(xgw_imu_state_t) == 68, "xgw_imu_state_t must be 68 bytes"
  * Type: 0x04 (MSG_TYPE_RS485_DATA)
  * Direction: Bidirectional
  * Payload: Header (8 bytes) + Data Array (variable)
+ * [MIGRATED FROM draft/ccu_ti/xgw_protocol.h:153]
  */
 typedef struct __attribute__((packed)) {
     uint8_t  port_id;       /* RS485 Port ID (0, 1...) */
@@ -164,6 +209,7 @@ _Static_assert(sizeof(xgw_rs485_header_t) == 8, "xgw_rs485_header_t must be 8 by
  * @brief xGW Diagnostics payload (32 bytes)
  * Type: 0x05 (MSG_TYPE_XGW_DIAG)
  * Direction: xGW -> Linux
+ * [MIGRATED FROM draft/ccu_ti/xgw_protocol.h:168]
  */
 typedef struct __attribute__((packed)) {
     uint32_t uptime_ms;     /* Time since boot (ms) */
@@ -192,6 +238,7 @@ _Static_assert(sizeof(xgw_diag_t) == 32, "xgw_diag_t must be 32 bytes");
  * - 1: Set Config (Apply temporarily)
  * - 2: Save Config (Write to Flash)
  * - 3: Reboot xGW
+ * [MIGRATED FROM draft/ccu_ti/xgw_protocol.h:196]
  */
 typedef struct __attribute__((packed)) {
     uint8_t  cmd_id;        /* Command ID (0:GET, 1:SET, 2:SAVE, 3:BOOT) */
@@ -214,6 +261,7 @@ _Static_assert(sizeof(xgw_config_t) == 48, "xgw_config_t must be 48 bytes");
  * @brief Motor Set Operation payload (4 bytes)
  * Type: 0x07 (MSG_TYPE_MOTOR_SET)
  * Direction: Linux -> xGW
+ * [MIGRATED FROM draft/ccu_ti/xgw_protocol.h:218]
  */
 typedef struct __attribute__((packed)) {
     uint8_t  motor_id;      /* Motor ID */
@@ -231,6 +279,7 @@ _Static_assert(sizeof(xgw_motor_set_t) == 4, "xgw_motor_set_t must be 4 bytes");
 /**
  * @brief Complete Motor State packet
  * Size: 32 (header) + count * 20 (motor states)
+ * [MIGRATED FROM draft/ccu_ti/xgw_protocol.h:235]
  */
 typedef struct {
     xgw_header_t     header;
@@ -240,6 +289,7 @@ typedef struct {
 /**
  * @brief Complete Motor Command packet
  * Size: 32 (header) + count * 24 (motor commands)
+ * [MIGRATED FROM draft/ccu_ti/xgw_protocol.h:244]
  */
 typedef struct {
     xgw_header_t      header;
@@ -249,6 +299,7 @@ typedef struct {
 /**
  * @brief Complete IMU State packet
  * Size: 32 (header) + 68 (IMU state) = 100 bytes
+ * [MIGRATED FROM draft/ccu_ti/xgw_protocol.h:253]
  */
 typedef struct {
     xgw_header_t   header;
@@ -258,6 +309,7 @@ typedef struct {
 /**
  * @brief Complete xGW Diagnostics packet
  * Size: 32 (header) + 32 (diag) = 64 bytes
+ * [MIGRATED FROM draft/ccu_ti/xgw_protocol.h:262]
  */
 typedef struct {
     xgw_header_t header;
@@ -275,6 +327,7 @@ typedef struct {
  * @param count Number of elements in payload
  * @param payload_len Payload length in bytes
  * @param sequence Packet sequence number
+ * [MIGRATED FROM draft/ccu_ti/xgw_protocol.h:279]
  */
 void xgw_header_init(xgw_header_t* header, uint8_t msg_type, uint8_t count,
                      uint32_t payload_len, uint32_t sequence);
@@ -285,6 +338,9 @@ void xgw_header_init(xgw_header_t* header, uint8_t msg_type, uint8_t count,
  * @param payload Payload data
  * @param payload_len Payload length
  * @return CRC32 value
+ *
+ * Note: Uses stack allocation only (no malloc) for bare metal compatibility
+ * [MIGRATED FROM draft/ccu_ti/xgw_protocol.h:289]
  */
 uint32_t xgw_crc32_calculate(const xgw_header_t* header, const void* payload, uint32_t payload_len);
 
@@ -293,6 +349,7 @@ uint32_t xgw_crc32_calculate(const xgw_header_t* header, const void* payload, ui
  * @param header Packet header
  * @param payload Payload data
  * @return true if CRC is valid, false otherwise
+ * [MIGRATED FROM draft/ccu_ti/xgw_protocol.h:297]
  */
 bool xgw_crc32_validate(const xgw_header_t* header, const void* payload);
 
@@ -300,12 +357,16 @@ bool xgw_crc32_validate(const xgw_header_t* header, const void* payload);
  * @brief Get message type string (for debugging)
  * @param msg_type Message type
  * @return String representation
+ * [MIGRATED FROM draft/ccu_ti/xgw_protocol.h:304]
  */
 const char* xgw_msg_type_to_string(uint8_t msg_type);
 
 /**
  * @brief Print packet information (for debugging)
  * @param header Packet header
+ *
+ * Note: Only compiled when XGW_PROTOCOL_ENABLE_LOG is defined
+ * [MIGRATED FROM draft/ccu_ti/xgw_protocol.h:310]
  */
 void xgw_print_header(const xgw_header_t* header);
 

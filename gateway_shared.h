@@ -204,6 +204,41 @@ typedef struct __attribute__((packed)) {
 } imu_state_ipc_t;
 
 /**
+ * @brief Shared motor configuration for read-only access (Core 1 -> Core 0)
+ *
+ * [MIGRATED FROM draft/ccu_ti/motor_mapping.h:93-100]
+ *
+ * This structure provides read-only access to motor configuration data
+ * maintained by Core 1. Core 0 can query this data via shared memory
+ * without needing to access Core 1's local memory directly.
+ *
+ * Access Rights:
+ * - Core 1 (NoRTOS): Writes to shared memory at initialization
+ * - Core 0 (FreeRTOS): Read-only access for queries
+ *
+ * @note This is a read-only snapshot - Core 0 cannot modify configuration
+ * @note Configuration is static after Core 1 initialization
+ */
+typedef struct __attribute__((packed)) {
+    uint8_t  motor_id;       /* CAN motor ID (1-127) */
+    uint8_t  can_bus;        /* CAN bus number (0-7) */
+    uint8_t  motor_type;     /* Motor type (motor_type_t) */
+    uint8_t  reserved;       /* Padding/Reserved */
+    float    direction;      /* Direction multiplier (1.0 or -1.0) */
+    /* Motor limits embedded directly for read-only access */
+    float    p_min;          /* Position minimum (radians) */
+    float    p_max;          /* Position maximum (radians) */
+    float    v_min;          /* Velocity minimum (radians/sec) */
+    float    v_max;          /* Velocity maximum (radians/sec) */
+    float    kp_min;         /* Kp minimum */
+    float    kp_max;         /* Kp maximum */
+    float    kd_min;         /* Kd minimum */
+    float    kd_max;         /* Kd maximum */
+    float    t_min;          /* Torque minimum (Nm) */
+    float    t_max;          /* Torque maximum (Nm) */
+} SharedMotorConfig_t;
+
+/**
  * @brief Double buffered motor state buffer
  *
  * Core 1 writes, Core 0 reads
@@ -322,6 +357,18 @@ typedef struct __attribute__((packed)) {
     /* Buffer 1: Core1 (Producer) -> Core0 (Consumer) */
     uint8_t ringbuf_1_to_0[sizeof(Gateway_RingBuf_Control_t) + GATEWAY_RINGBUF_1_TO_0_SIZE];
 #endif
+
+    /* === Read-Only Motor Configuration (Core 1 -> Core 0) === */
+    /* [MIGRATED FROM draft/ccu_ti/motor_mapping.c:114-160] */
+    SharedMotorConfig_t motor_config[VD1_NUM_MOTORS];  /* 23 motor configurations */
+    volatile uint32_t motor_config_ready;              /* Configuration ready flag */
+
+    /* === Motor Lookup Table (O(1) Index Lookup) === */
+    /* [MIGRATED FROM draft/ccu_ti/motor_mapping.c:93-112] */
+    /* Maps (motor_id, can_bus) -> motor_idx for constant-time lookup */
+    uint8_t motor_lookup[128][8];                      /* 128 motor IDs x 8 buses = 1024 bytes */
+
+    uint32_t motor_config_reserved[2];                 /* Padding */
 
     /* === Legacy Buffers (for backward compatibility) === */
 #if GATEWAY_USE_PINGPONG_BUFFER
@@ -511,6 +558,76 @@ int gateway_read_imu_state(imu_state_ipc_t* imu_state);
  * @return 0 on success, -1 on error
  */
 int gateway_notify_imu_ready(void);
+
+/*==============================================================================
+ * SHARED MOTOR CONFIGURATION API
+ *============================================================================*/
+
+/**
+ * @brief Core 1: Write motor configuration to shared memory
+ *
+ * [MIGRATED FROM draft/ccu_ti/motor_mapping.c:197-227]
+ *
+ * Core 1 calls this function to populate the shared memory with
+ * motor configuration data after initializing its local tables.
+ *
+ * @param motor_config Local motor configuration table (23 motors)
+ * @param motor_lookup Local motor lookup table (128x8)
+ * @return 0 on success, -1 on error
+ *
+ * @note This is a CORE 1 ONLY function
+ * @note Must be called after motor_mapping_init_core1()
+ */
+int gateway_write_motor_config(const SharedMotorConfig_t* motor_config,
+                                const uint8_t motor_lookup[128][8]);
+
+/**
+ * @brief Core 0: Read motor configuration from shared memory
+ *
+ * Core 0 calls this function to access motor configuration data
+ * maintained by Core 1.
+ *
+ * @param index Motor index (0-22)
+ * @return Pointer to motor configuration in shared memory, or NULL if invalid
+ *
+ * @note This is a CORE 0 ONLY function - read-only access
+ * @note Returns pointer to shared memory - do not modify!
+ */
+const SharedMotorConfig_t* gateway_get_motor_config(uint8_t index);
+
+/**
+ * @brief Core 0: Get motor index by CAN ID and bus from shared memory
+ *
+ * O(1) lookup using the shared memory lookup table maintained by Core 1.
+ *
+ * @param motor_id CAN motor ID
+ * @param can_bus CAN bus number
+ * @return Motor index (0-22) or 0xFF if not found
+ *
+ * @note This is a CORE 0 ONLY function - read-only access
+ * @note Critical for 1000Hz operation
+ */
+static inline uint8_t gateway_get_motor_index(uint8_t motor_id, uint8_t can_bus)
+{
+    extern volatile GatewaySharedData_t gGatewaySharedMem;
+
+    if (motor_id < 128 && can_bus < 8) {
+        return gGatewaySharedMem.motor_lookup[motor_id][can_bus];
+    }
+    return 0xFF;  /* Not found - invalid input */
+}
+
+/**
+ * @brief Wait for motor configuration to be ready (Core 0)
+ *
+ * Core 0 calls this to wait for Core 1 to finish writing configuration.
+ *
+ * @param timeout_ms Timeout in milliseconds (0 = wait forever)
+ * @return 0 on success, -1 on timeout
+ *
+ * @note This is a CORE 0 ONLY function
+ */
+int gateway_wait_motor_config_ready(uint32_t timeout_ms);
 
 #if GATEWAY_USE_LOCKFREE_RINGBUF
 /*==============================================================================

@@ -1,17 +1,36 @@
 /**
  * @file motor_mapping.c
- * @brief Motor mapping implementation for ccu_ti xGW Gateway
+ * @brief Motor mapping implementation for CCU Multicore Gateway - Core 1 (NoRTOS)
  *
- * Adapted from freertos_xgw for ccu_ti (TI AM263Px)
+ * Core 1 (NoRTOS) owns and maintains all motor configuration data.
+ * This module builds the lookup tables and populates shared memory
+ * for read-only access by Core 0 (FreeRTOS).
+ *
+ * [MIGRATED FROM draft/ccu_ti/motor_mapping.c:1-351]
+ *
+ * Bare Metal Constraints:
+ * - No dynamic memory allocation (all tables are static const)
+ * - No OS calls or blocking operations
+ * - Deterministic execution time
+ * - All data in flash/ROM or static RAM
+ *
+ * @author CCU Multicore Project
+ * @date 2026-03-27
  */
 
 #include "motor_mapping.h"
 #include <string.h>
+#include "../gateway_shared.h"
+#include "../common/motor_config_types.h"
 
 /*==============================================================================
- * MOTOR LIMITS TABLES
+ * MOTOR LIMITS TABLES (Flash/ROM)
  *============================================================================*/
 
+/**
+ * @brief Robstride O0 motor limits
+ * [MIGRATED FROM draft/ccu_ti/motor_mapping.c:15-26]
+ */
 static const motor_limits_t robstride_o0_limits = {
     .p_min = ROBSTRIDE_O0_P_MIN,
     .p_max = ROBSTRIDE_O0_P_MAX,
@@ -25,6 +44,10 @@ static const motor_limits_t robstride_o0_limits = {
     .t_max = ROBSTRIDE_O0_T_MAX
 };
 
+/**
+ * @brief Robstride O2 motor limits
+ * [MIGRATED FROM draft/ccu_ti/motor_mapping.c:28-39]
+ */
 static const motor_limits_t robstride_o2_limits = {
     .p_min = ROBSTRIDE_O2_P_MIN,
     .p_max = ROBSTRIDE_O2_P_MAX,
@@ -38,6 +61,10 @@ static const motor_limits_t robstride_o2_limits = {
     .t_max = ROBSTRIDE_O2_T_MAX
 };
 
+/**
+ * @brief Robstride O3 motor limits
+ * [MIGRATED FROM draft/ccu_ti/motor_mapping.c:41-52]
+ */
 static const motor_limits_t robstride_o3_limits = {
     .p_min = ROBSTRIDE_O3_P_MIN,
     .p_max = ROBSTRIDE_O3_P_MAX,
@@ -51,6 +78,10 @@ static const motor_limits_t robstride_o3_limits = {
     .t_max = ROBSTRIDE_O3_T_MAX
 };
 
+/**
+ * @brief Robstride O4 motor limits
+ * [MIGRATED FROM draft/ccu_ti/motor_mapping.c:54-65]
+ */
 static const motor_limits_t robstride_o4_limits = {
     .p_min = ROBSTRIDE_O4_P_MIN,
     .p_max = ROBSTRIDE_O4_P_MAX,
@@ -64,6 +95,10 @@ static const motor_limits_t robstride_o4_limits = {
     .t_max = ROBSTRIDE_O4_T_MAX
 };
 
+/**
+ * @brief Robstride O5 motor limits
+ * [MIGRATED FROM draft/ccu_ti/motor_mapping.c:67-78]
+ */
 static const motor_limits_t robstride_o5_limits = {
     .p_min = ROBSTRIDE_O5_P_MIN,
     .p_max = ROBSTRIDE_O5_P_MAX,
@@ -77,6 +112,10 @@ static const motor_limits_t robstride_o5_limits = {
     .t_max = ROBSTRIDE_O5_T_MAX
 };
 
+/**
+ * @brief Robstride O6 motor limits
+ * [MIGRATED FROM draft/ccu_ti/motor_mapping.c:80-91]
+ */
 static const motor_limits_t robstride_o6_limits = {
     .p_min = ROBSTRIDE_O6_P_MIN,
     .p_max = ROBSTRIDE_O6_P_MAX,
@@ -97,6 +136,8 @@ static const motor_limits_t robstride_o6_limits = {
 /**
  * @brief Fast O(1) motor index lookup table
  *
+ * [MIGRATED FROM draft/ccu_ti/motor_mapping.c:93-112]
+ *
  * Maps (motor_id, can_bus) -> motor_idx for constant-time lookup.
  * - motor_id: 0-127 (128 entries)
  * - can_bus: 0-7 (8 entries per motor_id)
@@ -108,13 +149,28 @@ static const motor_limits_t robstride_o6_limits = {
  * CRITICAL for 1000Hz operation - saves ~23 * 22 = 506 comparisons per cycle!
  *
  * NOTE: Non-static to allow inline function in header to access it.
+ *       This table is copied to shared memory for Core 0 access.
  */
-uint8_t g_motor_lookup[128][8];
+uint8_t g_motor_lookup[MOTOR_LOOKUP_ID_MAX][MOTOR_LOOKUP_BUS_MAX];
 
 /*==============================================================================
  * MOTOR CONFIGURATION TABLE (23 DOF Robot)
  *============================================================================*/
 
+/**
+ * @brief Motor configuration table for 23 DOF humanoid robot
+ *
+ * [MIGRATED FROM draft/ccu_ti/motor_mapping.c:114-161]
+ *
+ * This table defines the complete motor mapping for the robot:
+ * - Left Leg (6 motors): Hip (pitch, roll, yaw), Knee (pitch), Ankle (pitch, roll)
+ * - Right Leg (6 motors): Hip (pitch, roll, yaw), Knee (pitch), Ankle (pitch, roll)
+ * - Waist (1 motor): Yaw
+ * - Left Arm (5 motors): Shoulder (pitch, roll, yaw), Elbow (pitch), Wrist (yaw)
+ * - Right Arm (5 motors): Shoulder (pitch, roll, yaw), Elbow (pitch), Wrist (yaw)
+ *
+ * Each entry includes: CAN ID, bus number, motor type, direction, and limits pointer.
+ */
 static const motor_config_t motor_config_table[VD1_NUM_MOTORS] = {
     /* ===== LEFT LEG (Index 0-5) ===== */
         /* Hip (Pitch, Roll, Yaw) */
@@ -156,14 +212,20 @@ static const motor_config_t motor_config_table[VD1_NUM_MOTORS] = {
     /* Elbow (Pitch), Wrist Yaw */
     {44, 0, MOTOR_TYPE_ROBSTRIDE_O2,  1.0f, robstride_o2_limits},  /* 21: Right Elbow Pitch */
     {46, 0, MOTOR_TYPE_ROBSTRIDE_O0,  1.0f, robstride_o0_limits},  /* 22: Right Wrist Yaw */
-
 };
-
 
 /*==============================================================================
  * PUBLIC FUNCTIONS
  *============================================================================*/
 
+/**
+ * @brief Get motor limits by type
+ *
+ * [MIGRATED FROM draft/ccu_ti/motor_mapping.c:167-185]
+ *
+ * @param type Motor type enumeration
+ * @return Pointer to motor limits structure, or NULL if type unknown
+ */
 const motor_limits_t* motor_get_limits(motor_type_t type)
 {
     switch (type) {
@@ -184,6 +246,14 @@ const motor_limits_t* motor_get_limits(motor_type_t type)
     }
 }
 
+/**
+ * @brief Get motor configuration by index
+ *
+ * [MIGRATED FROM draft/ccu_ti/motor_mapping.c:187-193]
+ *
+ * @param index Motor index (0-22)
+ * @return Pointer to motor configuration structure, or NULL if index invalid
+ */
 const motor_config_t* motor_get_config(uint8_t index)
 {
     if (index >= VD1_NUM_MOTORS) {
@@ -192,13 +262,26 @@ const motor_config_t* motor_get_config(uint8_t index)
     return &motor_config_table[index];
 }
 
-/* motor_get_index() is now defined as inline in motor_mapping.h for O(1) lookup */
-
-void motor_mapping_init(void)
+/**
+ * @brief Initialize motor mapping tables and populate shared memory
+ *
+ * [MIGRATED FROM draft/ccu_ti/motor_mapping.c:197-227]
+ *
+ * This function:
+ * 1. Initializes the O(1) lookup table with 0xFF (not found)
+ * 2. Builds the lookup table from motor_config_table
+ * 3. Copies configuration data to shared memory for Core 0 access
+ * 4. Verifies the lookup table is correctly built
+ *
+ * @note This is a CORE 1 ONLY function - must be called after shared memory init
+ * @note Bare metal compliant: no dynamic allocation, no OS calls
+ * @return 0 on success, -1 on error
+ */
+int motor_mapping_init_core1(void)
 {
     /* Initialize lookup table with 0xFF (not found) */
-    for (uint16_t mid = 0; mid < 128; mid++) {
-        for (uint8_t bus = 0; bus < 8; bus++) {
+    for (uint16_t mid = 0; mid < MOTOR_LOOKUP_ID_MAX; mid++) {
+        for (uint8_t bus = 0; bus < MOTOR_LOOKUP_BUS_MAX; bus++) {
             g_motor_lookup[mid][bus] = 0xFF;
         }
     }
@@ -208,7 +291,7 @@ void motor_mapping_init(void)
         uint8_t motor_id = motor_config_table[i].motor_id;
         uint8_t can_bus = motor_config_table[i].can_bus;
 
-        if (motor_id < 128 && can_bus < 8) {
+        if (motor_id < MOTOR_LOOKUP_ID_MAX && can_bus < MOTOR_LOOKUP_BUS_MAX) {
             g_motor_lookup[motor_id][can_bus] = i;
         }
     }
@@ -224,12 +307,57 @@ void motor_mapping_init(void)
         }
     }
     (void)found_count;  /* Suppress unused warning */
+
+    /* Copy configuration data to shared memory for Core 0 access */
+    /* [MIGRATED TO gateway_shared.c:gateway_write_motor_config()] */
+    extern int gateway_write_motor_config(const SharedMotorConfig_t* motor_config,
+                                          const uint8_t motor_lookup[128][8]);
+
+    /* Prepare shared memory configuration structures */
+    SharedMotorConfig_t shared_config[VD1_NUM_MOTORS];
+
+    for (uint8_t i = 0; i < VD1_NUM_MOTORS; i++) {
+        shared_config[i].motor_id = motor_config_table[i].motor_id;
+        shared_config[i].can_bus = motor_config_table[i].can_bus;
+        shared_config[i].motor_type = (uint8_t)motor_config_table[i].motor_type;
+        shared_config[i].reserved = 0;
+        shared_config[i].direction = motor_config_table[i].direction;
+        shared_config[i].p_min = motor_config_table[i].limits.p_min;
+        shared_config[i].p_max = motor_config_table[i].limits.p_max;
+        shared_config[i].v_min = motor_config_table[i].limits.v_min;
+        shared_config[i].v_max = motor_config_table[i].limits.v_max;
+        shared_config[i].kp_min = motor_config_table[i].limits.kp_min;
+        shared_config[i].kp_max = motor_config_table[i].limits.kp_max;
+        shared_config[i].kd_min = motor_config_table[i].limits.kd_min;
+        shared_config[i].kd_max = motor_config_table[i].limits.kd_max;
+        shared_config[i].t_min = motor_config_table[i].limits.t_min;
+        shared_config[i].t_max = motor_config_table[i].limits.t_max;
+    }
+
+    /* Write to shared memory */
+    int ret = gateway_write_motor_config(shared_config, g_motor_lookup);
+    if (ret != 0) {
+        return -1;  /* Failed to write to shared memory */
+    }
+
+    return 0;
 }
 
 /*==============================================================================
  * UTILITY FUNCTIONS
  *============================================================================*/
 
+/**
+ * @brief Convert uint16 to float with range
+ *
+ * [MIGRATED FROM draft/ccu_ti/motor_mapping.c:233-238]
+ *
+ * @param x Input uint16 value
+ * @param x_min Minimum output float value
+ * @param x_max Maximum output float value
+ * @param bits Number of bits in input value
+ * @return Converted float value
+ */
 float uint16_to_float(uint16_t x, float x_min, float x_max, int bits)
 {
     uint32_t span = (1U << bits) - 1;
@@ -237,6 +365,17 @@ float uint16_to_float(uint16_t x, float x_min, float x_max, int bits)
     return offset * ((float)x) / ((float)span) + x_min;
 }
 
+/**
+ * @brief Convert float to uint16 with range
+ *
+ * [MIGRATED FROM draft/ccu_ti/motor_mapping.c:240-247]
+ *
+ * @param x Input float value
+ * @param x_min Minimum input float value
+ * @param x_max Maximum input float value
+ * @param bits Number of bits in output value
+ * @return Converted uint16 value
+ */
 int float_to_uint(float x, float x_min, float x_max, int bits)
 {
     float span = x_max - x_min;
@@ -246,6 +385,14 @@ int float_to_uint(float x, float x_min, float x_max, int bits)
     return (int)(((x - offset) * ((float)((1 << bits) - 1))) / span);
 }
 
+/**
+ * @brief Convert 4 bytes to float (little-endian)
+ *
+ * [MIGRATED FROM draft/ccu_ti/motor_mapping.c:249-261]
+ *
+ * @param bytedata Input byte array (must have at least 4 bytes)
+ * @return Float value
+ */
 float bytes_to_float(const uint8_t* bytedata)
 {
     uint32_t data = ((uint32_t)bytedata[3] << 24) |
@@ -265,7 +412,9 @@ float bytes_to_float(const uint8_t* bytedata)
  *============================================================================*/
 
 /**
- * @brief CRC32 lookup table (256 entries × 4 bytes = 1KB)
+ * @brief CRC32 lookup table (256 entries x 4 bytes = 1KB)
+ *
+ * [MIGRATED FROM draft/ccu_ti/motor_mapping.c:267-277]
  *
  * Pre-computed CRC values for all possible byte values (0-255).
  * Uses IEEE 802.3 polynomial: 0xEDB88320 (reversed)
@@ -323,6 +472,8 @@ static const uint32_t crc32_table[256] = {
 
 /**
  * @brief Calculate CRC32 checksum using table-driven algorithm
+ *
+ * [MIGRATED FROM draft/ccu_ti/motor_mapping.c:324-350]
  *
  * Fast table-driven CRC32 implementation matching Python's binascii.crc32.
  * Uses IEEE 802.3 polynomial (0xEDB88320 reversed).
