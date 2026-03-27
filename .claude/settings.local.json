@@ -51,7 +51,8 @@
       "Bash(cmd.exe /c \"C:\\\\ti\\\\ccs2031\\\\ccs\\\\utils\\\\sysconfig_1.26.0\\\\sysconfig_cli.bat\" -s example.syscfg -o Debug/syscfg)",
       "Bash(find /c/ti/ccs2031 -name *.exe -path */node/*)",
       "Bash(/c/ti/ccs2031/ccs/tools/node/node.exe /c/ti/ccs2031/ccs/utils/sysconfig_1.26.0/sysconfig_cli.js --product \"MCU_PLUS_SDK_AM263Px@11.01.00\" --device \"AM263Px\" --part \"AM263P4\" --package \"ZCZ_C\" --context \"r5fss0-0\" -s example.syscfg -o Debug/syscfg)",
-      "Bash(find D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/ccu_ti_mutilcore -type f -name *.system -o -name *.syscfg -o -name *.project -o -name *system*.xml)"
+      "Bash(find D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/ccu_ti_mutilcore -type f -name *.system -o -name *.syscfg -o -name *.project -o -name *system*.xml)",
+      "Bash(find D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/ccu_ti_mutilcore -name *.ccxml -o -name system.xml -o -name *.cxml)"
     ]
   }
 }
