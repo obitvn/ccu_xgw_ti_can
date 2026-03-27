@@ -303,6 +303,18 @@ Shared Memory: 32KB (0x701D0000)
   - Test with Wireshark to verify UDP traffic
   - Verify PHY link status in logs
 
+### ✅ IPC Test Code Cleanup (2026-03-27)
+- **Issue:** Core 0 crashed during `ipc_process_task()` - log cut off mid-line
+- **Root Cause:** Test code in production paths causing complexity
+  - `ipc_process_task()` had extensive test logging every 10/20 notifications
+  - IPC callbacks had ring buffer test reads in ISR context
+  - Core 1 main loop had test code every 100/200 cycles
+- **Solution:** Cleaned up production code
+  - Removed all test code from `ipc_process_task()` - now minimal
+  - Simplified IPC callbacks - no DebugP_log or ring buffer reads in ISR
+  - Simplified Core 1 main loop - removed test notifications
+  - Kept production code: motor command processing, CAN transmission, heartbeat
+
 ## 12. NEXT STEPS
 1. ✅ IPC communication - DONE
 2. ✅ Shared memory test - DONE

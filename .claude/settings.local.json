@@ -57,7 +57,11 @@
       "Bash(find D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/draft -name *r5fss1-1* -type d)",
       "Bash(find D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/draft -name *.ccxml -o -name .ccsproject -o -name .project)",
       "Bash(find D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/draft/empty_am263px-lp_r5fss1-1_nortos_ti-arm-clang/.settings -name *.xml)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(find D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/draft/empty_am263px-lp_system_freertos -name *.launch -o -name launch*.json)",
+      "Bash(find D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/draft -name *.launch)",
+      "Bash(find D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/draft/mcu_plus_sdk_am263px_11_01_00_19/examples/empty/am263px-lp/system_freertos -type f -name *.xml)",
+      "Bash(find D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/ccu_ti_mutilcore/ccu_ti_multi_core_system -name .* -type f)"
     ]
   }
 }

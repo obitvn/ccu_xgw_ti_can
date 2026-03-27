@@ -97,12 +97,8 @@ static motor_state_ipc_t g_motor_states[GATEWAY_NUM_MOTORS];
 /* Motor command buffer for shared memory */
 static motor_cmd_ipc_t g_motor_commands[GATEWAY_NUM_MOTORS];
 
-/* IPC callback counter - for debug in ISR context */
+/* IPC callback counter - for statistics */
 static volatile uint32_t g_ipc_callback_count = 0;
-
-/* Test data received from Core 1 */
-static volatile bool g_test_data_from_core1_received = false;
-static volatile ringbuf_test_data_t g_test_data_from_core1 = {0};
 
 /*==============================================================================
  * FORWARD DECLARATIONS
@@ -130,6 +126,8 @@ static void build_and_send_udp_packet(void);
  *
  * Called when Core 1 sends notification
  * Signature matches IpcNotify_FxnCallback
+ *
+ * IMPORTANT: This runs in ISR context - keep it minimal!
  */
 static void ipc_notify_callback_fxn(uint32_t remoteCoreId, uint16_t localClientId,
                                      uint32_t msgValue, int32_t crcStatus, void *args)
@@ -137,24 +135,13 @@ static void ipc_notify_callback_fxn(uint32_t remoteCoreId, uint16_t localClientI
     (void)crcStatus;
     (void)args;
 
-    /* Increment callback counter - works in ISR context! */
+    /* Increment callback counter */
     g_ipc_callback_count++;
 
-    /* Check for test data notification from Core 1 */
-    if (remoteCoreId == CSL_CORE_ID_R5FSS0_1 && msgValue == MSG_CAN_DATA_READY) {
-        /* Try to read test data from ring buffer */
-        ringbuf_test_data_t test_data;
-        int ret = gateway_ringbuf_read_test_core0(&test_data);
-        if (ret == GATEWAY_RINGBUF_OK) {
-            g_test_data_from_core1 = test_data;
-            g_test_data_from_core1_received = true;
-        }
-    }
-
-    /* Call gateway shared memory callback */
+    /* Call gateway shared memory callback - handles the actual IPC message */
     gateway_core0_ipc_callback(localClientId, (uint16_t)msgValue);
 
-    /* Notify IPC task */
+    /* Notify IPC process task */
     if (gIpcTask != NULL) {
         BaseType_t xHigherPriorityTaskWoken = pdFALSE;
         vTaskNotifyGiveFromISR(gIpcTask, &xHigherPriorityTaskWoken);
@@ -275,98 +262,21 @@ static void process_udp_packet(const uint8_t *data, uint16_t length)
 /**
  * @brief IPC process task
  *
- * Handles IPC notifications from Core 1 AND sends test IPC to Core 1
+ * Handles IPC notifications from Core 1 (CAN data ready)
+ * This is a lightweight task that processes IPC events efficiently
  */
 static void ipc_process_task(void *args)
 {
     (void)args;
-    uint32_t notification_count = 0;
-    uint32_t last_callback_count = 0;
-    uint32_t last_summary_count = 0;
-    uint32_t test_tx_count = 0;
-    uint32_t test_tx_success = 0;
 
     DebugP_log("[Core0] IPC process task started\r\n");
 
-    /* Counter for periodic test transmission */
-    uint32_t notify_count_for_test = 0;
-
     while (1) {
-        /* Wait for notification */
+        /* Wait for notification from Core 1 */
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
-        /* Process IPC events */
-        notification_count++;
-        notify_count_for_test++;
-
-        /* Display ISR callback count difference */
-        uint32_t callbacks = g_ipc_callback_count - last_callback_count;
-        DebugP_log("[Core0] NOTIFY RX from Core1: count=%u, callbacks=%u\r\n",
-                   notification_count, callbacks);
-        last_callback_count = g_ipc_callback_count;
-
-        /* Log summary every 10 notifications */
-        if ((notification_count - last_summary_count) >= 10) {
-            DebugP_log("[Core0] *** RX SUMMARY: total=%u notifications received ***\r\n",
-                       notification_count);
-            last_summary_count = notification_count;
-        }
-
-        /* Send test IPC to Core 1 every 10 Core 1 notifications */
-        if ((notify_count_for_test % 10) == 0) {
-            test_tx_count++;
-            int32_t status = IpcNotify_sendMsg(CSL_CORE_ID_R5FSS0_1, GATEWAY_IPC_CLIENT_ID, MSG_ETH_DATA_READY, 1);
-
-            if (status == SystemP_SUCCESS) {
-                test_tx_success++;
-                DebugP_log("[Core0] TEST: IPC TX to Core1: count=%u, success=%u\r\n",
-                           test_tx_count, test_tx_success);
-            } else {
-                DebugP_log("[Core0] TEST: IPC TX FAILED! status=%d\r\n", status);
-            }
-        }
-
-        /* Test shared memory + IPC every 20 notifications */
-        if ((notify_count_for_test % 20) == 0) {
-            /* Create test pattern: 1, 2, 3, 4, 5, 6, 7, 8 */
-            ringbuf_test_data_t test_data;
-            test_data.timestamp = g_ipc_callback_count;
-            for (int i = 0; i < 8; i++) {
-                test_data.data[i] = i + 1;
-            }
-
-            /* Write test data to ring buffer */
-            int write_status = gateway_ringbuf_write_test_core0(&test_data);
-            if (write_status == GATEWAY_RINGBUF_OK) {
-                DebugP_log("[Core0] RINGBUF: Written test data [1,2,3,4,5,6,7,8] seq=%u\r\n",
-                           test_data.sequence);
-
-                /* Notify Core 1 that test data is ready */
-                int notify_status = gateway_ringbuf_core0_notify();
-                if (notify_status == 0) {
-                    DebugP_log("[Core0] RINGBUF: Test data notification sent to Core 1\r\n");
-                } else {
-                    DebugP_log("[Core0] RINGBUF ERROR: Failed to notify Core 1! notify_status=%d\r\n", notify_status);
-                }
-            } else if (write_status == GATEWAY_RINGBUF_FULL) {
-                DebugP_log("[Core0] RINGBUF: Buffer full - cannot write test data\r\n");
-            } else {
-                DebugP_log("[Core0] RINGBUF ERROR: Failed to write test data! status=%d\r\n", write_status);
-            }
-        }
-
-        /* Check for test data received from Core 1 */
-        if (g_test_data_from_core1_received) {
-            DebugP_log("[Core0] *** TEST DATA from Core 1: seq=%u [%u %u %u %u %u %u %u %u] ***\r\n",
-                       g_test_data_from_core1.sequence,
-                       g_test_data_from_core1.data[0], g_test_data_from_core1.data[1],
-                       g_test_data_from_core1.data[2], g_test_data_from_core1.data[3],
-                       g_test_data_from_core1.data[4], g_test_data_from_core1.data[5],
-                       g_test_data_from_core1.data[6], g_test_data_from_core1.data[7]);
-            g_test_data_from_core1_received = false;  /* Clear flag */
-        }
-
-        /* Motor states are read in UDP TX task */
+        /* Process: Motor states from Core 1 are read by UDP TX task */
+        /* The notification signals that new data is available in shared memory */
         gStats.ipc_rx_count++;
     }
 }

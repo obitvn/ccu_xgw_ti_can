@@ -60,12 +60,8 @@ static motor_state_ipc_t g_motor_states[GATEWAY_NUM_MOTORS];
 /* Heartbeat counter */
 static volatile uint32_t g_heartbeat_count = 0;
 
-/* IPC test counter - tracks test messages from Core 0 */
-static volatile uint32_t g_ipc_test_rx_count = 0;
-
-/* Test data received flag - set in ISR, checked in main loop */
-static volatile bool g_test_data_received = false;
-static volatile ringbuf_test_data_t g_test_data_from_core0 = {0};
+/* IPC event counter - tracks messages from Core 0 */
+static volatile uint32_t g_ipc_event_count = 0;
 
 /*==============================================================================
  * FORWARD DECLARATIONS
@@ -114,6 +110,8 @@ static void timer_isr(void *args)
  *
  * Called when Core 0 sends notification
  * Signature matches IpcNotify_FxnCallback
+ *
+ * IMPORTANT: This runs in ISR context - keep it minimal!
  */
 static void ipc_notify_callback_fxn(uint32_t remoteCoreId, uint16_t localClientId,
                                      uint32_t msgValue, int32_t crcStatus, void *args)
@@ -121,42 +119,14 @@ static void ipc_notify_callback_fxn(uint32_t remoteCoreId, uint16_t localClientI
     (void)crcStatus;
     (void)args;
 
-    /* Detailed logging for IPC communication debugging */
-    const char* msg_name = "UNKNOWN";
-    switch (msgValue) {
-        case MSG_CAN_DATA_READY:     msg_name = "MSG_CAN_DATA_READY"; break;
-        case MSG_ETH_DATA_READY:     msg_name = "MSG_ETH_DATA_READY"; break;
-        case MSG_CAN_DATA_ACK:       msg_name = "MSG_CAN_DATA_ACK"; break;
-        case MSG_ETH_DATA_ACK:       msg_name = "MSG_ETH_DATA_ACK"; break;
-        case MSG_HEARTBEAT:          msg_name = "MSG_HEARTBEAT"; break;
-        case MSG_EMERGENCY_STOP:     msg_name = "MSG_EMERGENCY_STOP"; break;
-        default:                     msg_name = "UNKNOWN"; break;
-    }
+    /* Increment event counter */
+    g_ipc_event_count++;
 
-    DebugP_log("[Core1] IPC RX: remoteCoreId=%u, localClientId=%u, msgValue=0x%02X (%s)\r\n",
-               (uint16_t)remoteCoreId, (uint16_t)localClientId, (uint16_t)msgValue, msg_name);
-
-    /* Track test messages from Core 0 */
-    if (remoteCoreId == CSL_CORE_ID_R5FSS0_0) {
-        if (msgValue == MSG_ETH_DATA_READY) {
-            /* Regular test message or test data ready */
-            g_ipc_test_rx_count++;
-
-            /* Try to read test data from ring buffer */
-            ringbuf_test_data_t test_data;
-            int ret = gateway_ringbuf_read_test_core1(&test_data);
-            if (ret == GATEWAY_RINGBUF_OK) {
-                g_test_data_from_core0 = test_data;
-                g_test_data_received = true;
-                DebugP_log("[Core1] *** TEST DATA from Core 0: seq=%u ***\r\n", test_data.sequence);
-            }
-        }
-    }
-
-    /* Call gateway shared memory callback */
+    /* Call gateway shared memory callback - handles the actual IPC message */
     gateway_core1_ipc_callback(localClientId, (uint16_t)msgValue);
 
-    if (msgValue == MSG_ETH_DATA_READY) {
+    /* Check for motor commands ready */
+    if (remoteCoreId == CSL_CORE_ID_R5FSS0_0 && msgValue == MSG_ETH_DATA_READY) {
         /* Core 0 has written new motor commands */
         g_commands_ready = true;
     }
@@ -405,8 +375,8 @@ static int32_t core1_init(void)
         DebugP_log("[Core1] WARNING: Dispatcher timer start failed!\r\n");
     }
 
-    /* Start CAN RX interrupts */
-    CAN_StartRxInterrupts();
+    /* Start CAN RX interrupts - DISABLED FOR TESTING */
+    // CAN_StartRxInterrupts();
 
     DebugP_log("\r\n========================================\r\n");
     DebugP_log("  Core 1 Init Complete!\r\n");
@@ -434,20 +404,12 @@ static void main_loop(void)
     DebugP_log("[Core1] Entering main loop (1000Hz)...\r\n");
 
     uint64_t last_heartbeat_log = 0;
-    uint32_t debug_loop_count = 0;
-
-    DebugP_log("[Core1] Starting while(1) loop...\r\n");
-
-    /* Simple busy wait for testing - avoid ClockP_sleep which may block */
     volatile uint32_t busy_wait;
 
     while (1) {
-        /* Debug log first thing in loop */
-        // DebugP_log("[Core1] Loop top: cycle=%llu\r\n", g_cycle_count);
-
-        /* Simple busy wait instead of ClockP_sleep */
+        /* Simple busy wait for 1ms timing */
         for (busy_wait = 0; busy_wait < 10000; busy_wait++) {
-            /* Wait approximately 1ms at 400MHz */
+            /* Wait approximately 1ms */
         }
 
         /* Manually set timer flag to allow processing */
@@ -456,77 +418,22 @@ static void main_loop(void)
         gateway_update_heartbeat(1);
         g_heartbeat_count++;
 
-        /* Debug: Log every 100 cycles to verify loop is running */
-        if ((g_cycle_count % 100) == 0) {
-            // DebugP_log("[Core1] Loop: cycle=%llu\r\n", g_cycle_count);
-            debug_loop_count++;
-        }
-
-        /* Clear timer flag */
-        g_timer_expired = false;
-
         /* === 1000Hz Processing Start === */
 
         /* 1. Process motor commands from shared memory */
         if (g_commands_ready) {
-            // process_motor_commands();
+            /* TODO: process_motor_commands(); */
             g_commands_ready = false;
         }
 
         /* 2. Transmit CAN frames to all motors */
-        // transmit_can_frames();
+        /* TODO: transmit_can_frames(); */
 
-        /* 2.5 Check for test data received from Core 0 */
-        if (g_test_data_received) {
-            DebugP_log("[Core1] *** TEST DATA from Core 0: seq=%u [%u %u %u %u %u %u %u %u] ***\r\n",
-                       g_test_data_from_core0.sequence,
-                       g_test_data_from_core0.data[0], g_test_data_from_core0.data[1],
-                       g_test_data_from_core0.data[2], g_test_data_from_core0.data[3],
-                       g_test_data_from_core0.data[4], g_test_data_from_core0.data[5],
-                       g_test_data_from_core0.data[6], g_test_data_from_core0.data[7]);
-            g_test_data_received = false;  /* Clear flag */
-        }
-
-        /* 3. Log heartbeat and notify Core 0 every 100 cycles (for faster testing) */
-        if ((g_cycle_count - last_heartbeat_log) >= 100) {
-            DebugP_log("[Core1] *** Heartbeat: cycle=%llu, hb=%u, test_rx=%u ***\r\n",
-                       g_cycle_count, g_heartbeat_count, g_ipc_test_rx_count);
-
-            /* Notify Core 0 for testing */
-            DebugP_log("[Core1] About to send IPC notify to Core 0...\r\n");
-            int32_t ipc_status = gateway_notify_states_ready();
-            DebugP_log("[Core1] IPC notify sent! status=%d\r\n", ipc_status);
-
+        /* 3. Periodic heartbeat log every 1000 cycles (1 second) */
+        if ((g_cycle_count - last_heartbeat_log) >= 1000) {
+            DebugP_log("[Core1] Heartbeat: cycle=%llu, ipc_events=%u\r\n",
+                       g_cycle_count, g_ipc_event_count);
             last_heartbeat_log = g_cycle_count;
-        }
-
-        /* 3.5 Write test data to shared memory and notify Core 0 every 200 cycles */
-        if ((g_cycle_count % 200) == 0) {
-            /* Create test pattern from Core 1: 10, 20, 30, 40, 50, 60, 70, 80 */
-            ringbuf_test_data_t test_data;
-            test_data.timestamp = g_cycle_count;
-            for (int i = 0; i < 8; i++) {
-                test_data.data[i] = (i + 1) * 10;
-            }
-
-            /* Write test data to ring buffer */
-            int write_status = gateway_ringbuf_write_test_core1(&test_data);
-            if (write_status == GATEWAY_RINGBUF_OK) {
-                DebugP_log("[Core1] RINGBUF: Written test data [10,20,30,40,50,60,70,80] seq=%u\r\n",
-                           test_data.sequence);
-
-                /* Notify Core 0 that test data is ready */
-                int notify_status = gateway_ringbuf_core1_notify();
-                if (notify_status == 0) {
-                    DebugP_log("[Core1] RINGBUF: Test data notification sent to Core 0\r\n");
-                } else {
-                    DebugP_log("[Core1] RINGBUF ERROR: Failed to notify Core 0! notify_status=%d\r\n", notify_status);
-                }
-            } else if (write_status == GATEWAY_RINGBUF_FULL) {
-                DebugP_log("[Core1] RINGBUF: Buffer full - cannot write test data\r\n");
-            } else {
-                DebugP_log("[Core1] RINGBUF ERROR: Failed to write test data! status=%d\r\n", write_status);
-            }
         }
 
         /* === 1000Hz Processing End === */

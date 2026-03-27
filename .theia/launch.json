@@ -9,6 +9,16 @@
                 "name": "ccu_ti_multi_core_system",
                 "resourceId": "/ccu_ti_multi_core_system"
             },
+            "cores": [
+                {
+                    "coreName": "Cortex_R5_0",
+                    "coreTitle": "Cortex R5FSS0-0"
+                },
+                {
+                    "coreName": "Cortex_R5_3",
+                    "coreTitle": "Cortex R5FSS1-1"
+                }
+            ],
             "connections": [
                 {
                     "name": "Texas Instruments XDS110 USB Debug Probe",
@@ -28,13 +38,13 @@
                         {
                             "name": "Cortex_R5_0",
                             "debuggerSettings": {
-                                "data": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n<PropertyValues>\n  <property id=\"FlashBoardType\">\n    <curValue>LP</curValue>\n  </property>\n  <property id=\"FlashPartType\">\n    <curValue>Standard</curValue>\n  </property>\n  <property id=\"AutoRunToLabelName\">\n    <curValue>main</curValue>\n  </property>\n</PropertyValues>\n"
+                                "data": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n<PropertyValues>\n  <property id=\"FlashBoardType\">\n    <curValue>LP</curValue>\n  </property>\n  <property id=\"FlashPartType\">\n    <curValue>Standard</curValue>\n  </property>\n</PropertyValues>\n"
                             }
                         },
                         {
                             "name": "Cortex_R5_3",
                             "debuggerSettings": {
-                                "data": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n<PropertyValues>\n  <property id=\"FlashBoardType\">\n    <curValue>LP</curValue>\n  </property>\n  <property id=\"FlashPartType\">\n    <curValue>Standard</curValue>\n  </property>\n  <property id=\"AutoRunToLabelName\">\n    <curValue>main</curValue>\n  </property>\n</PropertyValues>\n"
+                                "data": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n<PropertyValues>\n  <property id=\"FlashBoardType\">\n    <curValue>LP</curValue>\n  </property>\n  <property id=\"FlashPartType\">\n    <curValue>Standard</curValue>\n  </property>\n</PropertyValues>\n"
                             }
                         }
                     ]
