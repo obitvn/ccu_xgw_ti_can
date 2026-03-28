@@ -348,7 +348,8 @@ typedef struct __attribute__((packed)) {
     uint32_t version;                              /* Structure version */
     volatile uint32_t heartbeat_r5f0_0;            /* Core 0 heartbeat counter */
     volatile uint32_t heartbeat_r5f0_1;            /* Core 1 heartbeat counter */
-    uint32_t reserved[28];                         /* Alignment padding */
+    volatile uint32_t emergency_stop_flag;         /* Emergency stop signal (Core1->Core0) */
+    uint32_t reserved[27];                         /* Alignment padding */
 
 #if GATEWAY_USE_LOCKFREE_RINGBUF
     /* === Lock-free Ring Buffers === */

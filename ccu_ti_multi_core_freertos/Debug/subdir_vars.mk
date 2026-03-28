@@ -9,7 +9,6 @@ SYSCFG_SRCS += \
 ../example.syscfg 
 
 C_SRCS += \
-../ccu_diagnostics.c \
 ../ccu_log.c \
 ./syscfg/ti_dpl_config.c \
 ./syscfg/ti_drivers_config.c \
@@ -58,7 +57,6 @@ GEN_MISC_DIRS += \
 ./syscfg 
 
 C_DEPS += \
-./ccu_diagnostics.d \
 ./ccu_log.d \
 ./syscfg/ti_dpl_config.d \
 ./syscfg/ti_drivers_config.d \
@@ -84,7 +82,6 @@ C_DEPS += \
 ./test.d 
 
 OBJS += \
-./ccu_diagnostics.o \
 ./ccu_log.o \
 ./syscfg/ti_dpl_config.o \
 ./syscfg/ti_drivers_config.o \
@@ -127,7 +124,6 @@ GEN_MISC_DIRS__QUOTED += \
 "syscfg" 
 
 OBJS__QUOTED += \
-"ccu_diagnostics.o" \
 "ccu_log.o" \
 "syscfg\ti_dpl_config.o" \
 "syscfg\ti_drivers_config.o" \
@@ -167,7 +163,6 @@ GEN_MISC_FILES__QUOTED += \
 "syscfg\ti_sdl_config.h" 
 
 C_DEPS__QUOTED += \
-"ccu_diagnostics.d" \
 "ccu_log.d" \
 "syscfg\ti_dpl_config.d" \
 "syscfg\ti_drivers_config.d" \
@@ -210,7 +205,6 @@ GEN_FILES__QUOTED += \
 "syscfg\ti_sdl_config.c" 
 
 C_SRCS__QUOTED += \
-"../ccu_diagnostics.c" \
 "../ccu_log.c" \
 "./syscfg/ti_dpl_config.c" \
 "./syscfg/ti_drivers_config.c" \

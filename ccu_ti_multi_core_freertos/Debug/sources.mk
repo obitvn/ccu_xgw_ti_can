@@ -122,5 +122,4 @@ SUBDIRS := \
 common \
 enet \
 extPhyMgmt \
-xgw_gateway \
 

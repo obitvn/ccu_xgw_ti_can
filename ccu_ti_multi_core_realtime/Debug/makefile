@@ -11,7 +11,6 @@ GEN_CMDS__FLAG := -Wl,-l"syscfg/linker.cmd"
 
 ORDERED_OBJS += \
 "./can_interface.o" \
-"./dispatcher_timer.o" \
 "./syscfg/ti_dpl_config.o" \
 "./syscfg/ti_drivers_config.o" \
 "./syscfg/ti_drivers_open_close.o" \
@@ -165,8 +164,8 @@ ccu_ti_multi_core_realtime.out: $(OBJS) $(GEN_CMDS)
 # Other Targets
 clean:
 	-$(RM) $(GEN_MISC_FILES__QUOTED)$(GEN_FILES__QUOTED)$(EXE_OUTPUTS__QUOTED)
-	-$(RM) "can_interface.o" "dispatcher_timer.o" "syscfg\ti_dpl_config.o" "syscfg\ti_drivers_config.o" "syscfg\ti_drivers_open_close.o" "syscfg\ti_pinmux_config.o" "syscfg\ti_power_clock_config.o" "syscfg\ti_board_config.o" "syscfg\ti_board_open_close.o" "syscfg\ti_enet_config.o" "syscfg\ti_enet_init.o" "syscfg\ti_enet_dma_init.o" "syscfg\ti_enet_open_close.o" "syscfg\ti_enet_soc.o" "syscfg\ti_enet_lwipif.o" "syscfg\ti_sdl_config.o" "gateway_shared.o" "ipc_spinlock_sharedmem.o" "main.o" "motor_mapping.o" "imu\imu_interface_isr.o" "imu\imu_protocol_handler.o" "imu\yis320\yis320_protocol.o" 
-	-$(RM) "can_interface.d" "dispatcher_timer.d" "syscfg\ti_dpl_config.d" "syscfg\ti_drivers_config.d" "syscfg\ti_drivers_open_close.d" "syscfg\ti_pinmux_config.d" "syscfg\ti_power_clock_config.d" "syscfg\ti_board_config.d" "syscfg\ti_board_open_close.d" "syscfg\ti_enet_config.d" "syscfg\ti_enet_init.d" "syscfg\ti_enet_dma_init.d" "syscfg\ti_enet_open_close.d" "syscfg\ti_enet_soc.d" "syscfg\ti_enet_lwipif.d" "syscfg\ti_sdl_config.d" "gateway_shared.d" "ipc_spinlock_sharedmem.d" "main.d" "motor_mapping.d" "imu\imu_interface_isr.d" "imu\imu_protocol_handler.d" "imu\yis320\yis320_protocol.d" 
+	-$(RM) "can_interface.o" "syscfg\ti_dpl_config.o" "syscfg\ti_drivers_config.o" "syscfg\ti_drivers_open_close.o" "syscfg\ti_pinmux_config.o" "syscfg\ti_power_clock_config.o" "syscfg\ti_board_config.o" "syscfg\ti_board_open_close.o" "syscfg\ti_enet_config.o" "syscfg\ti_enet_init.o" "syscfg\ti_enet_dma_init.o" "syscfg\ti_enet_open_close.o" "syscfg\ti_enet_soc.o" "syscfg\ti_enet_lwipif.o" "syscfg\ti_sdl_config.o" "gateway_shared.o" "ipc_spinlock_sharedmem.o" "main.o" "motor_mapping.o" "imu\imu_interface_isr.o" "imu\imu_protocol_handler.o" "imu\yis320\yis320_protocol.o" 
+	-$(RM) "can_interface.d" "syscfg\ti_dpl_config.d" "syscfg\ti_drivers_config.d" "syscfg\ti_drivers_open_close.d" "syscfg\ti_pinmux_config.d" "syscfg\ti_power_clock_config.d" "syscfg\ti_board_config.d" "syscfg\ti_board_open_close.d" "syscfg\ti_enet_config.d" "syscfg\ti_enet_init.d" "syscfg\ti_enet_dma_init.d" "syscfg\ti_enet_open_close.d" "syscfg\ti_enet_soc.d" "syscfg\ti_enet_lwipif.d" "syscfg\ti_sdl_config.d" "gateway_shared.d" "ipc_spinlock_sharedmem.d" "main.d" "motor_mapping.d" "imu\imu_interface_isr.d" "imu\imu_protocol_handler.d" "imu\yis320\yis320_protocol.d" 
 	-$(RMDIR) $(GEN_MISC_DIRS__QUOTED)
 	-@echo 'Finished clean'
 	-@echo ' '

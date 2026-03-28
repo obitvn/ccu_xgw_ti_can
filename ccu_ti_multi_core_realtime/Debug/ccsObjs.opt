@@ -1,5 +1,4 @@
 "./can_interface.o"
-"./dispatcher_timer.o"
 "./syscfg/ti_dpl_config.o"
 "./syscfg/ti_drivers_config.o"
 "./syscfg/ti_drivers_open_close.o"

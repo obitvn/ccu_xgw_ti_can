@@ -1,4 +1,3 @@
-"./ccu_diagnostics.o"
 "./ccu_log.o"
 "./syscfg/ti_dpl_config.o"
 "./syscfg/ti_drivers_config.o"
@@ -32,7 +31,6 @@
 "./extPhyMgmt/enetextphy.o"
 "./extPhyMgmt/enetextphy_phymdio_dflt.o"
 "./extPhyMgmt/generic_phy.o"
-"./xgw_gateway/ccu_xgw_gateway.o"
 -l"syscfg/linker.cmd"
 -lfreertos.am263px.r5f.ti-arm-clang.debug.lib
 -ldrivers.am263px.r5f.ti-arm-clang.freertos.debug.lib
