@@ -40,11 +40,13 @@
 void Drivers_open(void)
 {
     Drivers_uartOpen();
+    Drivers_mcanOpen();
 }
 
 void Drivers_close(void)
 {
     Drivers_uartClose();
+    Drivers_mcanClose();
 }
 
 
@@ -142,5 +144,14 @@ void Drivers_uartClose(void)
         }
     }
 
+    return;
+}
+void Drivers_mcanOpen(void)
+{
+    return;
+}
+
+void Drivers_mcanClose(void)
+{
     return;
 }

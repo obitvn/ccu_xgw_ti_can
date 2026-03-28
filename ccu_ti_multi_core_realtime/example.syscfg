@@ -24,6 +24,24 @@ const mpu_armv76      = mpu_armv7.addInstance();
 const mpu_armv77      = mpu_armv7.addInstance();
 const timer           = scripting.addModule("/kernel/dpl/timer", {}, false);
 const timer1          = timer.addInstance();
+const gpio            = scripting.addModule("/drivers/gpio/gpio", {}, false);
+const gpio1           = gpio.addInstance();  /* STB_MCAN4 */
+const gpio2           = gpio.addInstance();  /* STB_MCAN3 */
+const gpio3           = gpio.addInstance();  /* STB_MCAN5 */
+const gpio4           = gpio.addInstance();  /* STB_MCAN7 */
+const gpio5           = gpio.addInstance();  /* STB_MCAN2 */
+const gpio6           = gpio.addInstance();  /* STB_MCAN1 */
+const gpio7           = gpio.addInstance();  /* STB_MCAN6 */
+const gpio8           = gpio.addInstance();  /* STB_MCAN0 */
+const mcan            = scripting.addModule("/drivers/mcan/mcan", {}, false);
+const mcan1           = mcan.addInstance();  /* MCAN3 */
+const mcan2           = mcan.addInstance();  /* MCAN2 */
+const mcan3           = mcan.addInstance();  /* MCAN7 */
+const mcan4           = mcan.addInstance();  /* MCAN6 */
+const mcan5           = mcan.addInstance();  /* MCAN0 */
+const mcan6           = mcan.addInstance();  /* MCAN1 */
+const mcan7           = mcan.addInstance();  /* MCAN4 */
+const mcan8           = mcan.addInstance();  /* MCAN5 */
 const default_linker  = scripting.addModule("/memory_configurator/default_linker", {}, false);
 const default_linker1 = default_linker.addInstance();
 const general         = scripting.addModule("/memory_configurator/general", {}, false);
@@ -52,6 +70,86 @@ const section12       = section.addInstance();
 ipc.r5fss0_0 = "notify";
 ipc.r5fss0_1 = "NONE";
 ipc.r5fss1_0 = "NONE";
+
+/* GPIO STB pins for CAN transceivers - copied from draft/ccu_ti */
+gpio1.pinDir         = "OUTPUT";
+gpio1.$name          = "CONFIG_GPIO_STB_MCAN4";
+gpio1.GPIO_n.$assign = "EPWM0_A";
+
+gpio2.pinDir         = "OUTPUT";
+gpio2.$name          = "CONFIG_GPIO_STB_MCAN3";
+gpio2.GPIO_n.$assign = "EPWM1_A";
+
+gpio3.pinDir         = "OUTPUT";
+gpio3.$name          = "CONFIG_GPIO_STB_MCAN5";
+gpio3.GPIO_n.$assign = "EPWM9_B";
+
+gpio4.pinDir         = "OUTPUT";
+gpio4.$name          = "CONFIG_GPIO_STB_MCAN7";
+gpio4.GPIO_n.$assign = "EPWM13_B";
+
+gpio5.pinDir         = "OUTPUT";
+gpio5.$name          = "CONFIG_GPIO_STB_MCAN2";
+gpio5.GPIO_n.$assign = "EQEP0_A";
+
+gpio6.pinDir         = "OUTPUT";
+gpio6.$name          = "CONFIG_GPIO_STB_MCAN1";
+gpio6.GPIO_n.$assign = "MMC_SDWP";
+
+gpio7.pinDir         = "OUTPUT";
+gpio7.$name          = "CONFIG_GPIO_STB_MCAN6";
+gpio7.GPIO_n.$assign = "EPWM0_B";
+
+gpio8.pinDir         = "OUTPUT";
+gpio8.$name          = "CONFIG_GPIO_STB_MCAN0";
+gpio8.GPIO_n.$assign = "MMC_SDCD";
+
+/* MCAN instances - copied from draft/ccu_ti */
+mcan1.$name           = "CONFIG_MCAN3";
+mcan1.MCAN.$assign    = "MCAN3";
+mcan1.MCAN.RX.$assign = "UART0_CTSn";
+mcan1.MCAN.TX.$assign = "UART0_RTSn";
+
+mcan2.$name        = "CONFIG_MCAN2";
+mcan2.MCAN.$assign = "MCAN2";
+
+mcan3.$name        = "CONFIG_MCAN7";
+mcan3.MCAN.$assign = "MCAN7";
+
+mcan4.$name           = "CONFIG_MCAN6";
+mcan4.MCAN.RX.$assign = "EPWM14_A";
+mcan4.MCAN.TX.$assign = "EPWM14_B";
+
+mcan5.$name           = "CONFIG_MCAN0";
+mcan5.MCAN.$assign    = "MCAN0";
+mcan5.MCAN.RX.$assign = "MMC_CLK";
+mcan5.MCAN.TX.$assign = "MMC_CMD";
+
+mcan6.$name           = "CONFIG_MCAN1";
+mcan6.MCAN.$assign    = "MCAN1";
+mcan6.MCAN.RX.$assign = "MMC_DAT0";
+mcan6.MCAN.TX.$assign = "MMC_DAT1";
+
+mcan7.$name           = "CONFIG_MCAN4";
+mcan7.MCAN.$assign    = "MCAN4";
+mcan7.MCAN.RX.$assign = "MMC_DAT2";
+mcan7.MCAN.TX.$assign = "MMC_DAT3";
+
+mcan8.$name        = "CONFIG_MCAN5";
+mcan8.MCAN.$assign = "MCAN5";
+
+/* MCAN v1 template for driver configuration */
+const mcan_v1_template  = scripting.addModule("/drivers/mcan/v1/mcan_v1_template", {}, false);
+const mcan_v1_template1 = mcan_v1_template.addInstance({}, false);
+mcan_v1_template1.$name = "drivers_mcan_v1_mcan_v1_template0";
+mcan1.child             = mcan_v1_template1;
+mcan2.child             = mcan_v1_template1;
+mcan3.child             = mcan_v1_template1;
+mcan4.child             = mcan_v1_template1;
+mcan5.child             = mcan_v1_template1;
+mcan6.child             = mcan_v1_template1;
+mcan7.child             = mcan_v1_template1;
+mcan8.child             = mcan_v1_template1;
 
 uart1.$name            = "CONFIG_UART5";
 uart1.baudRate         = 921600;
@@ -258,3 +356,18 @@ section12.type                        = "NOLOAD";
 section12.output_section.create(1);
 section12.output_section[0].$name     = ".bss.sipc_secure_host_queue_mem";
 section12.output_section[0].alignment = 0;
+
+/**
+ * Pinmux solution for unlocked pins/peripherals. This ensures that minor changes to the automatic solver in a future
+ * version of the tool will not impact the pinmux you originally saw.  These lines can be completely deleted in order to
+ * re-solve from scratch. Copied from draft/ccu_ti.
+ */
+mcan2.MCAN.RX.$suggestSolution = "MCAN2_RX";
+mcan2.MCAN.TX.$suggestSolution = "MCAN2_TX";
+mcan3.MCAN.RX.$suggestSolution = "EPWM12_A";
+mcan3.MCAN.TX.$suggestSolution = "EPWM12_B";
+mcan4.MCAN.$suggestSolution    = "MCAN6";
+mcan8.MCAN.RX.$suggestSolution = "EPWM10_A";
+mcan8.MCAN.TX.$suggestSolution = "EPWM10_B";
+timer1.RTI.$suggestSolution     = "RTI2";
+uart1.UART.$suggestSolution     = "UART5";

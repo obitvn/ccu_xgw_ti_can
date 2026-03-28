@@ -70,6 +70,8 @@ static MCAN_RxBufElement g_rx_buffer;
 
 /**
  * @brief Initialize STB (Standby) GPIO pins for CAN transceivers
+ *
+ * Uses GPIO configuration from SysConfig (ti_drivers_config.h)
  */
 static void init_can_stb_gpios(void)
 {
@@ -190,6 +192,18 @@ static void can_rx_isr(void *arg)
 
 /**
  * @brief Initialize a single MCAN peripheral
+ *
+ * *** STUB: MCAN not configured in SysConfig ***
+ *
+ * The MCAN module is NOT configured in example.syscfg, so Drivers_open()
+ * doesn't initialize the MCAN peripherals. This causes MCAN_isMemInitDone()
+ * to return FALSE forever, hanging Core1.
+ *
+ * TODO: Configure MCAN via SysConfig
+ * 1. Open example.syscfg in SysConfig GUI
+ * 2. Add MCAN module instances (MCAN0-7)
+ * 3. Configure pins, clocks, and message RAM
+ * 4. Uncomment the initialization code below
  */
 static int32_t init_single_mcan(uint8_t bus_id)
 {

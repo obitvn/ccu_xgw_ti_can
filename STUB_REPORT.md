@@ -40,6 +40,8 @@ The following dead code files have been **removed** from the repository:
 | # | Issue | Location | Priority | Status |
 |---|-------|----------|----------|--------|
 | 1 | Core1 1000Hz busy-wait timer | main.c:421-426 | MEDIUM | Known issue - TimerP ISR works, main loop uses busy-wait as fallback |
+| 2 | MCAN peripheral NOT configured in SysConfig | example.syscfg | HIGH | STUBBED - MCAN module missing from SysConfig, init_single_mcan() stubbed to allow Core1 boot |
+| 3 | CAN STB GPIO pins invalid base address | can_config.h | HIGH | STUBBED - GPIO base address 0xE0005000U not valid for AM263P4, init_can_stb_gpios() stubbed |
 
 ---
 

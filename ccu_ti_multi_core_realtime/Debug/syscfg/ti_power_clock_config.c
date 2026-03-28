@@ -49,11 +49,29 @@ typedef struct {
 uint32_t gSocModules[] = {
     SOC_RcmPeripheralId_LIN5_UART5,
 
+    SOC_RcmPeripheralId_MCAN3,
+    SOC_RcmPeripheralId_MCAN2,
+    SOC_RcmPeripheralId_MCAN7,
+    SOC_RcmPeripheralId_MCAN6,
+    SOC_RcmPeripheralId_MCAN0,
+    SOC_RcmPeripheralId_MCAN1,
+    SOC_RcmPeripheralId_MCAN4,
+    SOC_RcmPeripheralId_MCAN5,
+
     SOC_MODULES_END,
 };
 
 SOC_ModuleClockFrequency gSocModulesClockFrequency[] = {
     { SOC_RcmPeripheralId_LIN5_UART5, SOC_RcmPeripheralClockSource_DPLL_PER_HSDIV0_CLKOUT1, 48000000},
+
+    { SOC_RcmPeripheralId_MCAN3, SOC_RcmPeripheralClockSource_DPLL_CORE_HSDIV0_CLKOUT0, 80000000},
+    { SOC_RcmPeripheralId_MCAN2, SOC_RcmPeripheralClockSource_DPLL_CORE_HSDIV0_CLKOUT0, 80000000},
+    { SOC_RcmPeripheralId_MCAN7, SOC_RcmPeripheralClockSource_DPLL_CORE_HSDIV0_CLKOUT0, 80000000},
+    { SOC_RcmPeripheralId_MCAN6, SOC_RcmPeripheralClockSource_DPLL_CORE_HSDIV0_CLKOUT0, 80000000},
+    { SOC_RcmPeripheralId_MCAN0, SOC_RcmPeripheralClockSource_DPLL_CORE_HSDIV0_CLKOUT0, 80000000},
+    { SOC_RcmPeripheralId_MCAN1, SOC_RcmPeripheralClockSource_DPLL_CORE_HSDIV0_CLKOUT0, 80000000},
+    { SOC_RcmPeripheralId_MCAN4, SOC_RcmPeripheralClockSource_DPLL_CORE_HSDIV0_CLKOUT0, 80000000},
+    { SOC_RcmPeripheralId_MCAN5, SOC_RcmPeripheralClockSource_DPLL_CORE_HSDIV0_CLKOUT0, 80000000},
 
     { SOC_MODULES_END, SOC_MODULES_END, SOC_MODULES_END },
 };

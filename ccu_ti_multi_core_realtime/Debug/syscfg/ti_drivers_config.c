@@ -126,6 +126,93 @@ void Drivers_uartInit(void)
 {
     UART_init();
 }
+/*
+ * GPIO
+ */
+
+/* ----------- GPIO Direction, Trigger, Interrupt initialization ----------- */
+
+void GPIO_init()
+{
+    uint32_t    baseAddr;
+
+    /* Instance 0 */
+    /* Get address after translation translate */
+    baseAddr = (uint32_t) AddrTranslateP_getLocalAddr(CONFIG_GPIO_STB_MCAN4_BASE_ADDR);
+    GPIO_pinWriteLow(baseAddr, CONFIG_GPIO_STB_MCAN4_PIN);
+
+    GPIO_setDirMode(baseAddr, CONFIG_GPIO_STB_MCAN4_PIN, CONFIG_GPIO_STB_MCAN4_DIR);
+    /* Instance 1 */
+    /* Get address after translation translate */
+    baseAddr = (uint32_t) AddrTranslateP_getLocalAddr(CONFIG_GPIO_STB_MCAN3_BASE_ADDR);
+    GPIO_pinWriteLow(baseAddr, CONFIG_GPIO_STB_MCAN3_PIN);
+
+    GPIO_setDirMode(baseAddr, CONFIG_GPIO_STB_MCAN3_PIN, CONFIG_GPIO_STB_MCAN3_DIR);
+    /* Instance 2 */
+    /* Get address after translation translate */
+    baseAddr = (uint32_t) AddrTranslateP_getLocalAddr(CONFIG_GPIO_STB_MCAN5_BASE_ADDR);
+    GPIO_pinWriteLow(baseAddr, CONFIG_GPIO_STB_MCAN5_PIN);
+
+    GPIO_setDirMode(baseAddr, CONFIG_GPIO_STB_MCAN5_PIN, CONFIG_GPIO_STB_MCAN5_DIR);
+    /* Instance 3 */
+    /* Get address after translation translate */
+    baseAddr = (uint32_t) AddrTranslateP_getLocalAddr(CONFIG_GPIO_STB_MCAN7_BASE_ADDR);
+    GPIO_pinWriteLow(baseAddr, CONFIG_GPIO_STB_MCAN7_PIN);
+
+    GPIO_setDirMode(baseAddr, CONFIG_GPIO_STB_MCAN7_PIN, CONFIG_GPIO_STB_MCAN7_DIR);
+    /* Instance 4 */
+    /* Get address after translation translate */
+    baseAddr = (uint32_t) AddrTranslateP_getLocalAddr(CONFIG_GPIO_STB_MCAN2_BASE_ADDR);
+    GPIO_pinWriteLow(baseAddr, CONFIG_GPIO_STB_MCAN2_PIN);
+
+    GPIO_setDirMode(baseAddr, CONFIG_GPIO_STB_MCAN2_PIN, CONFIG_GPIO_STB_MCAN2_DIR);
+    /* Instance 5 */
+    /* Get address after translation translate */
+    baseAddr = (uint32_t) AddrTranslateP_getLocalAddr(CONFIG_GPIO_STB_MCAN1_BASE_ADDR);
+    GPIO_pinWriteLow(baseAddr, CONFIG_GPIO_STB_MCAN1_PIN);
+
+    GPIO_setDirMode(baseAddr, CONFIG_GPIO_STB_MCAN1_PIN, CONFIG_GPIO_STB_MCAN1_DIR);
+    /* Instance 6 */
+    /* Get address after translation translate */
+    baseAddr = (uint32_t) AddrTranslateP_getLocalAddr(CONFIG_GPIO_STB_MCAN6_BASE_ADDR);
+    GPIO_pinWriteLow(baseAddr, CONFIG_GPIO_STB_MCAN6_PIN);
+
+    GPIO_setDirMode(baseAddr, CONFIG_GPIO_STB_MCAN6_PIN, CONFIG_GPIO_STB_MCAN6_DIR);
+    /* Instance 7 */
+    /* Get address after translation translate */
+    baseAddr = (uint32_t) AddrTranslateP_getLocalAddr(CONFIG_GPIO_STB_MCAN0_BASE_ADDR);
+    GPIO_pinWriteLow(baseAddr, CONFIG_GPIO_STB_MCAN0_PIN);
+
+    GPIO_setDirMode(baseAddr, CONFIG_GPIO_STB_MCAN0_PIN, CONFIG_GPIO_STB_MCAN0_DIR);
+}
+
+
+/* ----------- GPIO Interrupt de-initialization ----------- */
+void GPIO_deinit()
+{
+
+}
+
+
+/*
+ * MCAN
+ */
+extern MCAN_BitTimingParams gMcanBitTimingDefaultParams;
+
+
+/* MCAN Default Bit timing Parameters */
+MCAN_BitTimingParams gMcanBitTimingDefaultParams =
+{
+    .nomRatePrescalar   = 0x3U,
+    .nomTimeSeg1        = 0xFU,
+    .nomTimeSeg2        = 0x2U,
+    .nomSynchJumpWidth  = 0x0U,
+    .dataRatePrescalar  = 0x1U,
+    .dataTimeSeg1       = 0x5U,
+    .dataTimeSeg2       = 0x0U,
+    .dataSynchJumpWidth = 0x0U,
+};
+
 
 /*
  * MCU_LBIST
@@ -191,6 +278,7 @@ void System_init(void)
     }
 
     Drivers_uartInit();
+    GPIO_init();
 }
 
 void System_deinit(void)
@@ -198,6 +286,7 @@ void System_deinit(void)
     IpcNotify_deInit();
 
     UART_deinit();
+    GPIO_deinit();
     PowerClock_deinit();
 
     Dpl_deinit();
