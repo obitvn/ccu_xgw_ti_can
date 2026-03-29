@@ -393,6 +393,7 @@ void CAN_Init(void)
 int32_t CAN_RegisterRxCallback(can_rx_callback_t callback)
 {
     if (callback == NULL) {
+        DebugP_log("[CAN] ERROR: callback is NULL!\r\n");
         return -1;
     }
 
