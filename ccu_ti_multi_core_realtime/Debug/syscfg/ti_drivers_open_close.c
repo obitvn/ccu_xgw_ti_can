@@ -39,16 +39,25 @@
 
 void Drivers_open(void)
 {
-    Drivers_uartOpen();
     Drivers_mcanOpen();
+    Drivers_uartOpen();
 }
 
 void Drivers_close(void)
 {
-    Drivers_uartClose();
     Drivers_mcanClose();
+    Drivers_uartClose();
 }
 
+void Drivers_mcanOpen(void)
+{
+    return;
+}
+
+void Drivers_mcanClose(void)
+{
+    return;
+}
 
 /*
  * UART
@@ -144,14 +153,5 @@ void Drivers_uartClose(void)
         }
     }
 
-    return;
-}
-void Drivers_mcanOpen(void)
-{
-    return;
-}
-
-void Drivers_mcanClose(void)
-{
     return;
 }

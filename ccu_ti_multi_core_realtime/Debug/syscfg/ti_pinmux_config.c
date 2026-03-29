@@ -37,19 +37,6 @@
 #include <drivers/pinmux.h>
 
 static Pinmux_PerCfg_t gPinMuxMainDomainCfg[] = {
-            /* UART5 pin config */
-    /* UART5_RXD -> SDFM0_CLK3 (A15) */
-    {
-        PIN_SDFM0_CLK3,
-        ( PIN_MODE(1) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
-    },
-    /* UART5 pin config */
-    /* UART5_TXD -> SDFM0_CLK2 (B15) */
-    {
-        PIN_SDFM0_CLK2,
-        ( PIN_MODE(0) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
-    },
-
                 /* GPIO43 -> EPWM0_A (B2) */
     {
         PIN_EPWM0_A,
@@ -186,6 +173,19 @@ static Pinmux_PerCfg_t gPinMuxMainDomainCfg[] = {
     {
         PIN_EPWM10_B,
         ( PIN_MODE(4) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
+    },
+
+            /* UART5 pin config */
+    /* UART5_RXD -> SDFM0_CLK3 (A15) */
+    {
+        PIN_SDFM0_CLK3,
+        ( PIN_MODE(1) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
+    },
+    /* UART5 pin config */
+    /* UART5_TXD -> SDFM0_CLK2 (B15) */
+    {
+        PIN_SDFM0_CLK2,
+        ( PIN_MODE(0) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
     },
 
     {PINMUX_END, PINMUX_END}

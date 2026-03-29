@@ -47,6 +47,19 @@ static const uint32_t g_mcan_base_addr[NUM_CAN_BUSES] = {
     CONFIG_MCAN7_BASE_ADDR,
 };
 
+// MCAN SOC RCM peripheral IDs for clock enable
+// Note: IDs are not sequential due to other peripherals in between
+static const uint32_t g_mcan_rcm_id[NUM_CAN_BUSES] = {
+    SOC_RcmPeripheralId_MCAN0,  // 0
+    SOC_RcmPeripheralId_MCAN1,  // 1
+    SOC_RcmPeripheralId_MCAN2,  // 2
+    SOC_RcmPeripheralId_MCAN3,  // 3
+    SOC_RcmPeripheralId_MCAN4,  // 30 (after MCSPI7)
+    SOC_RcmPeripheralId_MCAN5,  // 31
+    SOC_RcmPeripheralId_MCAN6,  // 32
+    SOC_RcmPeripheralId_MCAN7,  // 33
+};
+
 /* ==========================================================================
  *                      Global Variables
  * ========================================================================== */
@@ -193,17 +206,12 @@ static void can_rx_isr(void *arg)
 /**
  * @brief Initialize a single MCAN peripheral
  *
- * *** STUB: MCAN not configured in SysConfig ***
+ * NOTE: MCAN is configured in example.syscfg but Drivers_mcanOpen()
+ * does not auto-generate initialization code. MCAN clocks must be enabled
+ * manually via CSL API or the MCAN driver will hang on MCAN_isMemInitDone().
  *
- * The MCAN module is NOT configured in example.syscfg, so Drivers_open()
- * doesn't initialize the MCAN peripherals. This causes MCAN_isMemInitDone()
- * to return FALSE forever, hanging Core1.
- *
- * TODO: Configure MCAN via SysConfig
- * 1. Open example.syscfg in SysConfig GUI
- * 2. Add MCAN module instances (MCAN0-7)
- * 3. Configure pins, clocks, and message RAM
- * 4. Uncomment the initialization code below
+ * FIX: Removed MCAN_isMemInitDone() check - SDK examples don't use it.
+ * The MCAN peripheral is ready after Drivers_open() for direct configuration.
  */
 static int32_t init_single_mcan(uint8_t bus_id)
 {
@@ -212,9 +220,19 @@ static int32_t init_single_mcan(uint8_t bus_id)
 
     DebugP_log("[CAN] Initializing CAN%d (base: 0x%08X)...\r\n", bus_id, baseAddr);
 
-    // Wait for Message RAM initialization
-    while (FALSE == MCAN_isMemInitDone(baseAddr)) {
-        // Wait
+    // Enable MCAN peripheral clock
+    // MCAN4-7 are in different clock domains and need explicit enable
+    uint32_t rcmId = g_mcan_rcm_id[bus_id];
+    ret = SOC_moduleClockEnable(rcmId, 1);
+    if (ret != SystemP_SUCCESS) {
+        DebugP_log("[CAN] ERROR: Failed to enable clock for CAN%d (rcmId=%d)\r\n", bus_id, rcmId);
+        return ret;
+    }
+
+    // Small delay after clock enable to ensure peripheral is ready
+    volatile uint32_t delay = 1000;
+    while (delay--) {
+        __asm__("nop");
     }
 
     // Set to Software Initialization mode

@@ -50,6 +50,11 @@ extern "C" {
 void Drivers_open(void);
 void Drivers_close(void);
 
+/* MCAN Driver open/close - can be used by application when Driver_open() and
+ * Driver_close() is not used directly and app wants to control the various driver
+ * open/close sequences */
+void Drivers_mcanOpen(void);
+void Drivers_mcanClose(void);
 /*
  * UART
  */
@@ -70,11 +75,6 @@ extern UART_Params gUartParams[CONFIG_UART_NUM_INSTANCES];
 void Drivers_uartOpen(void);
 void Drivers_uartClose(void);
 
-/* MCAN Driver open/close - can be used by application when Driver_open() and
- * Driver_close() is not used directly and app wants to control the various driver
- * open/close sequences */
-void Drivers_mcanOpen(void);
-void Drivers_mcanClose(void);
 
 #ifdef __cplusplus
 }
