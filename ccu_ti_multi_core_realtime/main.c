@@ -213,7 +213,9 @@ void timerISR(void *args)
     (void)args;
 
     /* [QA TRACE T016] GPIO PA1 toggle on ISR entry */
+    /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
     debug_gpio_toggle(DEBUG_GPIO_TIMER_ISR_BASE_ADDR, DEBUG_GPIO_TIMER_ISR_PIN);
+    */
 
     /* Set flag for main loop processing */
     g_timer_expired = true;
@@ -234,7 +236,9 @@ void timerISR(void *args)
     __asm volatile("dmb" ::: "memory");
 
     /* [QA TRACE T016] GPIO PA1 toggle on ISR exit */
+    /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
     debug_gpio_toggle(DEBUG_GPIO_TIMER_ISR_BASE_ADDR, DEBUG_GPIO_TIMER_ISR_PIN);
+    */
 }
 
 /*==============================================================================
@@ -445,8 +449,10 @@ static int32_t init_1000hz_timer(void)
     TimerP_init();
 
     /* [QA TRACE T010] 1000Hz timer initialization done - GPIO PA0 toggle */
+    /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
     uint32_t debug_gpio_base = (uint32_t)AddrTranslateP_getLocalAddr(DEBUG_GPIO_CORE1_HEARTBEAT_BASE_ADDR);
     debug_gpio_toggle(debug_gpio_base, DEBUG_GPIO_CORE1_HEARTBEAT_PIN);
+    */
 
     /* Start the timer - this enables the interrupt */
     TimerP_start(gTimerBaseAddr[CONFIG_TIMER0]);
@@ -472,8 +478,10 @@ static int32_t core1_init(void)
     Drivers_open();
 
     /* [QA TRACE T009] Drivers_open() call done - GPIO PA0 toggle */
+    /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
     uint32_t debug_gpio_base = (uint32_t)AddrTranslateP_getLocalAddr(DEBUG_GPIO_CORE1_HEARTBEAT_BASE_ADDR);
     debug_gpio_toggle(debug_gpio_base, DEBUG_GPIO_CORE1_HEARTBEAT_PIN);
+    */
 
     status = Board_driversOpen();
     DebugP_assert(status == SystemP_SUCCESS);
@@ -696,22 +704,30 @@ static void main_loop(void)
 int main(void)
 {
     /* [QA TRACE T006] Initialize debug GPIO first */
+    /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
     debug_gpio_init_core1();
     uint32_t debug_gpio_base = (uint32_t)AddrTranslateP_getLocalAddr(DEBUG_GPIO_CORE1_HEARTBEAT_BASE_ADDR);
+    */
 
     /* [QA TRACE T006] main() entry - GPIO PA0 toggle */
+    /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
     debug_gpio_toggle(debug_gpio_base, DEBUG_GPIO_CORE1_HEARTBEAT_PIN);
+    */
 
     /* Initialize SOC and Board */
     System_init();
 
     /* [QA TRACE T007] System_init() call done - GPIO PA0 toggle */
+    /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
     debug_gpio_toggle(debug_gpio_base, DEBUG_GPIO_CORE1_HEARTBEAT_PIN);
+    */
 
     Board_init();
 
     /* [QA TRACE T008] Board_init() call done - GPIO PA0 toggle */
+    /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
     debug_gpio_toggle(debug_gpio_base, DEBUG_GPIO_CORE1_HEARTBEAT_PIN);
+    */
 
     /* Initialize Core 1 */
     int32_t status = core1_init();
