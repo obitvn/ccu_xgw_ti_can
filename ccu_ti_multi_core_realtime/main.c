@@ -112,6 +112,9 @@ static volatile uint32_t g_heartbeat_count = 0;
 /* IPC event counter - tracks messages from Core 0 */
 static volatile uint32_t g_ipc_event_count = 0;
 
+/* Debug: Timer ISR call counter - tracks if timer is running */
+static volatile uint32_t g_timer_isr_count = 0;
+
 /* Ring buffer initialization status flag
  * [BUG B013 FIX] Tracks whether ring buffer has been successfully initialized
  * Prevents calling gateway_ringbuf_core1_receive() before initialization completes
@@ -224,6 +227,7 @@ void timerISR(void *args)
      * DMB (Data Memory Barrier) ensures all previous writes complete before proceeding. */
     __asm volatile("dmb" ::: "memory");
     g_cycle_count++;
+    g_timer_isr_count++;  /* Debug: track timer ISR calls */
 
     /* Update heartbeat every cycle */
     gateway_update_heartbeat(1);
@@ -259,6 +263,10 @@ static void ipc_notify_callback_fxn(uint32_t remoteCoreId, uint16_t localClientI
     (void)crcStatus;
     (void)args;
 
+    /* Debug: Log IPC callback entry */
+    DebugP_log("[Core1] IPC CALLBACK: remoteCore=%u, clientId=%u, msgValue=0x%X\r\n",
+               remoteCoreId, localClientId, msgValue);
+
     /* [QA TRACE T018] Increment shared counter (atomic for single-core variable) */
     g_ipc_event_count++;
 
@@ -271,6 +279,7 @@ static void ipc_notify_callback_fxn(uint32_t remoteCoreId, uint16_t localClientI
     /* Check for motor commands ready */
     if (remoteCoreId == CSL_CORE_ID_R5FSS0_0 && msgValue == MSG_ETH_DATA_READY) {
         /* Core 0 has written new motor commands */
+        DebugP_log("[Core1] IPC: MSG_ETH_DATA_READY received, setting g_commands_ready\r\n");
         /* BUG B002 FIX: Memory barrier after setting flag to ensure visibility to main loop
          * DMB ensures all previous writes complete before flag write becomes visible
          */
@@ -347,21 +356,30 @@ static void process_motor_commands(void)
     if (!g_ringbuf_initialized) {
         /* Ring buffer not ready - skip receive operation
          * This is safe during initialization; Core 0 will retry sending data */
+        DebugP_log("[Core1] ERROR: process_motor_commands called but ringbuf NOT initialized!\r\n");
         return;
     }
 
     /* Read motor commands from ring buffer (populated by Core 0) */
     uint32_t bytes_read = 0;
+    DebugP_log("[Core1] Calling gateway_ringbuf_core1_receive...\r\n");
     int32_t ret = gateway_ringbuf_core1_receive(g_motor_commands_buffer,
                                                  sizeof(g_motor_commands_buffer),
                                                  &bytes_read);
 
+    DebugP_log("[Core1] gateway_ringbuf_core1_receive returned: ret=%d, bytes_read=%u\r\n", ret, bytes_read);
+
     if (ret == GATEWAY_RINGBUF_OK && bytes_read > 0) {
         uint8_t count = bytes_read / sizeof(motor_cmd_ipc_t);
-        /* Debug logging removed for 1kHz performance - use stats instead */
-        (void)count;  /* Suppress unused warning */
+        DebugP_log("[Core1] Received %u motor commands, setting g_buffer_ready\r\n", count);
         /* BUG B005 FIX: Set flag to indicate new data in buffer */
         g_buffer_ready = true;
+    } else if (ret == GATEWAY_RINGBUF_EMPTY) {
+        DebugP_log("[Core1] Ring buffer EMPTY\r\n");
+    } else if (ret == GATEWAY_RINGBUF_FULL) {
+        DebugP_log("[Core1] Ring buffer FULL (unexpected!)\r\n");
+    } else {
+        DebugP_log("[Core1] Ring buffer error: ret=%d\r\n", ret);
     }
 }
 
@@ -655,14 +673,16 @@ static void main_loop(void)
 
         /* 1. Process motor commands from shared memory */
         if (g_commands_ready) {
+            DebugP_log("[Core1] g_commands_ready=true, calling process_motor_commands\r\n");
             process_motor_commands();
             g_commands_ready = false;
         }
-        
+
         /* BUG B005 FIX: Atomic buffer swap - copy buffer to working if ready */
         /* This ensures working buffer contains consistent command data */
         /* Copy is done before clearing flag to prevent race conditions */
         if (g_buffer_ready) {
+            DebugP_log("[Core1] g_buffer_ready=true, copying %d commands\r\n", GATEWAY_NUM_MOTORS);
             /* Copy entire buffer atomically (single array assignment on ARM) */
             for (uint8_t i = 0; i < GATEWAY_NUM_MOTORS; i++) {
                 g_motor_commands_working[i] = g_motor_commands_buffer[i];
@@ -676,8 +696,8 @@ static void main_loop(void)
 
         /* 3. Periodic heartbeat log every 1000 cycles (1 second) */
         if ((g_cycle_count - last_heartbeat_log) >= 1000) {
-            DebugP_log("[Core1] Heartbeat: cycle=%u, ipc_events=%u\r\n",  /* BUG B006 FIX: Changed format %llu to %u */
-                       g_cycle_count, g_ipc_event_count);
+            DebugP_log("[Core1] Heartbeat: cycle=%u, timer_isr=%u, ipc_events=%u, ringbuf_init=%d\r\n",
+                       g_cycle_count, g_timer_isr_count, g_ipc_event_count, g_ringbuf_initialized);
             last_heartbeat_log = g_cycle_count;
         }
 

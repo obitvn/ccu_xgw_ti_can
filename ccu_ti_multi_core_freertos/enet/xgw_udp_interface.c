@@ -477,15 +477,20 @@ int xgw_udp_process_motor_cmd(const uint8_t* data, uint16_t length)
 
     /* Write to shared memory via ring buffer */
     uint32_t bytes_written = 0;
-    int ret = gateway_ringbuf_core0_send(ipc_cmds, count * sizeof(motor_cmd_ipc_t), &bytes_written);
+    uint32_t bytes_to_write = count * sizeof(motor_cmd_ipc_t);
+
+    DebugP_log("[xGW UDP] Sending %d cmds, %u bytes to IPC...\r\n", count, bytes_to_write);
+    int ret = gateway_ringbuf_core0_send(ipc_cmds, bytes_to_write, &bytes_written);
 
     if (ret == 0) {
         /* Notify Core 1 */
+        DebugP_log("[xGW UDP] IPC send OK: %u bytes written\r\n", bytes_written);
         gateway_notify_commands_ready();
         g_udp_state.rx_count++;
         return 0;
     } else {
-        DebugP_log("[xGW UDP] ERROR: Failed to write motor commands!\r\n");
+        DebugP_log("[xGW UDP] ERROR: Failed to write motor commands! ret=%d, written=%u/%u\r\n",
+                   ret, bytes_written, bytes_to_write);
         g_udp_state.rx_errors++;
         return -1;
     }

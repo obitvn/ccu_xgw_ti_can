@@ -436,30 +436,41 @@ void gateway_update_stat(uint8_t core_id, uint8_t stat_id)
 
 #include <drivers/ipc_notify.h>
 
-/* Core ID definitions */
+/* Core ID definitions - AM263P4
+ * CSL_CORE_ID_R5FSS0_0 = 0 (Core0 FreeRTOS)
+ * CSL_CORE_ID_R5FSS0_1 = 1 (unused)
+ * CSL_CORE_ID_R5FSS1_0 = 2 (unused)
+ * CSL_CORE_ID_R5FSS1_1 = 3 (Core1 NoRTOS - THIS IS OUR TARGET!)
+ */
 #ifndef CSL_CORE_ID_R5FSS0_0
 #define CSL_CORE_ID_R5FSS0_0  (0U)
 #endif
-#ifndef CSL_CORE_ID_R5FSS0_1
-#define CSL_CORE_ID_R5FSS0_1  (1U)
+#ifndef CSL_CORE_ID_R5FSS1_1
+#define CSL_CORE_ID_R5FSS1_1  (3U)  /* Fixed: was 1U, should be 3U for r5fss1_1 */
 #endif
 
 int gateway_notify_commands_ready(void)
 {
-#if GATEWAY_USE_PINGPONG_BUFFER
-    return IpcNotify_sendMsg(CSL_CORE_ID_R5FSS0_1, GATEWAY_IPC_CLIENT_ID, MSG_ETH_DATA_READY, 1);
-#else
-    return IpcNotify_sendMsg(CSL_CORE_ID_R5FSS0_1, CLIENT_ID_ETH_TX, MSG_ETH_DATA_READY, 1);
-#endif
+    /* FIX: Always use GATEWAY_IPC_CLIENT_ID for both cores to match
+     * Core1 registration. Previous code used CLIENT_ID_ETH_TX when
+     * GATEWAY_USE_PINGPONG_BUFFER=0, but Core1 registers with
+     * GATEWAY_IPC_CLIENT_ID, causing IPC notification mismatch. */
+    DebugP_log("[Core0] Sending IPC notify to Core1: clientId=%u, msg=0x%X\r\n",
+               GATEWAY_IPC_CLIENT_ID, MSG_ETH_DATA_READY);
+    int ret = IpcNotify_sendMsg(CSL_CORE_ID_R5FSS1_1, GATEWAY_IPC_CLIENT_ID, MSG_ETH_DATA_READY, 1);
+    if (ret != SystemP_SUCCESS) {
+        DebugP_log("[Core0] ERROR: IpcNotify_sendMsg failed! ret=%d\r\n", ret);
+    }
+    return ret;
 }
 
 int gateway_notify_states_ready(void)
 {
-#if GATEWAY_USE_PINGPONG_BUFFER
+    /* FIX: Always use GATEWAY_IPC_CLIENT_ID for both cores to match
+     * Core0 registration. Previous code used CLIENT_ID_CAN_RX when
+     * GATEWAY_USE_PINGPONG_BUFFER=0, but Core0 registers with
+     * GATEWAY_IPC_CLIENT_ID. */
     return IpcNotify_sendMsg(CSL_CORE_ID_R5FSS0_0, GATEWAY_IPC_CLIENT_ID, MSG_CAN_DATA_READY, 1);
-#else
-    return IpcNotify_sendMsg(CSL_CORE_ID_R5FSS0_0, CLIENT_ID_CAN_RX, MSG_CAN_DATA_READY, 1);
-#endif
 }
 
 /*==============================================================================
@@ -599,7 +610,7 @@ int gateway_read_motor_states_pp(motor_state_ipc_t* states)
     pp->write_done[read_idx] = 0;
     pp->stats.read_count++;
 
-    IpcNotify_sendMsg(CSL_CORE_ID_R5FSS0_1, GATEWAY_IPC_CLIENT_ID, MSG_CAN_DATA_ACK, 1);
+    IpcNotify_sendMsg(CSL_CORE_ID_R5FSS1_1, GATEWAY_IPC_CLIENT_ID, MSG_CAN_DATA_ACK, 1);
 
     /* Switch to next buffer */
     pp->read_idx = pp_next_idx(read_idx);
@@ -1012,10 +1023,28 @@ int gateway_ringbuf_core0_init(void)
     DebugP_log("[Core0] Initializing lock-free ring buffers...\r\n");
 
     /* Initialize buffer 0_to_1 (TX for Core0) */
-    gateway_ringbuf_init(gGatewaySharedMem.ringbuf_0_to_1, GATEWAY_RINGBUF_0_TO_1_SIZE);
+    int ret = gateway_ringbuf_init(gGatewaySharedMem.ringbuf_0_to_1, GATEWAY_RINGBUF_0_TO_1_SIZE);
+    if (ret != 0) {
+        DebugP_log("[Core0] ERROR: RingBuf 0->1 init failed!\r\n");
+        return -1;
+    }
 
     /* Initialize buffer 1_to_0 (RX for Core0) */
-    gateway_ringbuf_init(gGatewaySharedMem.ringbuf_1_to_0, GATEWAY_RINGBUF_1_TO_0_SIZE);
+    ret = gateway_ringbuf_init(gGatewaySharedMem.ringbuf_1_to_0, GATEWAY_RINGBUF_1_TO_0_SIZE);
+    if (ret != 0) {
+        DebugP_log("[Core0] ERROR: RingBuf 1->0 init failed!\r\n");
+        return -1;
+    }
+
+    /* Debug: Print ring buffer state after init */
+    Gateway_RingBuf_t* rb_0_to_1 = ringbuf_get_ptr(gGatewaySharedMem.ringbuf_0_to_1);
+    Gateway_RingBuf_t* rb_1_to_0 = ringbuf_get_ptr(gGatewaySharedMem.ringbuf_1_to_0);
+
+    DebugP_log("[Core0] RingBuf 0->1: size=%u, wr=%u, rd=%u, free=%u\r\n",
+               rb_0_to_1->size, rb_0_to_1->ctrl.write_index, rb_0_to_1->ctrl.read_index,
+               gateway_ringbuf_get_free(gGatewaySharedMem.ringbuf_0_to_1));
+    DebugP_log("[Core0] RingBuf 1->0: size=%u, wr=%u, rd=%u\r\n",
+               rb_1_to_0->size, rb_1_to_0->ctrl.write_index, rb_1_to_0->ctrl.read_index);
 
     return 0;
 }
@@ -1025,6 +1054,16 @@ int gateway_ringbuf_core0_init(void)
  */
 int gateway_ringbuf_core0_send(const void* data, uint32_t size, uint32_t* bytes_written)
 {
+    /* Debug: Check ring buffer state before write */
+    Gateway_RingBuf_t* rb = ringbuf_get_ptr(gGatewaySharedMem.ringbuf_0_to_1);
+    uint32_t free_space = gateway_ringbuf_get_free(gGatewaySharedMem.ringbuf_0_to_1);
+
+    if (free_space < size) {
+        /* Debug: Ring buffer full - log state */
+        DebugP_log("[Core0] RingBuf FULL! size=%u, wr=%u, rd=%u, free=%u, required=%u\r\n",
+                   rb->size, rb->ctrl.write_index, rb->ctrl.read_index, free_space, size);
+    }
+
     return gateway_ringbuf_write(gGatewaySharedMem.ringbuf_0_to_1, data, size, bytes_written);
 }
 
@@ -1057,7 +1096,7 @@ uint32_t gateway_ringbuf_core0_get_available(void)
  */
 int gateway_ringbuf_core0_notify(void)
 {
-    return IpcNotify_sendMsg(CSL_CORE_ID_R5FSS0_1, GATEWAY_IPC_CLIENT_ID, MSG_ETH_DATA_READY, 1);
+    return IpcNotify_sendMsg(CSL_CORE_ID_R5FSS1_1, GATEWAY_IPC_CLIENT_ID, MSG_ETH_DATA_READY, 1);
 }
 
 /*==============================================================================

@@ -62,7 +62,17 @@
       "Bash(find D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/draft -name *.launch)",
       "Bash(find D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/draft/mcu_plus_sdk_am263px_11_01_00_19/examples/empty/am263px-lp/system_freertos -type f -name *.xml)",
       "Bash(find D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/ccu_ti_mutilcore/ccu_ti_multi_core_system -name .* -type f)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(find D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/draft/mcu_plus_sdk_am263px_11_01_00_19 -name *.c -type f)",
+      "Bash(find D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/ccu_ti_mutilcore/ccu_ti_multi_core_realtime -name *ipc* -type f)",
+      "Bash(grep -i ti_.*ipc)",
+      "Bash(grep -A 20 gIpcNotifyInterruptConfig_r5fss1_1[ D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/ccu_ti_mutilcore/ccu_ti_multi_core_realtime/Debug/syscfg/ti_drivers_config.c)",
+      "Bash(grep -r gIpcNotifyInterruptConfig_r5fss0_0[ D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/ccu_ti_mutilcore/ccu_ti_multi_core_freertos/Debug/)",
+      "Bash(grep -r CSL_CORE_ID.*R5FSS1 D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/draft/mcu_plus_sdk_am263px_11_01_00_19/source)",
+      "Bash(grep -r define.*CSL_CORE_ID D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/draft/mcu_plus_sdk_am263px_11_01_00_19/source/ti/csl)",
+      "Bash(find D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/draft/mcu_plus_sdk_am263px_11_01_00_19 -name *.h -type f -exec grep -l CSL_CORE_ID.*R5FSS1 {})",
+      "Bash(grep -r define.*CSL_CORE_ID D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/ccu_ti_mutilcore/ccu_ti_multi_core_freertos)",
+      "Bash(find D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/draft/mcu_plus_sdk_am263px_11_01_00_19 -name *.h -type f)"
     ]
   }
 }
