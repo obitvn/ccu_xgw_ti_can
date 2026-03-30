@@ -160,6 +160,11 @@ static void test_init(void *arg)
 
     /* Start xGW UDP interface */
     DebugP_log("[Core0] Starting xGW UDP interface...\r\n");
+
+    /* Set PC IP address for UDP TX */
+    uint8_t pc_ip[4] = {192, 168, 1, 3};  /* 192.168.1.3 */
+    xgw_udp_set_pc_ip(pc_ip);
+
     int32_t status = xgw_udp_start();
     if (status != 0) {
         DebugP_log("[Core0] ERROR: xGW UDP interface start failed!\r\n");

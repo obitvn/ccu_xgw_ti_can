@@ -137,6 +137,12 @@ int xgw_udp_start(void)
         return -1;
     }
 
+    /* Prevent multiple calls - already started */
+    if (g_udp_state.started) {
+        DebugP_log("[xGW UDP] Already started, skipping...\r\n");
+        return 0;
+    }
+
     DebugP_log("[xGW UDP] Starting UDP interface...\r\n");
 
     /* Create UDP RX PCB (called from tcpip thread context via lwip_init_callback) */
@@ -146,8 +152,12 @@ int xgw_udp_start(void)
         return -1;
     }
 
-    /* Bind to RX port */
-    err_t err = udp_bind(g_udp_rx_pcb, IP_ADDR_ANY, XGW_UDP_RX_PORT);
+    /* Bind to RX port
+     * lwIP udp_bind() expects port in HOST byte order and will call htons() internally
+     * Reference: ccu_ti source code uses direct port value without conversion */
+    DebugP_log("[xGW UDP] Attempting to bind RX PCB to port %d (0x%X)...\r\n",
+               XGW_UDP_RX_PORT, XGW_UDP_RX_PORT);
+    err_t err = udp_bind(g_udp_rx_pcb, IP_ADDR_ANY, (u16_t)XGW_UDP_RX_PORT);
     if (err != ERR_OK) {
         DebugP_log("[xGW UDP] ERROR: Failed to bind to port %d: %d\r\n", XGW_UDP_RX_PORT, err);
         udp_remove(g_udp_rx_pcb);
@@ -155,10 +165,17 @@ int xgw_udp_start(void)
         return -1;
     }
 
+    /* Verify bind succeeded by checking actual port */
+    uint16_t actual_port = lwip_ntohs(g_udp_rx_pcb->local_port);
+    DebugP_log("[xGW UDP] RX PCB bound: requested=%d (0x%X), actual=%d (0x%X), local_port_raw=0x%X\r\n",
+               XGW_UDP_RX_PORT, XGW_UDP_RX_PORT,
+               actual_port, actual_port,
+               g_udp_rx_pcb->local_port);
+
     /* Set receive callback */
     udp_recv(g_udp_rx_pcb, xgw_udp_recv_callback, NULL);
 
-    DebugP_log("[xGW UDP] RX PCB bound to port %d\r\n", XGW_UDP_RX_PORT);
+    DebugP_log("[xGW UDP] RX PCB setup complete, pcb=%p\r\n", g_udp_rx_pcb);
 
     /* Create UDP TX PCB */
     g_udp_tx_pcb = udp_new();
@@ -554,10 +571,18 @@ static void xgw_udp_recv_callback(void* arg, struct udp_pcb* pcb, struct pbuf* p
                                    const ip_addr_t* addr, u16_t port)
 {
     (void)arg;
-    (void)pcb;
 
-    /* [DEBUG-UDP-RX] Packet received */
-    DebugP_log("[xGW UDP] RX callback: p=%p, len=%d, port=%d\r\n", p, p ? p->len : 0, port);
+    /* Convert ports from network byte order to host byte order */
+    uint16_t src_port = lwip_ntohs(port);  /* Source port (PC) */
+    uint16_t dst_port = lwip_ntohs(pcb->local_port);  /* Destination port (MCU) */
+
+    /* [DEBUG-UDP-RX] Check if this is RX or TX PCB */
+    int is_rx_pcb = (pcb == g_udp_rx_pcb);
+    int is_tx_pcb = (pcb == g_udp_tx_pcb);
+
+    /* [DEBUG-UDP-RX] Entry point - always log this FIRST */
+    DebugP_log("[xGW UDP] === RX ENTRY === pcb=%p (rx=%d,tx=%d), src_port=%d, dst_port=%d\r\n",
+               pcb, is_rx_pcb, is_tx_pcb, src_port, dst_port);
 
     /* [QA TRACE T019] GPIO PA5 pulse on UDP RX entry */
     /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
@@ -578,40 +603,36 @@ static void xgw_udp_recv_callback(void* arg, struct udp_pcb* pcb, struct pbuf* p
         uint8_t data[XGW_UDP_MAX_PACKET_SIZE];
         uint16_t length = pbuf_copy_partial(p, data, p->len, 0);
 
-        /* Process packet based on source port */
-        if (port == XGW_UDP_RX_PORT) {
-            /* Check message type */
-            if (length >= sizeof(xgw_header_t)) {
-                const xgw_header_t* header = (const xgw_header_t*)data;
+        /* lwIP already filtered by port via udp_bind(), no need to check port here */
+        /* Check message type */
+        if (length >= sizeof(xgw_header_t)) {
+            const xgw_header_t* header = (const xgw_header_t*)data;
 
-                switch (header->msg_type) {
-                    case XGW_MSG_TYPE_MOTOR_CMD:
-                        xgw_udp_process_motor_cmd(data, length);
-                        g_udp_state.rx_count++;
-                        /* [QA TRACE T027] Increment UDP RX counter */
-                        DEBUG_COUNTER_INC(dbg_udp_rx_count);
-                        break;
+            switch (header->msg_type) {
+                case XGW_MSG_TYPE_MOTOR_CMD:
+                    xgw_udp_process_motor_cmd(data, length);
+                    g_udp_state.rx_count++;
+                    /* [QA TRACE T027] Increment UDP RX counter */
+                    DEBUG_COUNTER_INC(dbg_udp_rx_count);
+                    break;
 
-                    case XGW_MSG_TYPE_MOTOR_SET:
-                        xgw_udp_process_motor_set(data, length);
-                        g_udp_state.rx_count++;
-                        /* [QA TRACE T027] Increment UDP RX counter */
-                        DEBUG_COUNTER_INC(dbg_udp_rx_count);
-                        break;
+                case XGW_MSG_TYPE_MOTOR_SET:
+                    xgw_udp_process_motor_set(data, length);
+                    g_udp_state.rx_count++;
+                    /* [QA TRACE T027] Increment UDP RX counter */
+                    DEBUG_COUNTER_INC(dbg_udp_rx_count);
+                    break;
 
-                    default:
-                        DebugP_log("[xGW UDP] Unknown message type: 0x%02X\r\n", header->msg_type);
-                        g_udp_state.parse_errors++;
-                        break;
-                }
-            } else {
-                DebugP_log("[xGW UDP] RX: Packet too short: %d < %d\r\n", length, sizeof(xgw_header_t));
+                default:
+                    DebugP_log("[xGW UDP] Unknown message type: 0x%02X\r\n", header->msg_type);
+                    g_udp_state.parse_errors++;
+                    break;
             }
-            /* NOTE: User callback (g_rx_callback) removed to prevent duplicate processing.
-             * All UDP packet processing is now handled directly in this callback. */
         } else {
-            DebugP_log("[xGW UDP] RX: Wrong port: %d (expected %d)\r\n", port, XGW_UDP_RX_PORT);
+            DebugP_log("[xGW UDP] RX: Packet too short: %d < %d\r\n", length, sizeof(xgw_header_t));
         }
+        /* NOTE: User callback (g_rx_callback) removed to prevent duplicate processing.
+         * All UDP packet processing is now handled directly in this callback. */
     } else {
         DebugP_log("[xGW UDP] RX: Invalid length: %d\r\n", p ? p->len : 0);
     }
