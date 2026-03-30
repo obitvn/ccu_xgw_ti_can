@@ -1,7 +1,7 @@
 ******************************************************************************
             TI ARM Clang Linker PC v4.0.4                      
 ******************************************************************************
->> Linked Mon Mar 30 11:47:16 2026
+>> Linked Mon Mar 30 16:06:46 2026
 
 OUTPUT FILE NAME:   <ccu_ti_multi_core_freertos.out>
 ENTRY POINT SYMBOL: "_vectors"  address: 00000000
@@ -18,10 +18,10 @@ MEMORY CONFIGURATION
   MAILBOX_R5F           44000400   000003ce  00000000  000003ce  RWIX
   FLASH                 60100000   00080000  00000000  00080000  RWIX
   SBL                   70000000   00040000  00000000  00040000  RWIX
-  OCRAM                 70040000   000c0000  000b1d58  0000e2a8  RWIX
+  OCRAM                 70040000   00140000  000c19d8  0007e628  RWIX
   USER_SHM_MEM          70200000   00008000  00004d48  000032b8  RWIX
   LOG_SHM_MEM           70208000   00004000  00002000  00002000  RWIX
-  ENET_CPPI_DESC        70240000   00040000  00000a00  0003f600  RWIX
+  ENET_CPPI_DESC        70280000   00040000  00000a00  0003f600  RWIX
   RTOS_NORTOS_IPC_SHM_M 72000000   00003e80  00000000  00003e80  RWIX
 
 
@@ -31,27 +31,27 @@ run origin  load origin   length   init length attrs members
 ----------  ----------- ---------- ----------- ----- -------
 00000000    00000000    00000040   00000040    r-x
   00000000    00000000    00000040   00000040    r-x .vectors
-00000000    00000000    00044880   00000000    rw-
-  00000000    00000000    00038880   00000000    rw- .bss
-  00038880    00038880    00008000   00000000    rw- .sysmem
-  00040880    00040880    00004000   00000000    rw- .stack
 70040000    70040000    000602e8   000602e8    r-x
   70040000    70040000    0004ff40   0004ff40    r-x .text
   7008ff40    7008ff40    000103a8   000103a8    r-- .rodata
-700e8300    700e8300    00006cb8   00006cb8    rw-
-  700e8300    700e8300    00006cb8   00006cb8    rw- .data
-700eefc0    700eefc0    000019b8   000019b8    r-x
-  700eefc0    700eefc0    00000f90   00000f90    r-x .text.hwi
-  700eff50    700eff50    000004a0   000004a0    r-x .text.cache
-  700f03f0    700f03f0    000003c0   000003c0    r-x .text.mpu
-  700f07b0    700f07b0    000001c0   000001c0    r-x .text.boot
-  700f0970    700f0970    00000008   00000008    r-x .text:abort
-700f0978    700f0978    00001400   00000000    rw-
-  700f0978    700f0978    00000100   00000000    rw- .irqstack
-  700f0a78    700f0a78    00000100   00000000    rw- .fiqstack
-  700f0b78    700f0b78    00001000   00000000    rw- .svcstack
-  700f1b78    700f1b78    00000100   00000000    rw- .abortstack
-  700f1c78    700f1c78    00000100   00000000    rw- .undefinedstack
+700a0300    700a0300    0003fc80   00000000    rw-
+  700a0300    700a0300    00033c80   00000000    rw- .bss
+  700d3f80    700d3f80    00008000   00000000    rw- .sysmem
+  700dbf80    700dbf80    00004000   00000000    rw- .stack
+700f7f80    700f7f80    00006cb8   00006cb8    rw-
+  700f7f80    700f7f80    00006cb8   00006cb8    rw- .data
+700fec40    700fec40    000019b8   000019b8    r-x
+  700fec40    700fec40    00000f90   00000f90    r-x .text.hwi
+  700ffbd0    700ffbd0    000004a0   000004a0    r-x .text.cache
+  70100070    70100070    000003c0   000003c0    r-x .text.mpu
+  70100430    70100430    000001c0   000001c0    r-x .text.boot
+  701005f0    701005f0    00000008   00000008    r-x .text:abort
+701005f8    701005f8    00001400   00000000    rw-
+  701005f8    701005f8    00000100   00000000    rw- .irqstack
+  701006f8    701006f8    00000100   00000000    rw- .fiqstack
+  701007f8    701007f8    00001000   00000000    rw- .svcstack
+  701017f8    701017f8    00000100   00000000    rw- .abortstack
+  701018f8    701018f8    00000100   00000000    rw- .undefinedstack
 
 
 SECTION ALLOCATION MAP
@@ -62,9 +62,6 @@ section   page    origin      length       input sections
 .vectors   0    00000000    00000040     
                   00000000    00000040     freertos.am263px.r5f.ti-arm-clang.debug.lib : HwiP_armv7r_vectors_freertos_asm.obj (.vectors)
 
-.bss       0    00000000    00038880     FAILED TO ALLOCATE
-.sysmem    0    00038880    00008000     FAILED TO ALLOCATE
-.stack     0    00040880    00004000     FAILED TO ALLOCATE
 .text      0    70040000    0004ff40     
                   70040000    000011da     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : tcp_in.obj (.text.tcp_receive)
                   700411da    00000002     --HOLE-- [fill = 0]
@@ -5303,244 +5300,456 @@ section   page    origin      length       input sections
                   700a02e5    00000002                                                      : igmp.obj (.rodata.str1.9491078539120751251.1)
                   700a02e7    00000001     --HOLE-- [fill = 0]
 
-.bss:ENET_DMA_PKT_MEMPOOL 
-*          0    700a0300    00048000     NOLOAD SECTION
-                  700a0300    00048000     ti_enet_config.o (.bss:ENET_DMA_PKT_MEMPOOL)
+.bss       0    700a0300    00033c80     UNINITIALIZED
+                  700a0300    00012c1f     (.common:memp_memory_POOL_1568_base)
+                  700b2f1f    0000409f     (.common:memp_memory_POOL_4096_base)
+                  700b6fbe    00000002     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : ip4.obj (.bss.ip_id)
+                  700b6fc0    00004000     main.o (.bss.gEnetLwipTaskStack)
+                  700bafc0    00003e9f     (.common:memp_memory_POOL_128_base)
+                  700bee5f    00000001     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : dhcp.obj (.bss.dhcp_pcb_refcount)
+                  700bee60    00002200     ti_enet_config.o (.bss.gAppPktInfoMem_LargePool)
+                  700c1060    00001918     ti_enet_lwipif.o (.bss.gLwipifEnetAppObj)
+                  700c2978    0000101f     (.common:memp_memory_NETBUF_base)
+                  700c3997    0000101f     (.common:memp_memory_PBUF_base)
+                  700c49b6    0000101f     (.common:memp_memory_TCPIP_MSG_API_base)
+                  700c59d5    0000101f     (.common:memp_memory_TCPIP_MSG_INPKT_base)
+                  700c69f4    0000101f     (.common:memp_memory_TCP_SEG_base)
+                  700c7a13    00000001     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : etharp.obj (.bss.etharp_cached_entry)
+                  700c7a14    0000000c     (.common:pfreeQ)
+                  700c7a20    00001000     freertos.am263px.r5f.ti-arm-clang.debug.lib : DebugP_shmLogReader_freertos.obj (.bss.gDebugShmLogReaderTaskStack)
+                  700c8a20    00001000     main.o (.bss.gMainTaskStack)
+                  700c9a20    00001000     freertos.am263px.r5f.ti-arm-clang.debug.lib : port.obj (.bss.uxIdleTaskStack)
+                  700caa20    00000d80     ti_enet_open_close.o (.bss.gEnetAppSysCfgObj)
+                  700cb7a0    00000b1f     (.common:memp_memory_SYS_MBOX_base)
+                  700cc2bf    00000001     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : tcp_in.obj (.bss.flags)
+                  700cc2c0    00000880     ti_enet_config.o (.bss.gAppPktInfoMemOnly)
+                  700ccb40    0000081f     (.common:memp_memory_RX_POOL_base)
+                  700cd35f    00000001     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : sys_arch.obj (.bss.lwip_core_lock_count)
+                  700cd360    0000080c     (.common:gHwiCtrl)
+                  700cdb6c    00000014                                                      : tcp_in.obj (.bss.inseg)
+                  700cdb80    00000800     log_reader_task.o (.bss.gLogReaderTaskStack)
+                  700ce380    00000800     main.o (.bss.gUdpTxTaskStack)
+                  700ceb80    000005c0     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : enet_osal.obj (.bss.gOsalSemPEnetOsalPool)
+                  700cf140    00000440     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : dns.obj (.bss.dns_table)
+                  700cf580    00000430     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : enetphy.obj (.bss.gEnetPhy_phyObjs)
+                  700cf9b0    00000400     ti_enet_config.o (.bss.gAppPktInfoContainerMem_LargePool)
+                  700cfdb0    00000010     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : dns.obj (.bss.dns_pcbs)
+                  700cfdc0    00000400     main.o (.bss.gIpcTaskStack)
+                  700d01c0    00000400     freertos.am263px.r5f.ti-arm-clang.debug.lib : port.obj (.bss.uxTimerTaskStack)
+                  700d05c0    00000400     (.common:gFreePbufArr)
+                  700d09c0    000003df     (.common:memp_memory_ARP_QUEUE_base)
+                  700d0d9f    0000033f     (.common:memp_memory_TCP_PCB_base)
+                  700d10de    00000002     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : ip4_frag.obj (.bss.ip_reass_pbufcount)
+                  700d10e0    000002c0     ti_enet_config.o (.bss:ENET_CPDMA_OBJ_MEM)
+                  700d13a0    0000029f     (.common:memp_memory_NETCONN_base)
+                  700d163f    00000001     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : netif.obj (.bss.netif_num)
+                  700d1640    00000288     ti_drivers_config.o (.bss.gUartObjects)
+                  700d18c8    00000280     freertos.am263px.r5f.ti-arm-clang.debug.lib : tasks.obj (.bss.pxReadyTasksLists)
+                  700d1b48    0000023f     (.common:memp_memory_SYS_TIMEOUT_base)
+                  700d1d87    00000001     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : tcp_in.obj (.bss.recv_flags)
+                  700d1d88    00000204     (.common:lwip_stats)
+                  700d1f8c    000001ff     (.common:memp_memory_FRAG_PBUF_base)
+                  700d218b    00000001                                                      : tcp.obj (.bss.tcp_timer)
+                  700d218c    00000178     ti_drivers_config.o (.bss.gI2cObjects)
+                  700d2304    0000016c     (.common:gEepromObject_CAT24M)
+                  700d2470    0000015f     (.common:memp_memory_ALTCP_PCB_base)
+                  700d25cf    0000015f     (.common:memp_memory_NETDB_base)
+                  700d272e    0000015f     (.common:memp_memory_REASSDATA_base)
+                  700d288d    00000001     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : tcp.obj (.bss.tcp_timer_ctr)
+                  700d288e    00000002                                                      : tcp_in.obj (.bss.recv_acked)
+                  700d2890    00000120     libsysbm.a : trgmsg.c.obj (.bss:_CIOBUF_)
+                  700d29b0    0000011f     (.common:memp_memory_IGMP_GROUP_base)
+                  700d2acf    0000011f     (.common:memp_memory_TCP_PCB_LISTEN_base)
+                  700d2bee    0000011f     (.common:memp_memory_UDP_PCB_base)
+                  700d2d0d    00000001     (.common:pbuf_free_ooseq_pending)
+                  700d2d0e    00000114     main.o (.bss.g_motor_states)
+                  700d2e22    00000100     freertos.am263px.r5f.ti-arm-clang.debug.lib : timers.obj (.bss.prvCheckForValidListAndQueue.ucStaticTimerQueueStorage)
+                  700d2f22    00000002     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : tcp_in.obj (.bss.tcp_optidx)
+                  700d2f24    00000100     (.common:xQueueRegistry)
+                  700d3024    000000f0                                                      : etharp.obj (.bss.arp_table)
+                  700d3114    000000d8     (.common:gEnetUtilsObj)
+                  700d31ec    000000b8     (.common:gIpcNotifyCtrl)
+                  700d32a4    000000a0     libc.a : defs.c.obj (.bss.__TI_tmpnams)
+                  700d3344    00000004     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : tcp_in.obj (.bss.ackno)
+                  700d3348    000000a0     (.common:gTaskP_ctrl)
+                  700d33e8    00000098     freertos.am263px.r5f.ti-arm-clang.debug.lib : DebugP_shmLogReader_freertos.obj (.bss.gDebugShmLogReaderTaskObj)
+                  700d3480    00000098     main.o (.bss.gEnetLwipTaskObj)
+                  700d3518    00000098     main.o (.bss.gIpcTaskObj)
+                  700d35b0    00000098     log_reader_task.o (.bss.gLogReaderTaskObj)
+                  700d3648    00000098     main.o (.bss.gMainTaskObj)
+                  700d36e0    00000098     main.o (.bss.gUdpTxTaskObj)
+                  700d3778    00000098     freertos.am263px.r5f.ti-arm-clang.debug.lib : port.obj (.bss.xIdleTaskTCB)
+                  700d3810    00000098                                                 : port.obj (.bss.xTimerTaskTCB)
+                  700d38a8    00000094     (.common:gDebugShmLogReaderCtrl)
+                  700d393c    00000080     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : enet_osal.obj (.bss.gOsalHwiPEnetOsalPool)
+                  700d39bc    0000007f     (.common:memp_memory_RAW_PCB_base)
+                  700d3a3b    00000001     (.common:tcp_active_pcbs_changed)
+                  700d3a3c    00000058     freertos.am263px.r5f.ti-arm-clang.debug.lib : DebugP_freertos.obj (.bss.gDebugLogLockObj)
+                  700d3a94    00000050                                                 : timers.obj (.bss.prvCheckForValidListAndQueue.xStaticTimerQueue)
+                  700d3ae4    00000050     (.common:gRovDummyQueue)
+                  700d3b34    00000030     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : dns.obj (.bss.dns_requests)
+                  700d3b64    00000029     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : enetphy.obj (.bss.gEnetPhyCapsBuf)
+                  700d3b8d    00000001     --HOLE--
+                  700d3b8e    00000002     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : tcp_in.obj (.bss.tcphdr_opt1len)
+                  700d3b90    00000028                                                      : dhcp.obj (.bss.dhcp_rx_options_val)
+                  700d3bb8    00000024     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : enet_cpdma_priv.obj (.bss.gCpswDmaMemMgrObj)
+                  700d3bdc    0000001f     (.common:memp_memory_PBUF_POOL_base)
+                  700d3bfb    00000001     --HOLE--
+                  700d3bfc    00000004     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : igmp.obj (.bss.allrouters)
+                  700d3c00    00000018     (.common:gClockCtrl)
+                  700d3c18    00000018     (.common:ip_data)
+                  700d3c30    00000014     freertos.am263px.r5f.ti-arm-clang.debug.lib : timers.obj (.bss.xActiveTimerList1)
+                  700d3c44    00000014                                                 : timers.obj (.bss.xActiveTimerList2)
+                  700d3c58    00000014                                                 : tasks.obj (.bss.xDelayedTaskList1)
+                  700d3c6c    00000014                                                 : tasks.obj (.bss.xDelayedTaskList2)
+                  700d3c80    00000014                                                 : tasks.obj (.bss.xPendingReadyList)
+                  700d3c94    00000014                                                 : tasks.obj (.bss.xSuspendedTaskList)
+                  700d3ca8    00000014                                                 : tasks.obj (.bss.xTasksWaitingTermination)
+                  700d3cbc    00000010     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : ip4_addr.obj (.bss.ip4addr_ntoa.str)
+                  700d3ccc    00000010                                                      : memp.obj (.bss.memp_stats_ALTCP_PCB)
+                  700d3cdc    00000010                                                      : memp.obj (.bss.memp_stats_ARP_QUEUE)
+                  700d3cec    00000010                                                      : memp.obj (.bss.memp_stats_FRAG_PBUF)
+                  700d3cfc    00000010                                                      : memp.obj (.bss.memp_stats_IGMP_GROUP)
+                  700d3d0c    00000010                                                      : memp.obj (.bss.memp_stats_NETBUF)
+                  700d3d1c    00000010                                                      : memp.obj (.bss.memp_stats_NETCONN)
+                  700d3d2c    00000010                                                      : memp.obj (.bss.memp_stats_NETDB)
+                  700d3d3c    00000010                                                      : memp.obj (.bss.memp_stats_PBUF)
+                  700d3d4c    00000010                                                      : memp.obj (.bss.memp_stats_PBUF_POOL)
+                  700d3d5c    00000010                                                      : memp.obj (.bss.memp_stats_POOL_128)
+                  700d3d6c    00000010                                                      : memp.obj (.bss.memp_stats_POOL_1568)
+                  700d3d7c    00000010                                                      : memp.obj (.bss.memp_stats_POOL_4096)
+                  700d3d8c    00000010                                                      : memp.obj (.bss.memp_stats_RAW_PCB)
+                  700d3d9c    00000010                                                      : memp.obj (.bss.memp_stats_REASSDATA)
+                  700d3dac    00000010     ti_enet_lwipif.o (.bss.memp_stats_RX_POOL)
+                  700d3dbc    00000010     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : memp.obj (.bss.memp_stats_SYS_MBOX)
+                  700d3dcc    00000010                                                      : memp.obj (.bss.memp_stats_SYS_TIMEOUT)
+                  700d3ddc    00000010                                                      : memp.obj (.bss.memp_stats_TCPIP_MSG_API)
+                  700d3dec    00000010                                                      : memp.obj (.bss.memp_stats_TCPIP_MSG_INPKT)
+                  700d3dfc    00000010                                                      : memp.obj (.bss.memp_stats_TCP_PCB)
+                  700d3e0c    00000010                                                      : memp.obj (.bss.memp_stats_TCP_PCB_LISTEN)
+                  700d3e1c    00000010                                                      : memp.obj (.bss.memp_stats_TCP_SEG)
+                  700d3e2c    00000010                                                      : memp.obj (.bss.memp_stats_UDP_PCB)
+                  700d3e3c    00000010     (.common:virtToPhymap)
+                  700d3e4c    0000000a                                                      : dhcp.obj (.bss.dhcp_rx_options_given)
+                  700d3e56    00000002                                                      : tcp_in.obj (.bss.tcphdr_optlen)
+                  700d3e58    00000008                                                      : dns.obj (.bss.dns_servers)
+                  700d3e60    00000008     libsysbm.a : hostopen.c.obj (.bss.parmbuf)
+                  700d3e68    00000004     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : igmp.obj (.bss.allsystems)
+                  700d3e6c    00000004                                                      : timeouts.obj (.bss.current_timeout_due_time)
+                  700d3e70    00000004                                                      : dhcp.obj (.bss.dhcp_create_msg.xid)
+                  700d3e74    00000004                                                      : dhcp.obj (.bss.dhcp_pcb)
+                  700d3e78    00000004                                                      : netif.obj (.bss.ext_callback)
+                  700d3e7c    00000004     freertos.am263px.r5f.ti-arm-clang.debug.lib : DebugP_shmLogReader_freertos.obj (.bss.gDebugShmLogReaderTask)
+                  700d3e80    00000004                                                 : HwiP_armv7r_handlers_freertos.obj (.bss.gdummy)
+                  700d3e84    00000004                                                 : HwiP_armv7r_vim.obj (.bss.gdummy)
+                  700d3e88    00000004     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : ip4.obj (.bss.ip4_default_multicast_netif)
+                  700d3e8c    00000004                                                      : sys_arch.obj (.bss.lwip_core_lock_holder_thread)
+                  700d3e90    00000004                                                      : sys_arch.obj (.bss.lwip_tcpip_thread)
+                  700d3e94    00000004                                                      : memp.obj (.bss.memp_tab_ALTCP_PCB)
+                  700d3e98    00000004                                                      : memp.obj (.bss.memp_tab_ARP_QUEUE)
+                  700d3e9c    00000004                                                      : memp.obj (.bss.memp_tab_FRAG_PBUF)
+                  700d3ea0    00000004                                                      : memp.obj (.bss.memp_tab_IGMP_GROUP)
+                  700d3ea4    00000004                                                      : memp.obj (.bss.memp_tab_NETBUF)
+                  700d3ea8    00000004                                                      : memp.obj (.bss.memp_tab_NETCONN)
+                  700d3eac    00000004                                                      : memp.obj (.bss.memp_tab_NETDB)
+                  700d3eb0    00000004                                                      : memp.obj (.bss.memp_tab_PBUF)
+                  700d3eb4    00000004                                                      : memp.obj (.bss.memp_tab_PBUF_POOL)
+                  700d3eb8    00000004                                                      : memp.obj (.bss.memp_tab_POOL_128)
+                  700d3ebc    00000004                                                      : memp.obj (.bss.memp_tab_POOL_1568)
+                  700d3ec0    00000004                                                      : memp.obj (.bss.memp_tab_POOL_4096)
+                  700d3ec4    00000004                                                      : memp.obj (.bss.memp_tab_RAW_PCB)
+                  700d3ec8    00000004                                                      : memp.obj (.bss.memp_tab_REASSDATA)
+                  700d3ecc    00000004     ti_enet_lwipif.o (.bss.memp_tab_RX_POOL)
+                  700d3ed0    00000004     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : memp.obj (.bss.memp_tab_SYS_MBOX)
+                  700d3ed4    00000004                                                      : memp.obj (.bss.memp_tab_SYS_TIMEOUT)
+                  700d3ed8    00000004                                                      : memp.obj (.bss.memp_tab_TCPIP_MSG_API)
+                  700d3edc    00000004                                                      : memp.obj (.bss.memp_tab_TCPIP_MSG_INPKT)
+                  700d3ee0    00000004                                                      : memp.obj (.bss.memp_tab_TCP_PCB)
+                  700d3ee4    00000004                                                      : memp.obj (.bss.memp_tab_TCP_PCB_LISTEN)
+                  700d3ee8    00000004                                                      : memp.obj (.bss.memp_tab_TCP_SEG)
+                  700d3eec    00000004                                                      : memp.obj (.bss.memp_tab_UDP_PCB)
+                  700d3ef0    00000004                                                      : timeouts.obj (.bss.next_timeout)
+                  700d3ef4    00000004     freertos.am263px.r5f.ti-arm-clang.debug.lib : timers.obj (.bss.pxCurrentTimerList)
+                  700d3ef8    00000004                                                 : tasks.obj (.bss.pxDelayedTaskList)
+                  700d3efc    00000004                                                 : tasks.obj (.bss.pxOverflowDelayedTaskList)
+                  700d3f00    00000004                                                 : timers.obj (.bss.pxOverflowTimerList)
+                  700d3f04    00000004     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : raw.obj (.bss.raw_pcbs)
+                  700d3f08    00000004                                                      : ip4_frag.obj (.bss.reassdatagrams)
+                  700d3f0c    00000004                                                      : tcp_in.obj (.bss.recv_data)
+                  700d3f10    00000004                                                      : tcp_in.obj (.bss.seqno)
+                  700d3f14    00000004                                                      : sys_arch.obj (.bss.sys_arch_protect_mutex)
+                  700d3f18    00000004                                                      : sys_arch.obj (.bss.sys_arch_protect_nesting)
+                  700d3f1c    00000004     libc.a : memory.c.obj (.bss.sys_free)
+                  700d3f20    00000004     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : tcp_in.obj (.bss.tcphdr)
+                  700d3f24    00000004                                                      : tcp_in.obj (.bss.tcphdr_opt2)
+                  700d3f28    00000004                                                      : tcpip.obj (.bss.tcpip_init_done)
+                  700d3f2c    00000004                                                      : tcpip.obj (.bss.tcpip_init_done_arg)
+                  700d3f30    00000004                                                      : tcpip.obj (.bss.tcpip_mbox)
+                  700d3f34    00000004                                                      : timeouts.obj (.bss.tcpip_tcp_timer_active)
+                  700d3f38    00000004     freertos.am263px.r5f.ti-arm-clang.debug.lib : tasks.obj (.bss.xIdleTaskHandles)
+                  700d3f3c    00000004     (.common:gEepromHandle)
+                  700d3f40    00000004     (.common:gI2cHandle)
+                  700d3f44    00000004     (.common:gInterface)
+                  700d3f48    00000004     (.common:gUartHandle)
+                  700d3f4c    00000004     (.common:lock_tcpip_core)
+                  700d3f50    00000004     (.common:netif_default)
+                  700d3f54    00000004     (.common:netif_list)
+                  700d3f58    00000004     (.common:tcp_active_pcbs)
+                  700d3f5c    00000004     (.common:tcp_bound_pcbs)
+                  700d3f60    00000004     (.common:tcp_input_pcb)
+                  700d3f64    00000004     (.common:tcp_listen_pcbs)
+                  700d3f68    00000004     (.common:tcp_ticks)
+                  700d3f6c    00000004     (.common:tcp_tw_pcbs)
+                  700d3f70    00000004     (.common:udp_pcbs)
+                  700d3f74    00000002     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : tcp_in.obj (.bss.tcplen)
+                  700d3f76    0000000a     --HOLE--
 
-.data      0    700e8300    00006cb8     
-                  700e8300    00001b60     ti_enet_soc.o (.data.gEnetSoc_cpsw3g)
-                  700e9e60    00001ae4     ti_enet_soc.o (.data.gEnetSoc_dmaObj)
-                  700eb944    0000091c     lwipif-cpsw-freertos.am263px.r5f.ti-arm-clang.debug.lib : lwip2enet.obj (.data.gLwip2EnetObj)
-                  700ec260    00000450     motor_mapping.o (.data.g_local_motor_config_table)
-                  700ec6b0    000003a0     ti_enet_soc.o (.data.gEnetSoc_cpsw3gMacObj)
-                  700eca50    00000250     ti_enet_init.o (.data.gEnetCpswCfg)
-                  700ecca0    00000234     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : cpsw_ale.obj (.data.gCpswAle_ioctlValidate)
-                  700eced4    000001b8     ti_pinmux_config.o (.data.gPinMuxMainDomainCfg)
-                  700ed08c    000001b0     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : cpsw_macport.obj (.data.CpswMacPortIoctlHandlerRegistry)
-                  700ed23c    00000178                                                           : cpsw_ale.obj (.data.CpswAleIoctlHandlerRegistry)
-                  700ed3b4    00000168                                                           : enet.obj (.data.gEnetPhy_ioctlValidate)
-                  700ed51c    00000118     motor_mapping.o (.data.g_local_motor_limits_table)
-                  700ed634    00000104     board.am263px.r5f.ti-arm-clang.freertos.debug.lib : dp83869.obj (.data.gEnetPhyDrvDp83869)
-                  700ed738    00000104                                                       : generic_phy.obj (.data.gEnetPhyDrvGeneric)
-                  700ed83c    00000100     drivers.am263px.r5f.ti-arm-clang.freertos.debug.lib : ipc_notify_v1_cfg.obj (.data.gIpcNotifyMailboxConfig)
-                  700ed93c    000000f8     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : enet_phymdio_dflt.obj (.data.EnetPhyMdioDfltIoctlHandlerRegistry)
-                  700eda34    000000f0     libc.a : defs.c.obj (.data._ftable)
-                  700edb24    000000d8     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : cpsw_cpts.obj (.data.CpswCptsIoctlHandlerRegistry)
-                  700edbfc    000000d8                                                           : enet.obj (.data.gEnetMdio_ioctlValidate)
-                  700edcd4    000000d8                                                           : enet.obj (.data.gEnetPer_ioctlValidate)
-                  700eddac    000000cc                                                           : enet.obj (.data.gEnetHostPort_ioctlValidate)
-                  700ede78    000000b8                                                           : cpsw.obj (.data.CpswIoctlHandlerRegistry)
-                  700edf30    000000b4                                                           : enet.obj (.data.gEnetMacPort_ioctlValidate)
-                  700edfe4    000000b0                                                           : enet_appmemutils.obj (.data.gEnetMemObj)
-                  700ee094    000000a8                                                           : cpsw_hostport.obj (.data.CpswHostPortIoctlHandlerRegistry)
-                  700ee13c    000000a8                                                           : cpsw_cpts.obj (.data.gCpswCpts_ioctlValidate)
-                  700ee1e4    000000a8                                                           : cpsw_macport.obj (.data.gCpswMacPort_privIoctlValidate)
-                  700ee28c    000000a0                                                           : cpsw_macport.obj (.data.CpswMacPort_gSupportedVer)
-                  700ee32c    000000a0                                                           : cpsw_stats.obj (.data.CpswStats_gSupportedVer)
-                  700ee3cc    000000a0                                                           : mdio.obj (.data.MdioIoctlHandlerRegistry)
-                  700ee46c    00000090                                                           : cpsw_hostport.obj (.data.CpswHostPort_gSupportedVer)
-                  700ee4fc    00000080                                                           : cpsw_cpts.obj (.data.CpswCpts_gSupportedVer)
-                  700ee57c    00000078                                                           : enet_rm.obj (.data.EnetRmIoctlHandlerRegistry)
-                  700ee5f4    00000078     libsysbm.a : host_device.c.obj (.data._device)
-                  700ee66c    00000078     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : enet.obj (.data.gEnetTimeSync_ioctlValidate)
-                  700ee6e4    00000078                                                           : mdio.obj (.data.gMdio_supportedVer)
-                  700ee75c    00000070                                                           : cpsw_ale.obj (.data.CpswAle_gSupportedVer)
-                  700ee7cc    00000060                                                           : enet_rm.obj (.data.gEnetRm_ioctlValidate)
-                  700ee82c    00000060                                                           : enet.obj (.data.gEnetTas_ioctlValidate)
-                  700ee88c    0000005c     drivers.am263px.r5f.ti-arm-clang.freertos.debug.lib : i2c_v1.obj (.data.gI2cDrvObj)
-                  700ee8e8    0000005c                                                         : uart_v0.obj (.data.gUartDrvObj)
-                  700ee944    00000058     ti_drivers_open_close.o (.data.gUartParams)
-                  700ee99c    00000054     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : enet_rm.obj (.data.gEnetRm_privIoctlValidate)
-                  700ee9f0    00000050                                                           : cpsw_macport_est.obj (.data.CpswMacPortEstIoctlHandlerRegistry)
-                  700eea40    00000050     libsysbm.a : host_device.c.obj (.data._stream)
-                  700eea90    00000048     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : cpsw_stats.obj (.data.gCpswStats_ioctlValidate)
-                  700eead8    00000048                                                           : cpsw.obj (.data.gCpsw_ioctlValidate)
-                  700eeb20    00000040                                                           : cpsw_est.obj (.data.CpswEstIoctlHandlerRegistry)
-                  700eeb60    00000040                                                           : cpsw_stats.obj (.data.CpswStatsIoctlHandlerRegistry)
-                  700eeba0    0000003c                                                           : cpsw_macport.obj (.data.gCpswMacPort_ioctlValidate)
-                  700eebdc    00000004     freertos.am263px.r5f.ti-arm-clang.debug.lib : DebugP_shmLogReader.obj (.data.DebugP_shmLogRead.coreIndex)
-                  700eebe0    00000038     ti_enet_soc.o (.data.gEnetSoc_cpsw3gSocCfg)
-                  700eec18    00000030     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : cpsw_cpts.obj (.data.gCpswCpts_privIoctlValidate)
-                  700eec48    00000030     ti_enet_config.o (.data.gEnetMacAddrPool)
-                  700eec78    00000030     ti_power_clock_config.o (.data.gSocModulesClockFrequency)
-                  700eeca8    00000020     xgw_udp_interface.o (.data.g_udp_state)
-                  700eecc8    00000018     ti_dpl_config.o (.data.gClockConfig)
-                  700eece0    00000018     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : cpsw_hostport.obj (.data.gCpswHostPort_ioctlValidate)
-                  700eecf8    00000018                                                           : cpsw_hostport.obj (.data.gCpswHostPort_privIoctlValidate)
-                  700eed10    00000018                                                           : cpsw_stats.obj (.data.gCpswStats_privIoctlValidate)
-                  700eed28    00000018     ti_enet_dma_init.o (.data.gDmaCfg)
-                  700eed40    00000018     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : enet.obj (.data.gEnetFdb_ioctlValidate)
-                  700eed58    00000018                                                           : enet.obj (.data.gEnetStats_ioctlValidate)
-                  700eed70    00000018                                                           : enet_phymdio_dflt.obj (.data.gEnet_PhyMdioDflt)
-                  700eed88    00000018     ti_drivers_config.o (.data.gI2cHwAttrs)
-                  700eeda0    00000018     drivers.am263px.r5f.ti-arm-clang.freertos.debug.lib : ipc_notify_v1_cfg.obj (.data.gIpcNotifyInterruptConfig_r5fss0_0)
-                  700eedb8    00000018     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : mdio.obj (.data.gMdio_privIoctlValidate)
-                  700eedd0    00000018     main.o (.data.gStats)
-                  700eede8    00000010     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : cpsw.obj (.data.Cpsw_gSpeedNames)
-                  700eedf8    00000010     board.am263px.r5f.ti-arm-clang.freertos.debug.lib : eeprom_cat24m.obj (.data.gEepromFxns_CAT24M)
-                  700eee08    00000010     drivers.am263px.r5f.ti-arm-clang.freertos.debug.lib : ipc_notify_v1_cfg.obj (.data.gIpcNotifyCoreIntrBitPos)
-                  700eee18    00000010     ti_power_clock_config.o (.data.gSocModules)
-                  700eee28    0000000c     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : cpsw.obj (.data.Cpsw_gDuplexNames)
-                  700eee34    0000000c     freertos.am263px.r5f.ti-arm-clang.debug.lib : AddrTranslateP_32bit.obj (.data.gAddrTranslateConfig)
-                  700eee40    0000000c     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : cpsw_ale.obj (.data.gCpswAle_privIoctlValidate)
-                  700eee4c    0000000c     board.am263px.r5f.ti-arm-clang.freertos.debug.lib : eeprom_cat24m.obj (.data.gEepromAttrs_CAT24M)
-                  700eee58    0000000c     ti_board_open_close.o (.data.gEepromConfig)
-                  700eee64    0000000c     ti_enet_soc.o (.data.gEnetSoc_perObj)
-                  700eee70    0000000c     ti_drivers_open_close.o (.data.gI2cParams)
-                  700eee7c    00000008     libc.a : exit.c.obj (.data..L_MergedGlobals)
-                  700eee84    00000008     ti_board_open_close.o (.data.gEepromParams)
-                  700eee8c    00000008     ti_drivers_config.o (.data.gI2cConfig)
-                  700eee94    00000008     ti_drivers_config.o (.data.gUartAttrs)
-                  700eee9c    00000008     ti_drivers_config.o (.data.gUartConfig)
-                  700eeea4    00000004     freertos.am263px.r5f.ti-arm-clang.debug.lib : tasks.obj (.data.FreeRTOS_errno)
-                  700eeea8    00000008                                                 : PmuP_armv7r.obj (.data.pmu)
-                  700eeeb0    00000008                                                 : TaskP_freertos.obj (.data.vApplicationLoadHook.lastUpdateTime)
-                  700eeeb8    00000004     libc.a : defs.c.obj (.data.__TI_ft_end)
-                  700eeebc    00000004            : _lock.c.obj (.data._lock)
-                  700eeec0    00000004            : _lock.c.obj (.data._unlock)
-                  700eeec4    00000004     main.o (.data.build_and_send_udp_packet.error_count)
-                  700eeec8    00000004     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : dhcp.obj (.data.dhcp_discover_request_options)
-                  700eeecc    00000004     freertos.am263px.r5f.ti-arm-clang.debug.lib : DebugP_freertos.obj (.data.gDebugLogIsInitDone)
-                  700eeed0    00000004                                                 : DebugP_log.obj (.data.gDebugLogZone)
-                  700eeed4    00000004                                                 : DebugP_uartLogWriter.obj (.data.gDebugP_uartDrvIndex)
-                  700eeed8    00000004     ti_drivers_open_close.o (.data.gEdmaConfigNum)
-                  700eeedc    00000004     ti_board_open_close.o (.data.gEepromConfigNum)
-                  700eeee0    00000004     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : enet_osal.obj (.data.gEnetOsalHwiAllocCnt)
-                  700eeee4    00000004                                                           : enet_osal.obj (.data.gEnetOsalHwiPeak)
-                  700eeee8    00000004                                                           : enet_osal.obj (.data.gEnetOsalSemAllocCnt)
-                  700eeeec    00000004                                                           : enet_osal.obj (.data.gEnetOsalSemPeak)
-                  700eeef0    00000004     ti_dpl_config.o (.data.gHwiConfig)
-                  700eeef4    00000004     ti_drivers_config.o (.data.gI2cConfigNum)
-                  700eeef8    00000004     drivers.am263px.r5f.ti-arm-clang.freertos.debug.lib : ipc_notify_v1_cfg.obj (.data.gIpcNotifyInterruptConfigNum_r5fss0_0)
-                  700eeefc    00000004     main.o (.data.gIpcTask)
-                  700eef00    00000004     log_reader_task.o (.data.gLogReaderTask)
-                  700eef04    00000004     main.o (.data.gMainTask)
-                  700eef08    00000004     ti_drivers_config.o (.data.gUartConfigNum)
-                  700eef0c    00000004     ti_drivers_open_close.o (.data.gUartDmaChConfig)
-                  700eef10    00000004     main.o (.data.gUdpTxTask)
-                  700eef14    00000004     main.o (.data.g_ipc_callback_count)
-                  700eef18    00000004     test.o (.data.g_netif)
-                  700eef1c    00000004     xgw_udp_interface.o (.data.g_pc_ip_addr)
-                  700eef20    00000004     xgw_udp_interface.o (.data.g_udp_rx_pcb)
-                  700eef24    00000004     xgw_udp_interface.o (.data.g_udp_tx_pcb)
-                  700eef28    00000004     test.o (.data.hlwipIfApp)
-                  700eef2c    00000004     libc.a : rand.c.obj (.data.next)
-                  700eef30    00000004     freertos.am263px.r5f.ti-arm-clang.debug.lib : timers.obj (.data.prvSampleTimeNow.xLastTime)
-                  700eef34    00000004                                                 : tasks.obj (.data.pxCurrentTCB)
-                  700eef38    00000004     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : tcp.obj (.data.tcp_next_iss.iss)
-                  700eef3c    00000004     main.o (.data.udp_tx_task.error_count)
-                  700eef40    00000004     freertos.am263px.r5f.ti-arm-clang.debug.lib : port.obj (.data.ulPortInterruptNesting)
-                  700eef44    00000004                                                 : port.obj (.data.ulPortSchedularRunning)
-                  700eef48    00000004                                                 : port.obj (.data.ulPortTaskHasFPUContext)
-                  700eef4c    00000004                                                 : port.obj (.data.ulPortYieldRequired)
-                  700eef50    00000004                                                 : tasks.obj (.data.ulTaskSwitchedInTime)
-                  700eef54    00000004                                                 : tasks.obj (.data.ulTotalRunTime)
-                  700eef58    00000004                                                 : tasks.obj (.data.uxCurrentNumberOfTasks)
-                  700eef5c    00000004                                                 : tasks.obj (.data.uxDeletedTasksWaitingCleanUp)
-                  700eef60    00000004                                                 : tasks.obj (.data.uxSchedulerSuspended)
-                  700eef64    00000004                                                 : tasks.obj (.data.uxTaskNumber)
-                  700eef68    00000004                                                 : tasks.obj (.data.uxTopReadyPriority)
-                  700eef6c    00000004                                                 : tasks.obj (.data.xNextTaskUnblockTime)
-                  700eef70    00000004                                                 : tasks.obj (.data.xNumOfOverflows)
-                  700eef74    00000004                                                 : tasks.obj (.data.xPendedTicks)
-                  700eef78    00000004                                                 : tasks.obj (.data.xSchedulerRunning)
-                  700eef7c    00000004                                                 : tasks.obj (.data.xTickCount)
-                  700eef80    00000004                                                 : timers.obj (.data.xTimerQueue)
-                  700eef84    00000004                                                 : timers.obj (.data.xTimerTaskHandle)
-                  700eef88    00000004                                                 : tasks.obj (.data.xYieldPendings)
-                  700eef8c    00000002     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : tcp.obj (.data.tcp_port)
-                  700eef8e    00000002                                                      : udp.obj (.data.udp_port)
-                  700eef90    00000001     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : enet_apputils.obj (.data.EnetAppUtils_assertLocal.gCpswAssertWaitInLoop)
-                  700eef91    00000001                                                           : cpsw.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
-                  700eef92    00000001                                                           : cpsw_ale.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
-                  700eef93    00000001                                                           : cpsw_cpts.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
-                  700eef94    00000001                                                           : cpsw_est.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
-                  700eef95    00000001                                                           : cpsw_est_ioctl.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
-                  700eef96    00000001                                                           : cpsw_hostport.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
-                  700eef97    00000001                                                           : cpsw_ioctl.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
-                  700eef98    00000001                                                           : cpsw_macport.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
-                  700eef99    00000001                                                           : cpsw_macport_est.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
-                  700eef9a    00000001                                                           : cpsw_macport_est_ioctl.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
-                  700eef9b    00000001                                                           : cpsw_macport_ioctl.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
-                  700eef9c    00000001                                                           : cpsw_stats.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
-                  700eef9d    00000001                                                           : cpsw_stats_ioctl.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
-                  700eef9e    00000001                                                           : enet.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
-                  700eef9f    00000001                                                           : enet_appmemutils.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
-                  700eefa0    00000001                                                           : enet_cpdma.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
-                  700eefa1    00000001                                                           : enet_cpdma_priv.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
-                  700eefa2    00000001                                                           : enet_hostport.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
-                  700eefa3    00000001                                                           : enet_phymdio_dflt.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
-                  700eefa4    00000001                                                           : enet_queue.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
-                  700eefa5    00000001                                                           : enet_rm.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
-                  700eefa6    00000001                                                           : enet_rm_ioctl.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
-                  700eefa7    00000001                                                           : enet_utils.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
-                  700eefa8    00000001                                                           : enetphy.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
-                  700eefa9    00000001                                                           : mdio.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
-                  700eefaa    00000001     lwipif-cpsw-freertos.am263px.r5f.ti-arm-clang.debug.lib : custom_pbuf.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
-                  700eefab    00000001                                                             : lwip2enet.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
-                  700eefac    00000001                                                             : lwip2enet.obj (.data.Lwip2Enet_assertPriv.waitInLoop)
-                  700eefad    00000001     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : enet_trace.obj (.data.gEnetTrace_runtimeLevel)
-                  700eefae    00000001     lwipif-cpsw-freertos.am263px.r5f.ti-arm-clang.debug.lib : pbufQ.obj (.data.gPbufQ_initialized)
-                  700eefaf    00000001     drivers.am263px.r5f.ti-arm-clang.freertos.debug.lib : soc.obj (.data.isMapAvailable)
-                  700eefb0    00000001     libc.a : memory.c.obj (.data.memory_is_initialized)
-                  700eefb1    00000007     --HOLE-- [fill = 0]
+.sysmem    0    700d3f80    00008000     UNINITIALIZED
+                  700d3f80    00000010     libc.a : memory.c.obj (.sysmem)
+                  700d3f90    00007ff0     --HOLE--
+
+.stack     0    700dbf80    00004000     UNINITIALIZED
+                  700dbf80    00000004     freertos.am263px.r5f.ti-arm-clang.debug.lib : boot_armv7r_asm.obj (.stack)
+                  700dbf84    00003ffc     --HOLE--
+
+.bss:ENET_DMA_PKT_MEMPOOL 
+*          0    700dff80    00018000     NOLOAD SECTION
+                  700dff80    00018000     ti_enet_config.o (.bss:ENET_DMA_PKT_MEMPOOL)
+
+.data      0    700f7f80    00006cb8     
+                  700f7f80    00001b60     ti_enet_soc.o (.data.gEnetSoc_cpsw3g)
+                  700f9ae0    00001ae4     ti_enet_soc.o (.data.gEnetSoc_dmaObj)
+                  700fb5c4    0000091c     lwipif-cpsw-freertos.am263px.r5f.ti-arm-clang.debug.lib : lwip2enet.obj (.data.gLwip2EnetObj)
+                  700fbee0    00000450     motor_mapping.o (.data.g_local_motor_config_table)
+                  700fc330    000003a0     ti_enet_soc.o (.data.gEnetSoc_cpsw3gMacObj)
+                  700fc6d0    00000250     ti_enet_init.o (.data.gEnetCpswCfg)
+                  700fc920    00000234     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : cpsw_ale.obj (.data.gCpswAle_ioctlValidate)
+                  700fcb54    000001b8     ti_pinmux_config.o (.data.gPinMuxMainDomainCfg)
+                  700fcd0c    000001b0     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : cpsw_macport.obj (.data.CpswMacPortIoctlHandlerRegistry)
+                  700fcebc    00000178                                                           : cpsw_ale.obj (.data.CpswAleIoctlHandlerRegistry)
+                  700fd034    00000168                                                           : enet.obj (.data.gEnetPhy_ioctlValidate)
+                  700fd19c    00000118     motor_mapping.o (.data.g_local_motor_limits_table)
+                  700fd2b4    00000104     board.am263px.r5f.ti-arm-clang.freertos.debug.lib : dp83869.obj (.data.gEnetPhyDrvDp83869)
+                  700fd3b8    00000104                                                       : generic_phy.obj (.data.gEnetPhyDrvGeneric)
+                  700fd4bc    00000100     drivers.am263px.r5f.ti-arm-clang.freertos.debug.lib : ipc_notify_v1_cfg.obj (.data.gIpcNotifyMailboxConfig)
+                  700fd5bc    000000f8     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : enet_phymdio_dflt.obj (.data.EnetPhyMdioDfltIoctlHandlerRegistry)
+                  700fd6b4    000000f0     libc.a : defs.c.obj (.data._ftable)
+                  700fd7a4    000000d8     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : cpsw_cpts.obj (.data.CpswCptsIoctlHandlerRegistry)
+                  700fd87c    000000d8                                                           : enet.obj (.data.gEnetMdio_ioctlValidate)
+                  700fd954    000000d8                                                           : enet.obj (.data.gEnetPer_ioctlValidate)
+                  700fda2c    000000cc                                                           : enet.obj (.data.gEnetHostPort_ioctlValidate)
+                  700fdaf8    000000b8                                                           : cpsw.obj (.data.CpswIoctlHandlerRegistry)
+                  700fdbb0    000000b4                                                           : enet.obj (.data.gEnetMacPort_ioctlValidate)
+                  700fdc64    000000b0                                                           : enet_appmemutils.obj (.data.gEnetMemObj)
+                  700fdd14    000000a8                                                           : cpsw_hostport.obj (.data.CpswHostPortIoctlHandlerRegistry)
+                  700fddbc    000000a8                                                           : cpsw_cpts.obj (.data.gCpswCpts_ioctlValidate)
+                  700fde64    000000a8                                                           : cpsw_macport.obj (.data.gCpswMacPort_privIoctlValidate)
+                  700fdf0c    000000a0                                                           : cpsw_macport.obj (.data.CpswMacPort_gSupportedVer)
+                  700fdfac    000000a0                                                           : cpsw_stats.obj (.data.CpswStats_gSupportedVer)
+                  700fe04c    000000a0                                                           : mdio.obj (.data.MdioIoctlHandlerRegistry)
+                  700fe0ec    00000090                                                           : cpsw_hostport.obj (.data.CpswHostPort_gSupportedVer)
+                  700fe17c    00000080                                                           : cpsw_cpts.obj (.data.CpswCpts_gSupportedVer)
+                  700fe1fc    00000078                                                           : enet_rm.obj (.data.EnetRmIoctlHandlerRegistry)
+                  700fe274    00000078     libsysbm.a : host_device.c.obj (.data._device)
+                  700fe2ec    00000078     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : enet.obj (.data.gEnetTimeSync_ioctlValidate)
+                  700fe364    00000078                                                           : mdio.obj (.data.gMdio_supportedVer)
+                  700fe3dc    00000070                                                           : cpsw_ale.obj (.data.CpswAle_gSupportedVer)
+                  700fe44c    00000060                                                           : enet_rm.obj (.data.gEnetRm_ioctlValidate)
+                  700fe4ac    00000060                                                           : enet.obj (.data.gEnetTas_ioctlValidate)
+                  700fe50c    0000005c     drivers.am263px.r5f.ti-arm-clang.freertos.debug.lib : i2c_v1.obj (.data.gI2cDrvObj)
+                  700fe568    0000005c                                                         : uart_v0.obj (.data.gUartDrvObj)
+                  700fe5c4    00000058     ti_drivers_open_close.o (.data.gUartParams)
+                  700fe61c    00000054     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : enet_rm.obj (.data.gEnetRm_privIoctlValidate)
+                  700fe670    00000050                                                           : cpsw_macport_est.obj (.data.CpswMacPortEstIoctlHandlerRegistry)
+                  700fe6c0    00000050     libsysbm.a : host_device.c.obj (.data._stream)
+                  700fe710    00000048     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : cpsw_stats.obj (.data.gCpswStats_ioctlValidate)
+                  700fe758    00000048                                                           : cpsw.obj (.data.gCpsw_ioctlValidate)
+                  700fe7a0    00000040                                                           : cpsw_est.obj (.data.CpswEstIoctlHandlerRegistry)
+                  700fe7e0    00000040                                                           : cpsw_stats.obj (.data.CpswStatsIoctlHandlerRegistry)
+                  700fe820    0000003c                                                           : cpsw_macport.obj (.data.gCpswMacPort_ioctlValidate)
+                  700fe85c    00000004     freertos.am263px.r5f.ti-arm-clang.debug.lib : DebugP_shmLogReader.obj (.data.DebugP_shmLogRead.coreIndex)
+                  700fe860    00000038     ti_enet_soc.o (.data.gEnetSoc_cpsw3gSocCfg)
+                  700fe898    00000030     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : cpsw_cpts.obj (.data.gCpswCpts_privIoctlValidate)
+                  700fe8c8    00000030     ti_enet_config.o (.data.gEnetMacAddrPool)
+                  700fe8f8    00000030     ti_power_clock_config.o (.data.gSocModulesClockFrequency)
+                  700fe928    00000020     xgw_udp_interface.o (.data.g_udp_state)
+                  700fe948    00000018     ti_dpl_config.o (.data.gClockConfig)
+                  700fe960    00000018     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : cpsw_hostport.obj (.data.gCpswHostPort_ioctlValidate)
+                  700fe978    00000018                                                           : cpsw_hostport.obj (.data.gCpswHostPort_privIoctlValidate)
+                  700fe990    00000018                                                           : cpsw_stats.obj (.data.gCpswStats_privIoctlValidate)
+                  700fe9a8    00000018     ti_enet_dma_init.o (.data.gDmaCfg)
+                  700fe9c0    00000018     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : enet.obj (.data.gEnetFdb_ioctlValidate)
+                  700fe9d8    00000018                                                           : enet.obj (.data.gEnetStats_ioctlValidate)
+                  700fe9f0    00000018                                                           : enet_phymdio_dflt.obj (.data.gEnet_PhyMdioDflt)
+                  700fea08    00000018     ti_drivers_config.o (.data.gI2cHwAttrs)
+                  700fea20    00000018     drivers.am263px.r5f.ti-arm-clang.freertos.debug.lib : ipc_notify_v1_cfg.obj (.data.gIpcNotifyInterruptConfig_r5fss0_0)
+                  700fea38    00000018     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : mdio.obj (.data.gMdio_privIoctlValidate)
+                  700fea50    00000018     main.o (.data.gStats)
+                  700fea68    00000010     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : cpsw.obj (.data.Cpsw_gSpeedNames)
+                  700fea78    00000010     board.am263px.r5f.ti-arm-clang.freertos.debug.lib : eeprom_cat24m.obj (.data.gEepromFxns_CAT24M)
+                  700fea88    00000010     drivers.am263px.r5f.ti-arm-clang.freertos.debug.lib : ipc_notify_v1_cfg.obj (.data.gIpcNotifyCoreIntrBitPos)
+                  700fea98    00000010     ti_power_clock_config.o (.data.gSocModules)
+                  700feaa8    0000000c     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : cpsw.obj (.data.Cpsw_gDuplexNames)
+                  700feab4    0000000c     freertos.am263px.r5f.ti-arm-clang.debug.lib : AddrTranslateP_32bit.obj (.data.gAddrTranslateConfig)
+                  700feac0    0000000c     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : cpsw_ale.obj (.data.gCpswAle_privIoctlValidate)
+                  700feacc    0000000c     board.am263px.r5f.ti-arm-clang.freertos.debug.lib : eeprom_cat24m.obj (.data.gEepromAttrs_CAT24M)
+                  700fead8    0000000c     ti_board_open_close.o (.data.gEepromConfig)
+                  700feae4    0000000c     ti_enet_soc.o (.data.gEnetSoc_perObj)
+                  700feaf0    0000000c     ti_drivers_open_close.o (.data.gI2cParams)
+                  700feafc    00000008     libc.a : exit.c.obj (.data..L_MergedGlobals)
+                  700feb04    00000008     ti_board_open_close.o (.data.gEepromParams)
+                  700feb0c    00000008     ti_drivers_config.o (.data.gI2cConfig)
+                  700feb14    00000008     ti_drivers_config.o (.data.gUartAttrs)
+                  700feb1c    00000008     ti_drivers_config.o (.data.gUartConfig)
+                  700feb24    00000004     freertos.am263px.r5f.ti-arm-clang.debug.lib : tasks.obj (.data.FreeRTOS_errno)
+                  700feb28    00000008                                                 : PmuP_armv7r.obj (.data.pmu)
+                  700feb30    00000008                                                 : TaskP_freertos.obj (.data.vApplicationLoadHook.lastUpdateTime)
+                  700feb38    00000004     libc.a : defs.c.obj (.data.__TI_ft_end)
+                  700feb3c    00000004            : _lock.c.obj (.data._lock)
+                  700feb40    00000004            : _lock.c.obj (.data._unlock)
+                  700feb44    00000004     main.o (.data.build_and_send_udp_packet.error_count)
+                  700feb48    00000004     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : dhcp.obj (.data.dhcp_discover_request_options)
+                  700feb4c    00000004     freertos.am263px.r5f.ti-arm-clang.debug.lib : DebugP_freertos.obj (.data.gDebugLogIsInitDone)
+                  700feb50    00000004                                                 : DebugP_log.obj (.data.gDebugLogZone)
+                  700feb54    00000004                                                 : DebugP_uartLogWriter.obj (.data.gDebugP_uartDrvIndex)
+                  700feb58    00000004     ti_drivers_open_close.o (.data.gEdmaConfigNum)
+                  700feb5c    00000004     ti_board_open_close.o (.data.gEepromConfigNum)
+                  700feb60    00000004     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : enet_osal.obj (.data.gEnetOsalHwiAllocCnt)
+                  700feb64    00000004                                                           : enet_osal.obj (.data.gEnetOsalHwiPeak)
+                  700feb68    00000004                                                           : enet_osal.obj (.data.gEnetOsalSemAllocCnt)
+                  700feb6c    00000004                                                           : enet_osal.obj (.data.gEnetOsalSemPeak)
+                  700feb70    00000004     ti_dpl_config.o (.data.gHwiConfig)
+                  700feb74    00000004     ti_drivers_config.o (.data.gI2cConfigNum)
+                  700feb78    00000004     drivers.am263px.r5f.ti-arm-clang.freertos.debug.lib : ipc_notify_v1_cfg.obj (.data.gIpcNotifyInterruptConfigNum_r5fss0_0)
+                  700feb7c    00000004     main.o (.data.gIpcTask)
+                  700feb80    00000004     log_reader_task.o (.data.gLogReaderTask)
+                  700feb84    00000004     main.o (.data.gMainTask)
+                  700feb88    00000004     ti_drivers_config.o (.data.gUartConfigNum)
+                  700feb8c    00000004     ti_drivers_open_close.o (.data.gUartDmaChConfig)
+                  700feb90    00000004     main.o (.data.gUdpTxTask)
+                  700feb94    00000004     main.o (.data.g_ipc_callback_count)
+                  700feb98    00000004     test.o (.data.g_netif)
+                  700feb9c    00000004     xgw_udp_interface.o (.data.g_pc_ip_addr)
+                  700feba0    00000004     xgw_udp_interface.o (.data.g_udp_rx_pcb)
+                  700feba4    00000004     xgw_udp_interface.o (.data.g_udp_tx_pcb)
+                  700feba8    00000004     test.o (.data.hlwipIfApp)
+                  700febac    00000004     libc.a : rand.c.obj (.data.next)
+                  700febb0    00000004     freertos.am263px.r5f.ti-arm-clang.debug.lib : timers.obj (.data.prvSampleTimeNow.xLastTime)
+                  700febb4    00000004                                                 : tasks.obj (.data.pxCurrentTCB)
+                  700febb8    00000004     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : tcp.obj (.data.tcp_next_iss.iss)
+                  700febbc    00000004     main.o (.data.udp_tx_task.error_count)
+                  700febc0    00000004     freertos.am263px.r5f.ti-arm-clang.debug.lib : port.obj (.data.ulPortInterruptNesting)
+                  700febc4    00000004                                                 : port.obj (.data.ulPortSchedularRunning)
+                  700febc8    00000004                                                 : port.obj (.data.ulPortTaskHasFPUContext)
+                  700febcc    00000004                                                 : port.obj (.data.ulPortYieldRequired)
+                  700febd0    00000004                                                 : tasks.obj (.data.ulTaskSwitchedInTime)
+                  700febd4    00000004                                                 : tasks.obj (.data.ulTotalRunTime)
+                  700febd8    00000004                                                 : tasks.obj (.data.uxCurrentNumberOfTasks)
+                  700febdc    00000004                                                 : tasks.obj (.data.uxDeletedTasksWaitingCleanUp)
+                  700febe0    00000004                                                 : tasks.obj (.data.uxSchedulerSuspended)
+                  700febe4    00000004                                                 : tasks.obj (.data.uxTaskNumber)
+                  700febe8    00000004                                                 : tasks.obj (.data.uxTopReadyPriority)
+                  700febec    00000004                                                 : tasks.obj (.data.xNextTaskUnblockTime)
+                  700febf0    00000004                                                 : tasks.obj (.data.xNumOfOverflows)
+                  700febf4    00000004                                                 : tasks.obj (.data.xPendedTicks)
+                  700febf8    00000004                                                 : tasks.obj (.data.xSchedulerRunning)
+                  700febfc    00000004                                                 : tasks.obj (.data.xTickCount)
+                  700fec00    00000004                                                 : timers.obj (.data.xTimerQueue)
+                  700fec04    00000004                                                 : timers.obj (.data.xTimerTaskHandle)
+                  700fec08    00000004                                                 : tasks.obj (.data.xYieldPendings)
+                  700fec0c    00000002     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : tcp.obj (.data.tcp_port)
+                  700fec0e    00000002                                                      : udp.obj (.data.udp_port)
+                  700fec10    00000001     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : enet_apputils.obj (.data.EnetAppUtils_assertLocal.gCpswAssertWaitInLoop)
+                  700fec11    00000001                                                           : cpsw.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
+                  700fec12    00000001                                                           : cpsw_ale.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
+                  700fec13    00000001                                                           : cpsw_cpts.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
+                  700fec14    00000001                                                           : cpsw_est.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
+                  700fec15    00000001                                                           : cpsw_est_ioctl.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
+                  700fec16    00000001                                                           : cpsw_hostport.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
+                  700fec17    00000001                                                           : cpsw_ioctl.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
+                  700fec18    00000001                                                           : cpsw_macport.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
+                  700fec19    00000001                                                           : cpsw_macport_est.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
+                  700fec1a    00000001                                                           : cpsw_macport_est_ioctl.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
+                  700fec1b    00000001                                                           : cpsw_macport_ioctl.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
+                  700fec1c    00000001                                                           : cpsw_stats.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
+                  700fec1d    00000001                                                           : cpsw_stats_ioctl.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
+                  700fec1e    00000001                                                           : enet.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
+                  700fec1f    00000001                                                           : enet_appmemutils.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
+                  700fec20    00000001                                                           : enet_cpdma.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
+                  700fec21    00000001                                                           : enet_cpdma_priv.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
+                  700fec22    00000001                                                           : enet_hostport.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
+                  700fec23    00000001                                                           : enet_phymdio_dflt.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
+                  700fec24    00000001                                                           : enet_queue.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
+                  700fec25    00000001                                                           : enet_rm.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
+                  700fec26    00000001                                                           : enet_rm_ioctl.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
+                  700fec27    00000001                                                           : enet_utils.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
+                  700fec28    00000001                                                           : enetphy.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
+                  700fec29    00000001                                                           : mdio.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
+                  700fec2a    00000001     lwipif-cpsw-freertos.am263px.r5f.ti-arm-clang.debug.lib : custom_pbuf.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
+                  700fec2b    00000001                                                             : lwip2enet.obj (.data.EnetUtils_assertLocal.gEnetAssertWaitInLoop)
+                  700fec2c    00000001                                                             : lwip2enet.obj (.data.Lwip2Enet_assertPriv.waitInLoop)
+                  700fec2d    00000001     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : enet_trace.obj (.data.gEnetTrace_runtimeLevel)
+                  700fec2e    00000001     lwipif-cpsw-freertos.am263px.r5f.ti-arm-clang.debug.lib : pbufQ.obj (.data.gPbufQ_initialized)
+                  700fec2f    00000001     drivers.am263px.r5f.ti-arm-clang.freertos.debug.lib : soc.obj (.data.isMapAvailable)
+                  700fec30    00000001     libc.a : memory.c.obj (.data.memory_is_initialized)
+                  700fec31    00000007     --HOLE-- [fill = 0]
 
 .text.hwi 
-*          0    700eefc0    00000f90     
-                  700eefc0    000006c0     freertos.am263px.r5f.ti-arm-clang.debug.lib : HwiP_armv7r_vim.obj (.text.hwi)
-                  700ef680    0000056a                                                 : HwiP_armv7r_handlers_freertos.obj (.text.hwi)
-                  700efbea    00000002     --HOLE-- [fill = 0]
-                  700efbec    000001ec                                                 : portASM.obj (.text.hwi)
-                  700efdd8    00000104                                                 : HwiP_armv7r_handlers_freertos_asm.obj (.text.hwi)
-                  700efedc    00000070                                                 : HwiP_armv7r_asm.obj (.text.hwi)
-                  700eff4c    00000004     --HOLE-- [fill = 0]
+*          0    700fec40    00000f90     
+                  700fec40    000006c0     freertos.am263px.r5f.ti-arm-clang.debug.lib : HwiP_armv7r_vim.obj (.text.hwi)
+                  700ff300    0000056a                                                 : HwiP_armv7r_handlers_freertos.obj (.text.hwi)
+                  700ff86a    00000002     --HOLE-- [fill = 0]
+                  700ff86c    000001ec                                                 : portASM.obj (.text.hwi)
+                  700ffa58    00000104                                                 : HwiP_armv7r_handlers_freertos_asm.obj (.text.hwi)
+                  700ffb5c    00000070                                                 : HwiP_armv7r_asm.obj (.text.hwi)
+                  700ffbcc    00000004     --HOLE-- [fill = 0]
 
 .text.cache 
-*          0    700eff50    000004a0     
-                  700eff50    00000340     freertos.am263px.r5f.ti-arm-clang.debug.lib : CacheP_armv7r_asm.obj (.text.cache)
-                  700f0290    00000158                                                 : CacheP_armv7r.obj (.text.cache)
-                  700f03e8    00000008     --HOLE-- [fill = 0]
+*          0    700ffbd0    000004a0     
+                  700ffbd0    00000340     freertos.am263px.r5f.ti-arm-clang.debug.lib : CacheP_armv7r_asm.obj (.text.cache)
+                  700fff10    00000158                                                 : CacheP_armv7r.obj (.text.cache)
+                  70100068    00000008     --HOLE-- [fill = 0]
 
 .text.mpu 
-*          0    700f03f0    000003c0     
-                  700f03f0    00000340     freertos.am263px.r5f.ti-arm-clang.debug.lib : MpuP_armv7r.obj (.text.mpu)
-                  700f0730    00000078                                                 : MpuP_armv7r_asm.obj (.text.mpu)
-                  700f07a8    00000008     --HOLE-- [fill = 0]
+*          0    70100070    000003c0     
+                  70100070    00000340     freertos.am263px.r5f.ti-arm-clang.debug.lib : MpuP_armv7r.obj (.text.mpu)
+                  701003b0    00000078                                                 : MpuP_armv7r_asm.obj (.text.mpu)
+                  70100428    00000008     --HOLE-- [fill = 0]
 
 .text.boot 
-*          0    700f07b0    000001c0     
-                  700f07b0    00000144     freertos.am263px.r5f.ti-arm-clang.debug.lib : boot_armv7r_asm.obj (.text.boot)
-                  700f08f4    0000000c     --HOLE-- [fill = 0]
-                  700f0900    00000024                                                 : DebugP_log.obj (.text.boot)
-                  700f0924    0000000c     --HOLE-- [fill = 0]
-                  700f0930    00000024                                                 : boot_armv7r.obj (.text.boot)
-                  700f0954    0000000c     --HOLE-- [fill = 0]
-                  700f0960    0000000c     ti_dpl_config.o (.text.boot)
-                  700f096c    00000004     --HOLE-- [fill = 0]
+*          0    70100430    000001c0     
+                  70100430    00000144     freertos.am263px.r5f.ti-arm-clang.debug.lib : boot_armv7r_asm.obj (.text.boot)
+                  70100574    0000000c     --HOLE-- [fill = 0]
+                  70100580    00000024                                                 : DebugP_log.obj (.text.boot)
+                  701005a4    0000000c     --HOLE-- [fill = 0]
+                  701005b0    00000024                                                 : boot_armv7r.obj (.text.boot)
+                  701005d4    0000000c     --HOLE-- [fill = 0]
+                  701005e0    0000000c     ti_dpl_config.o (.text.boot)
+                  701005ec    00000004     --HOLE-- [fill = 0]
 
 .text:abort 
-*          0    700f0970    00000008     
-                  700f0970    00000008     libc.a : exit.c.obj (.text:abort)
+*          0    701005f0    00000008     
+                  701005f0    00000008     libc.a : exit.c.obj (.text:abort)
 
 .irqstack 
-*          0    700f0978    00000100     UNINITIALIZED
-                  700f0978    00000100     --HOLE--
+*          0    701005f8    00000100     UNINITIALIZED
+                  701005f8    00000100     --HOLE--
 
 .fiqstack 
-*          0    700f0a78    00000100     UNINITIALIZED
-                  700f0a78    00000100     --HOLE--
+*          0    701006f8    00000100     UNINITIALIZED
+                  701006f8    00000100     --HOLE--
 
 .svcstack 
-*          0    700f0b78    00001000     UNINITIALIZED
-                  700f0b78    00001000     --HOLE--
+*          0    701007f8    00001000     UNINITIALIZED
+                  701007f8    00001000     --HOLE--
 
 .abortstack 
-*          0    700f1b78    00000100     UNINITIALIZED
-                  700f1b78    00000100     --HOLE--
+*          0    701017f8    00000100     UNINITIALIZED
+                  701017f8    00000100     --HOLE--
 
 .undefinedstack 
-*          0    700f1c78    00000100     UNINITIALIZED
-                  700f1c78    00000100     --HOLE--
+*          0    701018f8    00000100     UNINITIALIZED
+                  701018f8    00000100     --HOLE--
 
 .init_array 
 *          0    70040000    00000000     UNINITIALIZED
@@ -5558,22 +5767,22 @@ section   page    origin      length       input sections
                   70208000    00002000     ti_dpl_config.o (.bss.log_shared_mem)
 
 .bss:ENET_CPPI_DESC 
-*          0    70240000    00000a00     NOLOAD SECTION
-                  70240000    00000a00     ti_enet_config.o (.bss:ENET_CPPI_DESC)
+*          0    70280000    00000a00     NOLOAD SECTION
+                  70280000    00000a00     ti_enet_config.o (.bss:ENET_CPPI_DESC)
 
 MODULE SUMMARY
 
        Module                                  code     ro data   rw data
        ------                                  ----     -------   -------
     .\
+       main.o                                  2432     2702      24508  
        gateway_shared.o                        1220     515       19760  
-       main.o                                  2432     2702      72     
        motor_mapping.o                         880      339       1384   
+       log_reader_task.o                       160      110       2204   
        test.o                                  1108     772       8      
        freertos_hooks.o                        156      188       0      
-       log_reader_task.o                       160      110       4      
     +--+---------------------------------------+--------+---------+---------+
-       Total:                                  5956     4626      21228  
+       Total:                                  5956     4626      47864  
                                                                          
     .\common\
        crc32.o                                 80       1024      0      
@@ -5589,21 +5798,21 @@ MODULE SUMMARY
        Total:                                  3232     1413      44     
                                                                          
     .\syscfg\
-       ti_enet_config.o                        1380     354       297520 
+       ti_enet_config.o                        1380     354       113520 
        ti_enet_soc.o                           1080     113       14888  
+       ti_enet_lwipif.o                        3324     470       9547   
+       ti_enet_open_close.o                    5150     1404      3456   
        ti_dpl_config.o                         114      148       8220   
-       ti_enet_open_close.o                    5150     1404      0      
-       ti_enet_lwipif.o                        3324     470       0      
+       ti_drivers_config.o                     206      63        1080   
        ti_enet_init.o                          336      199       592    
-       ti_drivers_open_close.o                 508      142       108    
+       ti_drivers_open_close.o                 508      142       116    
        ti_board_config.o                       528      213       0      
+       ti_board_open_close.o                   276      72        392    
        ti_pinmux_config.o                      18       0         440    
-       ti_board_open_close.o                   276      72        24     
-       ti_drivers_config.o                     206      63        56     
        ti_enet_dma_init.o                      122      152       24     
        ti_power_clock_config.o                 180      0         64     
     +--+---------------------------------------+--------+---------+---------+
-       Total:                                  13222    3330      321936 
+       Total:                                  13222    3330      152339 
                                                                          
     C:/ti/mcu_plus_sdk_am263px_11_01_00_19/source/board/lib/board.am263px.r5f.ti-arm-clang.freertos.debug.lib
        dp83869.obj                             4070     1221      260    
@@ -5619,45 +5828,45 @@ MODULE SUMMARY
        i2c_v1_lld.obj                          6674     24        0      
        edma.obj                                6076     320       0      
        soc_rcm.obj                             5436     573       0      
+       ipc_notify_v1.obj                       3116     349       184    
        i2c_v1.obj                              3210     192       92     
-       ipc_notify_v1.obj                       3116     349       0      
        uart_v0.obj                             2730     199       92     
-       soc.obj                                 2520     0         1      
+       soc.obj                                 2520     0         17     
        uart_dma_edma.obj                       2316     0         0      
        ipc_notify_v1_cfg.obj                   26       0         300    
        pinmux.obj                              210      0         0      
     +--+---------------------------------------+--------+---------+---------+
-       Total:                                  39706    1657      485    
+       Total:                                  39706    1657      685    
                                                                          
     C:/ti/mcu_plus_sdk_am263px_11_01_00_19/source/kernel/freertos/lib/freertos.am263px.r5f.ti-arm-clang.debug.lib
-       tasks.obj                               8078     1563      60     
+       tasks.obj                               8078     1563      812    
        printf.obj                              7076     98        0      
-       queue.obj                               4946     1297      0      
-       timers.obj                              2122     512       12     
-       HwiP_armv7r_vim.obj                     1738     0         0      
-       TaskP_freertos.obj                      1298     373       8      
-       HwiP_armv7r_handlers_freertos.obj       1386     0         0      
-       ClockP_freertos.obj                     1046     92        0      
-       DebugP_shmLogReader.obj                 1028     0         4      
+       queue.obj                               4946     1297      256    
+       port.obj                                600      93        5440   
+       DebugP_shmLogReader_freertos.obj        84       21        4252   
+       HwiP_armv7r_vim.obj                     1738     0         2064   
+       timers.obj                              2122     512       396    
+       TaskP_freertos.obj                      1298     373       168    
+       HwiP_armv7r_handlers_freertos.obj       1386     0         4      
+       DebugP_shmLogReader.obj                 1028     0         152    
+       ClockP_freertos.obj                     1046     92        24     
        TimerP_rti_priv.obj                     682      213       0      
        CacheP_armv7r_asm.obj                   832      0         0      
        MpuP_armv7r.obj                         832      0         0      
-       port.obj                                600      93        16     
+       SemaphoreP_freertos.obj                 598      48        80     
        ClockP_freertos_r5.obj                  424      270       0      
-       SemaphoreP_freertos.obj                 598      48        0      
        portASM.obj                             492      0         0      
        CacheP_armv7r.obj                       344      8         0      
        boot_armv7r_asm.obj                     324      0         0      
        list.obj                                296      0         0      
        HwiP_armv7r_handlers_freertos_asm.obj   260      0         0      
        DebugP_log.obj                          204      42        4      
+       DebugP_freertos.obj                     146      0         92     
        AddrTranslateP_32bit.obj                208      0         12     
        PmuP_armv7r.obj                         186      0         8      
-       DebugP_freertos.obj                     146      0         4      
        MpuP_armv7r_asm.obj                     120      0         0      
        TimerP_rti_freertos.obj                 116      0         0      
        HwiP_armv7r_asm.obj                     112      0         0      
-       DebugP_shmLogReader_freertos.obj        84       21        0      
        DebugP_uartLogWriter.obj                90       0         4      
        heap_3.obj                              72       0         0      
        HwiP_armv7r_vectors_freertos_asm.obj    64       0         0      
@@ -5666,13 +5875,13 @@ MODULE SUMMARY
        boot_armv7r.obj                         36       0         0      
        CpuId_armv7r_asm.obj                    12       0         0      
     +--+---------------------------------------+--------+---------+---------+
-       Total:                                  35948    4630      132    
+       Total:                                  35948    4630      13768  
                                                                          
     C:/ti/mcu_plus_sdk_am263px_11_01_00_19/source/networking/enet/lib/enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib
        enet_cpdma.obj                          16360    3177      1      
        cpsw.obj                                9354     2710      285    
+       enetphy.obj                             8630     2084      1114   
        cpsw_ale.obj                            8408     1917      1065   
-       enetphy.obj                             8630     2084      1      
        enet_rm.obj                             6962     2166      301    
        csl_cpsw.obj                            7492     0         0      
        cpsw_macport.obj                        3966     1514      821    
@@ -5688,21 +5897,21 @@ MODULE SUMMARY
        cpsw_cpts.obj                           1962     925       561    
        mdio_ioctl.obj                          2248     756       0      
        mdio_manual_ioctl.obj                   2186     479       0      
+       enet_osal.obj                           846      126       1616   
        cpsw_macport_est.obj                    1504     818       81     
        cpsw_macport_ioctl.obj                  1684     665       1      
        cpsw_ale_ioctl.obj                      2114     83        0      
        enet_queue.obj                          1324     544       1      
        cpsw_cpts_ioctl.obj                     1322     419       0      
        cpsw_est.obj                            1030     606       65     
-       enet_cpdma_priv.obj                     1240     421       1      
+       enet_cpdma_priv.obj                     1240     421       37     
+       enet_utils.obj                          1048     318       217    
        cpsw_stats_ioctl.obj                    1126     419       1      
        csl_mdio.obj                            1508     0         0      
-       enet_utils.obj                          1048     318       1      
        cpsw_est_ioctl.obj                      876      288       1      
        csl_cpts.obj                            1094     0         0      
        enet_ioctlutils.obj                     674      393       0      
        enet_cpdmautils.obj                     616      412       0      
-       enet_osal.obj                           846      126       16     
        enet_apputils.obj                       666      294       1      
        csl_cpgmac_sl.obj                       586      0         0      
        cpsw_hostport_ioctl.obj                 406      175       0      
@@ -5718,56 +5927,57 @@ MODULE SUMMARY
        mdio_ioctl_register.obj                 68       0         0      
        enet_trace.obj                          56       0         1      
     +--+---------------------------------------+--------+---------+---------+
-       Total:                                  115630   32705     6087   
+       Total:                                  115630   32705     9052   
                                                                          
     C:/ti/mcu_plus_sdk_am263px_11_01_00_19/source/networking/enet/lib/lwipif-cpsw-freertos.am263px.r5f.ti-arm-clang.debug.lib
-       lwip2enet.obj                           7360     744       2334   
+       lwip2enet.obj                           7360     744       2338   
        lwip2lwipif.obj                         1858     226       0      
        custom_pbuf.obj                         1014     429       1      
-       pbufQ.obj                               552      91        1      
+       pbufQ.obj                               552      91        13     
     +--+---------------------------------------+--------+---------+---------+
-       Total:                                  10784    1490      2336   
+       Total:                                  10784    1490      2352   
                                                                          
     C:/ti/mcu_plus_sdk_am263px_11_01_00_19/source/networking/lwip/lib/lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib
-       tcp_in.obj                              12816    1258      0      
-       tcp.obj                                 8416     1654      6      
-       dhcp.obj                                8718     962       4      
+       memp.obj                                768      1043      138978 
+       tcp_in.obj                              12816    1258      56     
+       tcp.obj                                 8416     1654      29     
+       dhcp.obj                                8718     962       63     
        tcp_out.obj                             7914     1762      0      
-       pbuf.obj                                5642     1309      0      
-       etharp.obj                              5588     694       0      
-       ip4_frag.obj                            4510     703       0      
-       udp.obj                                 4252     808       2      
-       sys_arch.obj                            3966     943       0      
-       ip4.obj                                 3532     174       0      
-       netif.obj                               2432     499       0      
-       igmp.obj                                1918     297       0      
+       pbuf.obj                                5642     1309      1      
+       etharp.obj                              5588     694       241    
+       ip4_frag.obj                            4510     703       6      
+       udp.obj                                 4252     808       6      
+       sys_arch.obj                            3966     943       17     
+       ip4.obj                                 3532     174       6      
+       dns.obj                                 1762     196       1160   
+       netif.obj                               2432     499       13     
+       igmp.obj                                1918     297       8      
        icmp.obj                                1756     271       0      
-       dns.obj                                 1762     196       0      
-       memp.obj                                768      1043      0      
        acd.obj                                 1486     175       0      
-       timeouts.obj                            1054     343       0      
-       tcpip.obj                               1084     281       0      
+       timeouts.obj                            1054     343       12     
+       tcpip.obj                               1084     281       16     
        inet_chksum.obj                         1218     139       0      
        mem.obj                                 800      243       0      
        ethernet.obj                            620      173       0      
-       raw.obj                                 582      173       0      
-       ip4_addr.obj                            414      8         0      
+       raw.obj                                 582      173       4      
+       stats.obj                               22       4         516    
+       ip4_addr.obj                            414      8         16     
        init.obj                                60       0         0      
        def.obj                                 48       0         0      
-       stats.obj                               22       4         0      
+       ip.obj                                  0        0         24     
     +--+---------------------------------------+--------+---------+---------+
-       Total:                                  81378    14112     12     
+       Total:                                  81378    14112     141172 
                                                                          
     C:\ti\ccs2031\ccs\tools\compiler\ti-cgt-armllvm_4.0.4.LTS\lib\armv7r-ti-none-eabihf/c/libc.a
-       memory.c.obj                            1136     0         1      
+       memory.c.obj                            1136     0         5      
        _printfi.c.obj                          1016     17        0      
        strcmp32.S.obj                          924      0         0      
        fputs.c.obj                             412      0         0      
+       defs.c.obj                              0        0         404    
        setvbuf.c.obj                           324      0         0      
        fflush.c.obj                            300      0         0      
        getdevice.c.obj                         284      0         0      
        snprintf.c.obj                          252      0         0      
-       defs.c.obj                              0        0         244    
        aeabi_portable.c.obj                    132      66        0      
        fseek.c.obj                             184      0         0      
        fclose.c.obj                            176      0         0      
@@ -5785,14 +5995,14 @@ MODULE SUMMARY
        memset32.S.obj                          24       0         0      
        _lock.c.obj                             4        0         8      
     +--+---------------------------------------+--------+---------+---------+
-       Total:                                  6116     83        265    
+       Total:                                  6116     83        429    
                                                                          
     C:\ti\ccs2031\ccs\tools\compiler\ti-cgt-armllvm_4.0.4.LTS\lib\armv7r-ti-none-eabihf/c/libsysbm.a
+       trgmsg.c.obj                            176      0         288    
        hostrename.c.obj                        216      0         0      
        host_device.c.obj                       0        0         200    
-       trgmsg.c.obj                            176      0         0      
+       hostopen.c.obj                          148      0         8      
        hostlseek.c.obj                         152      0         0      
-       hostopen.c.obj                          148      0         0      
        close.c.obj                             140      0         0      
        hostread.c.obj                          132      0         0      
        hostwrite.c.obj                         132      0         0      
@@ -5804,7 +6014,7 @@ MODULE SUMMARY
        hostexit.c.obj                          8        0         0      
        remove.c.obj                            4        0         0      
     +--+---------------------------------------+--------+---------+---------+
-       Total:                                  1488     0         200    
+       Total:                                  1488     0         496    
                                                                          
     C:\ti\ccs2031\ccs\tools\compiler\ti-cgt-armllvm_4.0.4.LTS\lib\armv7r-ti-none-eabihf/libclang_rt.builtins.a
        udivsi3.S.obj                           464      0         0      
@@ -5816,8 +6026,10 @@ MODULE SUMMARY
     +--+---------------------------------------+--------+---------+---------+
        Total:                                  820      0         0      
                                                                          
+       Heap:                                   0        0         32768  
+       Stack:                                  0        0         16384  
     +--+---------------------------------------+--------+---------+---------+
-       Grand Total:                            322046   66469     353273 
+       Grand Total:                            322046   66469     417901 
 
 
 GLOBAL SYMBOLS: SORTED ALPHABETICALLY BY Name 
@@ -5989,27 +6201,27 @@ address   name
 7008dfb1  CSL_MDIO_setPollIPG                                                    
 7008cf01  CSL_armR5GetCpuID                                                      
 70046584  CSL_armR5ReadMpidrReg                                                  
-700f0260  CacheP_configForceWrThru                                               
-700f0321  CacheP_disable                                                         
-700eff50  CacheP_disableL1d                                                      
-700eff78  CacheP_disableL1p                                                      
-700f0371  CacheP_enable                                                          
-700eff90  CacheP_enableL1d                                                       
-700effa8  CacheP_enableL1p                                                       
-700f0254  CacheP_getCacheLevelInfo                                               
-700f021c  CacheP_getEnabled                                                      
-700f0291  CacheP_init                                                            
-700f03b1  CacheP_inv                                                             
-700effc0  CacheP_invL1d                                                          
-700f0034  CacheP_invL1dAll                                                       
-700efff8  CacheP_invL1p                                                          
-700f003c  CacheP_invL1pAll                                                       
-700f0280  CacheP_setDLFO                                                         
-700f0044  CacheP_wb                                                              
-700f00bc  CacheP_wbAll                                                           
-700f0080  CacheP_wbInv                                                           
-700f0164  CacheP_wbInvAll                                                        
-700f017c  CacheP_wbInvAllAsm                                                     
+700ffee0  CacheP_configForceWrThru                                               
+700fffa1  CacheP_disable                                                         
+700ffbd0  CacheP_disableL1d                                                      
+700ffbf8  CacheP_disableL1p                                                      
+700ffff1  CacheP_enable                                                          
+700ffc10  CacheP_enableL1d                                                       
+700ffc28  CacheP_enableL1p                                                       
+700ffed4  CacheP_getCacheLevelInfo                                               
+700ffe9c  CacheP_getEnabled                                                      
+700fff11  CacheP_init                                                            
+70100031  CacheP_inv                                                             
+700ffc40  CacheP_invL1d                                                          
+700ffcb4  CacheP_invL1dAll                                                       
+700ffc78  CacheP_invL1p                                                          
+700ffcbc  CacheP_invL1pAll                                                       
+700fff00  CacheP_setDLFO                                                         
+700ffcc4  CacheP_wb                                                              
+700ffd3c  CacheP_wbAll                                                           
+700ffd00  CacheP_wbInv                                                           
+700ffde4  CacheP_wbInvAll                                                        
+700ffdfc  CacheP_wbInvAllAsm                                                     
 7008c901  ClockP_Params_init                                                     
 70074881  ClockP_construct                                                       
 7008d531  ClockP_destruct                                                        
@@ -6090,8 +6302,8 @@ address   name
 70072ea1  Cpsw_close                                                             
 7008d201  Cpsw_disableEst                                                        
 70083711  Cpsw_enableEst                                                         
-700eee28  Cpsw_gDuplexNames                                                      
-700eede8  Cpsw_gSpeedNames                                                       
+700feaa8  Cpsw_gDuplexNames                                                      
+700fea68  Cpsw_gSpeedNames                                                       
 7008e681  Cpsw_getDmaHandle                                                      
 7004e8f1  Cpsw_handleLinkDown                                                    
 7006a831  Cpsw_initCfg                                                           
@@ -6375,14 +6587,14 @@ address   name
 70079801  Enet_periodicTick                                                      
 7005ca81  Enet_validateGenericIoctl                                              
 7005b811  Enet_validateIoctl                                                     
-700eeea4  FreeRTOS_errno                                                         
-700efea0  GET_ADFSR                                                              
-700efeb8  GET_AIFSR                                                              
-700efea8  GET_DFAR                                                               
-700efe98  GET_DFSR                                                               
-700efec0  GET_IFAR                                                               
-700efeb0  GET_IFSR                                                               
-700efec8  GET_SPSR                                                               
+700feb24  FreeRTOS_errno                                                         
+700ffb20  GET_ADFSR                                                              
+700ffb38  GET_AIFSR                                                              
+700ffb28  GET_DFAR                                                               
+700ffb18  GET_DFSR                                                               
+700ffb40  GET_IFAR                                                               
+700ffb30  GET_IFSR                                                               
+700ffb48  GET_SPSR                                                               
 7008ccc1  GenericPhy_bind                                                        
 7007fd81  GenericPhy_ctrlAutoNegotiation                                         
 70089b71  GenericPhy_ctrlPowerDown                                               
@@ -6411,41 +6623,41 @@ address   name
 7007a4c0  HOSTrename                                                             
 70082c9c  HOSTunlink                                                             
 7007efe8  HOSTwrite                                                              
-700ef111  HwiP_Params_init                                                       
-700ef091  HwiP_clearInt                                                          
-700ef141  HwiP_construct                                                         
-700efdd8  HwiP_data_abort_handler                                                
-700efaf1  HwiP_data_abort_handler_c                                              
-700ef331  HwiP_destruct                                                          
-700efedc  HwiP_disable                                                           
-700efeec  HwiP_disableFIQ                                                        
-700ef001  HwiP_disableInt                                                        
-700eff34  HwiP_disableVIC                                                        
-700efefc  HwiP_enable                                                            
-700eff0c  HwiP_enableFIQ                                                         
-700eefc1  HwiP_enableInt                                                         
-700eff24  HwiP_enableVIC                                                         
-700ef821  HwiP_fiq_handler                                                       
-700eff44  HwiP_getCPSR                                                           
-700ef551  HwiP_inISR                                                             
-700ef3a1  HwiP_init                                                              
-700efc94  HwiP_irq_handler                                                       
-700ef681  HwiP_irq_handler_c                                                     
-700ef0d1  HwiP_post                                                              
-700efe1c  HwiP_prefetch_abort_handler                                            
-700efa11  HwiP_prefetch_abort_handler_c                                          
-700ef991  HwiP_reserved_handler                                                  
-700eff1c  HwiP_restore                                                           
-700ef061  HwiP_restoreInt                                                        
-700ef671  HwiP_restoreVimIrqPriMask                                              
-700ef5d1  HwiP_setVimIrqPriMaskAtomic                                            
-700ef581  HwiP_setVimIrqPriMaskNonAtomic                                         
-700efc24  HwiP_svc_handler                                                       
-700efe68  HwiP_undefined_handler                                                 
-700ef9d1  HwiP_undefined_handler_c                                               
-700efbb1  HwiP_user_data_abort_handler_c                                         
-700efab1  HwiP_user_prefetch_abort_handler_c                                     
-700ef9f1  HwiP_user_undefined_handler_c                                          
+700fed91  HwiP_Params_init                                                       
+700fed11  HwiP_clearInt                                                          
+700fedc1  HwiP_construct                                                         
+700ffa58  HwiP_data_abort_handler                                                
+700ff771  HwiP_data_abort_handler_c                                              
+700fefb1  HwiP_destruct                                                          
+700ffb5c  HwiP_disable                                                           
+700ffb6c  HwiP_disableFIQ                                                        
+700fec81  HwiP_disableInt                                                        
+700ffbb4  HwiP_disableVIC                                                        
+700ffb7c  HwiP_enable                                                            
+700ffb8c  HwiP_enableFIQ                                                         
+700fec41  HwiP_enableInt                                                         
+700ffba4  HwiP_enableVIC                                                         
+700ff4a1  HwiP_fiq_handler                                                       
+700ffbc4  HwiP_getCPSR                                                           
+700ff1d1  HwiP_inISR                                                             
+700ff021  HwiP_init                                                              
+700ff914  HwiP_irq_handler                                                       
+700ff301  HwiP_irq_handler_c                                                     
+700fed51  HwiP_post                                                              
+700ffa9c  HwiP_prefetch_abort_handler                                            
+700ff691  HwiP_prefetch_abort_handler_c                                          
+700ff611  HwiP_reserved_handler                                                  
+700ffb9c  HwiP_restore                                                           
+700fece1  HwiP_restoreInt                                                        
+700ff2f1  HwiP_restoreVimIrqPriMask                                              
+700ff251  HwiP_setVimIrqPriMaskAtomic                                            
+700ff201  HwiP_setVimIrqPriMaskNonAtomic                                         
+700ff8a4  HwiP_svc_handler                                                       
+700ffae8  HwiP_undefined_handler                                                 
+700ff651  HwiP_undefined_handler_c                                               
+700ff831  HwiP_user_data_abort_handler_c                                         
+700ff731  HwiP_user_prefetch_abort_handler_c                                     
+700ff671  HwiP_user_undefined_handler_c                                          
 7008e6e1  I2C_Params_init                                                        
 7008d711  I2C_Transaction_init                                                   
 7006e781  I2C_close                                                              
@@ -6548,20 +6760,20 @@ address   name
 7004de31  Mdio_open                                                              
 700878d1  Module_clockEnable                                                     
 700852b1  Module_clockSetFrequency                                               
-700f0451  MpuP_RegionAttrs_init                                                  
-700f0521  MpuP_disable                                                           
-700f0730  MpuP_disableAsm                                                        
-700f0748  MpuP_disableBRAsm                                                      
-700f0561  MpuP_enable                                                            
-700f0758  MpuP_enableAsm                                                         
-700f0770  MpuP_enableBRAsm                                                       
-700f03f1  MpuP_getAttrs                                                          
-700f05b1  MpuP_init                                                              
-700f0511  MpuP_isEnable                                                          
-700f0780  MpuP_isEnableAsm                                                       
-700f0651  MpuP_isUserAuthorizedToAccessMemory                                    
-700f0481  MpuP_setRegion                                                         
-700f0794  MpuP_setRegionAsm                                                      
+701000d1  MpuP_RegionAttrs_init                                                  
+701001a1  MpuP_disable                                                           
+701003b0  MpuP_disableAsm                                                        
+701003c8  MpuP_disableBRAsm                                                      
+701001e1  MpuP_enable                                                            
+701003d8  MpuP_enableAsm                                                         
+701003f0  MpuP_enableBRAsm                                                       
+70100071  MpuP_getAttrs                                                          
+70100231  MpuP_init                                                              
+70100191  MpuP_isEnable                                                          
+70100400  MpuP_isEnableAsm                                                       
+701002d1  MpuP_isUserAuthorizedToAccessMemory                                    
+70100101  MpuP_setRegion                                                         
+70100414  MpuP_setRegionAsm                                                      
 7008fc91  PhyPriv_getPhyAddr                                                     
 7008fca1  PhyPriv_getRegAccessApi                                                
 70086d41  Pinmux_config                                                          
@@ -6652,27 +6864,27 @@ address   name
 7008a391  UART_spaceAvail                                                        
 7005e771  UART_write                                                             
 7007dea1  UART_writeCancelNoCB                                                   
-00037190  _CIOBUF_                                                               
+700d2890  _CIOBUF_                                                               
 70080b01  _DebugP_assert                                                         
-700f0901  _DebugP_assertNoLog                                                    
+70100581  _DebugP_assertNoLog                                                    
 7007cac1  _DebugP_logZone                                                        
-700f1c78  __ABORT_STACK_END                                                      
+701018f8  __ABORT_STACK_END                                                      
 00000100  __ABORT_STACK_SIZE                                                     
-700f1b78  __ABORT_STACK_START                                                    
-00038880  __BSS_END                                                              
-00000000  __BSS_START                                                            
-00037190  __CIOBUF_                                                              
-700f0b78  __FIQ_STACK_END                                                        
+701017f8  __ABORT_STACK_START                                                    
+700d3f80  __BSS_END                                                              
+700a0300  __BSS_START                                                            
+700d2890  __CIOBUF_                                                              
+701007f8  __FIQ_STACK_END                                                        
 00000100  __FIQ_STACK_SIZE                                                       
-700f0a78  __FIQ_STACK_START                                                      
-700f0a78  __IRQ_STACK_END                                                        
+701006f8  __FIQ_STACK_START                                                      
+701006f8  __IRQ_STACK_END                                                        
 00000100  __IRQ_STACK_SIZE                                                       
-700f0978  __IRQ_STACK_START                                                      
-00044880  __STACK_END                                                            
+701005f8  __IRQ_STACK_START                                                      
+700dff80  __STACK_END                                                            
 00004000  __STACK_SIZE                                                           
-700f1b78  __SVC_STACK_END                                                        
+701017f8  __SVC_STACK_END                                                        
 00001000  __SVC_STACK_SIZE                                                       
-700f0b78  __SVC_STACK_START                                                      
+701007f8  __SVC_STACK_START                                                      
 00008000  __SYSMEM_SIZE                                                          
 00000000  __TI_ATRegion0_region_sz                                               
 00000000  __TI_ATRegion0_src_addr                                                
@@ -6689,23 +6901,23 @@ UNDEFED   __TI_Handler_Table_Base
 UNDEFED   __TI_Handler_Table_Limit                                               
 70086874  __TI_auto_init_nobinit_nopinit                                         
 70085cc8  __TI_cleanup                                                           
-700eee7c  __TI_cleanup_ptr                                                       
+700feafc  __TI_cleanup_ptr                                                       
 70078360  __TI_closefile                                                         
 7007e708  __TI_doflush                                                           
-700eee80  __TI_dtors_ptr                                                         
-700eeeb8  __TI_ft_end                                                            
+700feb00  __TI_dtors_ptr                                                         
+700feb38  __TI_ft_end                                                            
 ffffffff  __TI_pprof_out_hndl                                                    
 7004c78c  __TI_printfi_minimal                                                   
 ffffffff  __TI_prof_data_size                                                    
 ffffffff  __TI_prof_data_start                                                   
 70085d20  __TI_readmsg                                                           
 00000000  __TI_static_base__                                                     
-00037ba4  __TI_tmpnams                                                           
+700d32a4  __TI_tmpnams                                                           
 70085d78  __TI_writemsg                                                          
 7007acdc  __TI_wrt_ok                                                            
-700f1d78  __UNDEFINED_STACK_END                                                  
+701019f8  __UNDEFINED_STACK_END                                                  
 00000100  __UNDEFINED_STACK_SIZE                                                 
-700f1c78  __UNDEFINED_STACK_START                                                
+701018f8  __UNDEFINED_STACK_START                                                
 700834e8  __aeabi_assert                                                         
 700411dc  __aeabi_idiv0                                                          
 7004479c  __aeabi_ldiv0                                                          
@@ -6721,24 +6933,24 @@ ffffffff  __TI_prof_data_start
 7005c164  __aeabi_uidiv                                                          
 7008d8b4  __aeabi_uldivmod                                                       
 ffffffff  __binit__                                                              
-700f0961  __mpu_init                                                             
-00040880  __stack                                                                
+701005e1  __mpu_init                                                             
+700dbf80  __stack                                                                
 7006cc98  __udivmoddi4                                                           
 7005c164  __udivsi3                                                              
 7008de50  _abort_msg                                                             
-700f07d4  _c_int00                                                               
-700f07b0  _c_int00_sbl                                                           
-700ee5f4  _device                                                                
-700eda34  _ftable                                                                
-700eeebc  _lock                                                                  
+70100454  _c_int00                                                               
+70100430  _c_int00_sbl                                                           
+700fe274  _device                                                                
+700fd6b4  _ftable                                                                
+700feb3c  _lock                                                                  
 70045f2c  _nop                                                                   
-700eea40  _stream                                                                
-00038880  _sys_memory                                                            
+700fe6c0  _stream                                                                
+700d3f80  _sys_memory                                                            
 UNDEFED   _system_post_cinit                                                     
-700f0931  _system_pre_init                                                       
-700eeec0  _unlock                                                                
+701005b1  _system_pre_init                                                       
+700feb40  _unlock                                                                
 00000000  _vectors                                                               
-700f0970  abort                                                                  
+701005f0  abort                                                                  
 70079331  acd_add                                                                
 70071c11  acd_arp_reply                                                          
 7007df31  acd_netif_ip_addr_changed                                              
@@ -6788,81 +7000,81 @@ ffffffff  binit
 70046bc8  fseek                                                                  
 70077ab4  fseeko                                                                 
 70092ebc  gADPLLJConfigTbl                                                       
-700eee34  gAddrTranslateConfig                                                   
+700feab4  gAddrTranslateConfig                                                   
 700906ee  gCR5ClkSrcInfoMap                                                      
 700906f0  gCacheConfig                                                           
 700a0284  gCacheL1dCacheLineSize                                                 
 700a0288  gCacheL1pCacheLineSize                                                 
-700eecc8  gClockConfig                                                           
-00038500  gClockCtrl                                                             
-700eeed0  gDebugLogZone                                                          
-700eeed4  gDebugP_uartDrvIndex                                                   
+700fe948  gClockConfig                                                           
+700d3c00  gClockCtrl                                                             
+700feb50  gDebugLogZone                                                          
+700feb54  gDebugP_uartDrvIndex                                                   
 70208000  gDebugShmLog                                                           
-000381a8  gDebugShmLogReaderCtrl                                                 
-700eed28  gDmaCfg                                                                
-700e8300  gEdmaConfig                                                            
-700eeed8  gEdmaConfigNum                                                         
-700eee4c  gEepromAttrs_CAT24M                                                    
-700eee58  gEepromConfig                                                          
-700eeedc  gEepromConfigNum                                                       
-700eedf8  gEepromFxns_CAT24M                                                     
-0003883c  gEepromHandle                                                          
-00036c04  gEepromObject_CAT24M                                                   
-700eee84  gEepromParams                                                          
-700eca50  gEnetCpswCfg                                                           
-700eec48  gEnetMacAddrPool                                                       
-700eeee0  gEnetOsalHwiAllocCnt                                                   
-700eeee4  gEnetOsalHwiPeak                                                       
-700eeee8  gEnetOsalSemAllocCnt                                                   
-700eeeec  gEnetOsalSemPeak                                                       
-700ed634  gEnetPhyDrvDp83869                                                     
-700ed738  gEnetPhyDrvGeneric                                                     
+700d38a8  gDebugShmLogReaderCtrl                                                 
+700fe9a8  gDmaCfg                                                                
+700f7f80  gEdmaConfig                                                            
+700feb58  gEdmaConfigNum                                                         
+700feacc  gEepromAttrs_CAT24M                                                    
+700fead8  gEepromConfig                                                          
+700feb5c  gEepromConfigNum                                                       
+700fea78  gEepromFxns_CAT24M                                                     
+700d3f3c  gEepromHandle                                                          
+700d2304  gEepromObject_CAT24M                                                   
+700feb04  gEepromParams                                                          
+700fc6d0  gEnetCpswCfg                                                           
+700fe8c8  gEnetMacAddrPool                                                       
+700feb60  gEnetOsalHwiAllocCnt                                                   
+700feb64  gEnetOsalHwiPeak                                                       
+700feb68  gEnetOsalSemAllocCnt                                                   
+700feb6c  gEnetOsalSemPeak                                                       
+700fd2b4  gEnetPhyDrvDp83869                                                     
+700fd3b8  gEnetPhyDrvGeneric                                                     
 700a0090  gEnetPhyDrvTbl                                                         
-700e8300  gEnetSoc_cpsw3g                                                        
-700ec6b0  gEnetSoc_cpsw3gMacObj                                                  
-700eebe0  gEnetSoc_cpsw3gSocCfg                                                  
-700e9e60  gEnetSoc_dmaObj                                                        
-700eee64  gEnetSoc_perObj                                                        
-700eefad  gEnetTrace_runtimeLevel                                                
-00037a14  gEnetUtilsObj                                                          
-00034ec0  gFreePbufArr                                                           
+700f7f80  gEnetSoc_cpsw3g                                                        
+700fc330  gEnetSoc_cpsw3gMacObj                                                  
+700fe860  gEnetSoc_cpsw3gSocCfg                                                  
+700f9ae0  gEnetSoc_dmaObj                                                        
+700feae4  gEnetSoc_perObj                                                        
+700fec2d  gEnetTrace_runtimeLevel                                                
+700d3114  gEnetUtilsObj                                                          
+700d05c0  gFreePbufArr                                                           
 70200000  gGatewaySharedMem                                                      
-700eeef0  gHwiConfig                                                             
-00032060  gHwiCtrl                                                               
-700eee8c  gI2cConfig                                                             
-700eeef4  gI2cConfigNum                                                          
-00038840  gI2cHandle                                                             
-700eee70  gI2cParams                                                             
-00038844  gInterface                                                             
-700eee08  gIpcNotifyCoreIntrBitPos                                               
-00037aec  gIpcNotifyCtrl                                                         
-700eeef8  gIpcNotifyInterruptConfigNum_r5fss0_0                                  
-700eeda0  gIpcNotifyInterruptConfig_r5fss0_0                                     
-700ed83c  gIpcNotifyMailboxConfig                                                
-700eeefc  gIpcTask                                                               
-700eef00  gLogReaderTask                                                         
-700eef04  gMainTask                                                              
+700feb70  gHwiConfig                                                             
+700cd360  gHwiCtrl                                                               
+700feb0c  gI2cConfig                                                             
+700feb74  gI2cConfigNum                                                          
+700d3f40  gI2cHandle                                                             
+700feaf0  gI2cParams                                                             
+700d3f44  gInterface                                                             
+700fea88  gIpcNotifyCoreIntrBitPos                                               
+700d31ec  gIpcNotifyCtrl                                                         
+700feb78  gIpcNotifyInterruptConfigNum_r5fss0_0                                  
+700fea20  gIpcNotifyInterruptConfig_r5fss0_0                                     
+700fd4bc  gIpcNotifyMailboxConfig                                                
+700feb7c  gIpcTask                                                               
+700feb80  gLogReaderTask                                                         
+700feb84  gMainTask                                                              
 700906f8  gMpuConfig                                                             
 70090704  gMpuRegionConfig                                                       
 70090914  gMpuRegionSizeInBytes                                                  
 7009d334  gPeripheralClkSrcInfoMap                                               
-000383e4  gRovDummyQueue                                                         
-700eee18  gSocModules                                                            
-700eec78  gSocModulesClockFrequency                                              
+700d3ae4  gRovDummyQueue                                                         
+700fea98  gSocModules                                                            
+700fe8f8  gSocModulesClockFrequency                                              
 700a028c  gStaticIP                                                              
 700a0290  gStaticIPGateway                                                       
 700a0294  gStaticIPNetmask                                                       
-00037c48  gTaskP_ctrl                                                            
-700eee9c  gUartConfig                                                            
-700eef08  gUartConfigNum                                                         
-700eef0c  gUartDmaChConfig                                                       
-700e8300  gUartDmaHandle                                                         
-00038848  gUartHandle                                                            
-700ee944  gUartParams                                                            
-700eef10  gUdpTxTask                                                             
+700d3348  gTaskP_ctrl                                                            
+700feb1c  gUartConfig                                                            
+700feb88  gUartConfigNum                                                         
+700feb8c  gUartDmaChConfig                                                       
+700f7f80  gUartDmaHandle                                                         
+700d3f48  gUartHandle                                                            
+700fe5c4  gUartParams                                                            
+700feb90  gUdpTxTask                                                             
 700a00a0  gXTALInfo                                                              
 7009fc08  g_EnetApp_dmaChParams                                                  
-700eef18  g_netif                                                                
+700feb98  g_netif                                                                
 7008b6e1  gateway_core0_finalize                                                 
 7008c691  gateway_core0_init                                                     
 70079751  gateway_core0_ipc_callback                                             
@@ -6875,7 +7087,7 @@ ffffffff  binit
 7006eab1  gateway_ringbuf_write                                                  
 70070e01  gateway_wait_motor_config_ready                                        
 70075648  getdevice                                                              
-700eef28  hlwipIfApp                                                             
+700feba8  hlwipIfApp                                                             
 7008c6c1  icmp_dest_unreach                                                      
 70048891  icmp_input                                                             
 7008c6f1  icmp_time_exceeded                                                     
@@ -6904,10 +7116,10 @@ ffffffff  binit
 700a029c  ip_addr_broadcast                                                      
 7008bc01  ip_chksum_pseudo                                                       
 7008a051  ip_chksum_pseudo_partial                                               
-00038518  ip_data                                                                
+700d3c18  ip_data                                                                
 700853d1  ip_reass_tmr                                                           
-700eefaf  isMapAvailable                                                         
-0003884c  lock_tcpip_core                                                        
+700fec2f  isMapAvailable                                                         
+700d3f4c  lock_tcpip_core                                                        
 70082df1  log_reader_task_create                                                 
 7008b754  lseek                                                                  
 70093784  lwip_cyclic_timers                                                     
@@ -6915,7 +7127,7 @@ ffffffff  binit
 7008fae1  lwip_htons                                                             
 7008a991  lwip_init                                                              
 70078fc1  lwip_standard_chksum                                                   
-00036688  lwip_stats                                                             
+700d1d88  lwip_stats                                                             
 70075711  main                                                                   
 7006f2c1  main_loop                                                              
 700458a4  malloc                                                                 
@@ -6956,43 +7168,43 @@ ffffffff  binit
 70084661  memp_init_pool                                                         
 70086f71  memp_malloc                                                            
 70083cc1  memp_malloc_pool                                                       
-00036d70  memp_memory_ALTCP_PCB_base                                             
-000352c0  memp_memory_ARP_QUEUE_base                                             
-0003688c  memp_memory_FRAG_PBUF_base                                             
-000372b0  memp_memory_IGMP_GROUP_base                                            
-00026a78  memp_memory_NETBUF_base                                                
-00035ca0  memp_memory_NETCONN_base                                               
-00036ecf  memp_memory_NETDB_base                                                 
-000384dc  memp_memory_PBUF_POOL_base                                             
-00027a97  memp_memory_PBUF_base                                                  
-000212c0  memp_memory_POOL_128_base                                              
-00000000  memp_memory_POOL_1568_base                                             
-00019220  memp_memory_POOL_4096_base                                             
-000382bc  memp_memory_RAW_PCB_base                                               
-0003702e  memp_memory_REASSDATA_base                                             
-00031840  memp_memory_RX_POOL_base                                               
-000304a0  memp_memory_SYS_MBOX_base                                              
-00036448  memp_memory_SYS_TIMEOUT_base                                           
-00028ab6  memp_memory_TCPIP_MSG_API_base                                         
-00029ad5  memp_memory_TCPIP_MSG_INPKT_base                                       
-000373cf  memp_memory_TCP_PCB_LISTEN_base                                        
-0003569f  memp_memory_TCP_PCB_base                                               
-0002aaf4  memp_memory_TCP_SEG_base                                               
-000374ee  memp_memory_UDP_PCB_base                                               
+700d2470  memp_memory_ALTCP_PCB_base                                             
+700d09c0  memp_memory_ARP_QUEUE_base                                             
+700d1f8c  memp_memory_FRAG_PBUF_base                                             
+700d29b0  memp_memory_IGMP_GROUP_base                                            
+700c2978  memp_memory_NETBUF_base                                                
+700d13a0  memp_memory_NETCONN_base                                               
+700d25cf  memp_memory_NETDB_base                                                 
+700d3bdc  memp_memory_PBUF_POOL_base                                             
+700c3997  memp_memory_PBUF_base                                                  
+700bafc0  memp_memory_POOL_128_base                                              
+700a0300  memp_memory_POOL_1568_base                                             
+700b2f1f  memp_memory_POOL_4096_base                                             
+700d39bc  memp_memory_RAW_PCB_base                                               
+700d272e  memp_memory_REASSDATA_base                                             
+700ccb40  memp_memory_RX_POOL_base                                               
+700cb7a0  memp_memory_SYS_MBOX_base                                              
+700d1b48  memp_memory_SYS_TIMEOUT_base                                           
+700c49b6  memp_memory_TCPIP_MSG_API_base                                         
+700c59d5  memp_memory_TCPIP_MSG_INPKT_base                                       
+700d2acf  memp_memory_TCP_PCB_LISTEN_base                                        
+700d0d9f  memp_memory_TCP_PCB_base                                               
+700c69f4  memp_memory_TCP_SEG_base                                               
+700d2bee  memp_memory_UDP_PCB_base                                               
 70091ec0  memp_pools                                                             
 70050391  motor_mapping_init_core0                                               
 70052c61  netif_add                                                              
-00038850  netif_default                                                          
+700d3f50  netif_default                                                          
 700858b1  netif_get_by_index                                                     
 7008ff01  netif_init                                                             
 7007f8e1  netif_invoke_ext_callback                                              
-00038854  netif_list                                                             
+700d3f54  netif_list                                                             
 70065f61  netif_set_addr                                                         
 7008d051  netif_set_default                                                      
 70081401  netif_set_link_down                                                    
 70080081  netif_set_link_up                                                      
 7007d121  netif_set_up                                                           
-00038760  parmbuf                                                                
+700d3e60  parmbuf                                                                
 70083091  pbufQ_deQ                                                              
 7007e8b1  pbufQ_enQ                                                              
 7008d941  pbufQ_init                                                             
@@ -7009,7 +7221,7 @@ ffffffff  binit
 70067171  pbuf_copy_partial                                                      
 700526e1  pbuf_copy_partial_pbuf                                                 
 700596e1  pbuf_free                                                              
-00036a8b  pbuf_free_ooseq_pending                                                
+700d2d0d  pbuf_free_ooseq_pending                                                
 7008e7c1  pbuf_header_force                                                      
 70088591  pbuf_put_at                                                            
 7005b261  pbuf_realloc                                                           
@@ -7018,13 +7230,13 @@ ffffffff  binit
 7008ded1  pbuf_skip                                                              
 7005e911  pbuf_take                                                              
 70069c51  pbuf_take_at                                                           
-0002bb14  pfreeQ                                                                 
+700c7a14  pfreeQ                                                                 
 7008a9d1  printf_                                                                
 7008f631  putchar_                                                               
 7008d0e1  pvPortMalloc                                                           
 7008d971  pvTaskIncrementMutexHeldCount                                          
 700898a1  pvTimerGetTimerID                                                      
-700eef34  pxCurrentTCB                                                           
+700febb4  pxCurrentTCB                                                           
 700699f1  pxPortInitialiseStack                                                  
 70086fc0  rand                                                                   
 70064f61  raw_input                                                              
@@ -7063,11 +7275,11 @@ ffffffff  binit
 7008bc41  sys_unlock_tcpip_core                                                  
 7005ac91  tcp_abandon                                                            
 7008f791  tcp_abort                                                              
-00038858  tcp_active_pcbs                                                        
-0003718d  tcp_active_pcbs_changed                                                
+700d3f58  tcp_active_pcbs                                                        
+700d3a3b  tcp_active_pcbs_changed                                                
 70060931  tcp_alloc                                                              
 700753e1  tcp_backlog_accepted                                                   
-0003885c  tcp_bound_pcbs                                                         
+700d3f5c  tcp_bound_pcbs                                                         
 70084741  tcp_close                                                              
 70073061  tcp_eff_send_mss_netif                                                 
 700506b1  tcp_enqueue_flags                                                      
@@ -7076,9 +7288,9 @@ ffffffff  binit
 7008dcd1  tcp_free_ooseq                                                         
 7008eb61  tcp_init                                                               
 700411e1  tcp_input                                                              
-00038860  tcp_input_pcb                                                          
+700d3f60  tcp_input_pcb                                                          
 70076001  tcp_keepalive                                                          
-00038864  tcp_listen_pcbs                                                        
+700d3f64  tcp_listen_pcbs                                                        
 7007f971  tcp_netif_ip_addr_changed                                              
 700835c1  tcp_next_iss                                                           
 700492b1  tcp_output                                                             
@@ -7102,11 +7314,11 @@ ffffffff  binit
 700761a1  tcp_send_fin                                                           
 700447a1  tcp_slowtmr                                                            
 7004d6d1  tcp_split_unsent_seg                                                   
-00038868  tcp_ticks                                                              
+700d3f68  tcp_ticks                                                              
 70087011  tcp_timer_needed                                                       
 7008dd01  tcp_tmr                                                                
 7008f7b1  tcp_trigger_input_pcb_close                                            
-0003886c  tcp_tw_pcbs                                                            
+700d3f6c  tcp_tw_pcbs                                                            
 7006cb81  tcp_update_rcv_ann_wnd                                                 
 7005fe31  tcp_zero_window_probe                                                  
 70070fe1  tcpip_init                                                             
@@ -7119,17 +7331,17 @@ ffffffff  binit
 70049c41  udp_input                                                              
 70085011  udp_netif_ip_addr_changed                                              
 7008bee1  udp_new                                                                
-00038870  udp_pcbs                                                               
+700d3f70  udp_pcbs                                                               
 7008a491  udp_recv                                                               
 7007bf91  udp_remove                                                             
 70066201  udp_sendto                                                             
 7006d9b1  udp_sendto_if                                                          
 7004d311  udp_sendto_if_src                                                      
 7008f7d1  uiPortGetRunTimeCounterValue                                           
-700eef40  ulPortInterruptNesting                                                 
-700eef44  ulPortSchedularRunning                                                 
-700eef48  ulPortTaskHasFPUContext                                                
-700eef4c  ulPortYieldRequired                                                    
+700febc0  ulPortInterruptNesting                                                 
+700febc4  ulPortSchedularRunning                                                 
+700febc8  ulPortTaskHasFPUContext                                                
+700febcc  ulPortYieldRequired                                                    
 70069531  ulTaskGenericNotifyTake                                                
 7008add1  ulTaskGetIdleRunTimeCounter                                            
 7008c7b1  ulTaskGetRunTimeCounter                                                
@@ -7148,7 +7360,7 @@ ffffffff  binit
 7008ae11  vListInsertEnd                                                         
 7008ff11  vPortConfigTimerForRunTimeStats                                        
 7008def1  vPortFree                                                              
-700efbec  vPortRestoreTaskContext                                                
+700ff86c  vPortRestoreTaskContext                                                
 7008aa91  vPortTimerTickHandler                                                  
 7008ff21  vPortValidateInterruptPriority                                         
 7008e4e1  vPortYeildFromISR                                                      
@@ -7169,7 +7381,7 @@ ffffffff  binit
 7007c661  vTaskStartScheduler                                                    
 7008fb01  vTaskSuspendAll                                                        
 7005eab1  vTaskSwitchContext                                                     
-0003873c  virtToPhymap                                                           
+700d3e3c  virtToPhymap                                                           
 7008d111  vprintf_                                                               
 7008cea1  vsnprintf_                                                             
 7008b804  write                                                                  
@@ -7186,7 +7398,7 @@ ffffffff  binit
 70081871  xQueueGiveMutexRecursive                                               
 7005b9f1  xQueueReceive                                                          
 70065cc1  xQueueReceiveFromISR                                                   
-00037824  xQueueRegistry                                                         
+700d2f24  xQueueRegistry                                                         
 70058a91  xQueueSemaphoreTake                                                    
 70081571  xQueueTakeMutexRecursive                                               
 700725e1  xTaskCheckForTimeOut                                                   
@@ -7221,7 +7433,6 @@ GLOBAL SYMBOLS: SORTED BY Symbol Address
 
 address   name                                                                   
 -------   ----                                                                   
-00000000  __BSS_START                                                            
 00000000  __TI_ATRegion0_region_sz                                               
 00000000  __TI_ATRegion0_src_addr                                                
 00000000  __TI_ATRegion0_trg_addr                                                
@@ -7233,7 +7444,6 @@ address   name
 00000000  __TI_ATRegion2_trg_addr                                                
 00000000  __TI_static_base__                                                     
 00000000  _vectors                                                               
-00000000  memp_memory_POOL_1568_base                                             
 00000100  __ABORT_STACK_SIZE                                                     
 00000100  __FIQ_STACK_SIZE                                                       
 00000100  __IRQ_STACK_SIZE                                                       
@@ -7241,66 +7451,6 @@ address   name
 00001000  __SVC_STACK_SIZE                                                       
 00004000  __STACK_SIZE                                                           
 00008000  __SYSMEM_SIZE                                                          
-00019220  memp_memory_POOL_4096_base                                             
-000212c0  memp_memory_POOL_128_base                                              
-00026a78  memp_memory_NETBUF_base                                                
-00027a97  memp_memory_PBUF_base                                                  
-00028ab6  memp_memory_TCPIP_MSG_API_base                                         
-00029ad5  memp_memory_TCPIP_MSG_INPKT_base                                       
-0002aaf4  memp_memory_TCP_SEG_base                                               
-0002bb14  pfreeQ                                                                 
-000304a0  memp_memory_SYS_MBOX_base                                              
-00031840  memp_memory_RX_POOL_base                                               
-00032060  gHwiCtrl                                                               
-00034ec0  gFreePbufArr                                                           
-000352c0  memp_memory_ARP_QUEUE_base                                             
-0003569f  memp_memory_TCP_PCB_base                                               
-00035ca0  memp_memory_NETCONN_base                                               
-00036448  memp_memory_SYS_TIMEOUT_base                                           
-00036688  lwip_stats                                                             
-0003688c  memp_memory_FRAG_PBUF_base                                             
-00036a8b  pbuf_free_ooseq_pending                                                
-00036c04  gEepromObject_CAT24M                                                   
-00036d70  memp_memory_ALTCP_PCB_base                                             
-00036ecf  memp_memory_NETDB_base                                                 
-0003702e  memp_memory_REASSDATA_base                                             
-0003718d  tcp_active_pcbs_changed                                                
-00037190  _CIOBUF_                                                               
-00037190  __CIOBUF_                                                              
-000372b0  memp_memory_IGMP_GROUP_base                                            
-000373cf  memp_memory_TCP_PCB_LISTEN_base                                        
-000374ee  memp_memory_UDP_PCB_base                                               
-00037824  xQueueRegistry                                                         
-00037a14  gEnetUtilsObj                                                          
-00037aec  gIpcNotifyCtrl                                                         
-00037ba4  __TI_tmpnams                                                           
-00037c48  gTaskP_ctrl                                                            
-000381a8  gDebugShmLogReaderCtrl                                                 
-000382bc  memp_memory_RAW_PCB_base                                               
-000383e4  gRovDummyQueue                                                         
-000384dc  memp_memory_PBUF_POOL_base                                             
-00038500  gClockCtrl                                                             
-00038518  ip_data                                                                
-0003873c  virtToPhymap                                                           
-00038760  parmbuf                                                                
-0003883c  gEepromHandle                                                          
-00038840  gI2cHandle                                                             
-00038844  gInterface                                                             
-00038848  gUartHandle                                                            
-0003884c  lock_tcpip_core                                                        
-00038850  netif_default                                                          
-00038854  netif_list                                                             
-00038858  tcp_active_pcbs                                                        
-0003885c  tcp_bound_pcbs                                                         
-00038860  tcp_input_pcb                                                          
-00038864  tcp_listen_pcbs                                                        
-00038868  tcp_ticks                                                              
-0003886c  tcp_tw_pcbs                                                            
-00038870  udp_pcbs                                                               
-00038880  __BSS_END                                                              
-00038880  _sys_memory                                                            
-00040880  __stack                                                                
-00044880  __STACK_END                                                            
 700411dc  __aeabi_idiv0                                                          
 700411e1  tcp_input                                                              
 700428f8  C$$EXIT                                                                
@@ -8436,164 +8586,226 @@ address   name
 700a0294  gStaticIPNetmask                                                       
 700a0298  ip_addr_any                                                            
 700a029c  ip_addr_broadcast                                                      
-700e8300  gEdmaConfig                                                            
-700e8300  gEnetSoc_cpsw3g                                                        
-700e8300  gUartDmaHandle                                                         
-700e9e60  gEnetSoc_dmaObj                                                        
-700ec6b0  gEnetSoc_cpsw3gMacObj                                                  
-700eca50  gEnetCpswCfg                                                           
-700ed634  gEnetPhyDrvDp83869                                                     
-700ed738  gEnetPhyDrvGeneric                                                     
-700ed83c  gIpcNotifyMailboxConfig                                                
-700eda34  _ftable                                                                
-700ee5f4  _device                                                                
-700ee944  gUartParams                                                            
-700eea40  _stream                                                                
-700eebe0  gEnetSoc_cpsw3gSocCfg                                                  
-700eec48  gEnetMacAddrPool                                                       
-700eec78  gSocModulesClockFrequency                                              
-700eecc8  gClockConfig                                                           
-700eed28  gDmaCfg                                                                
-700eeda0  gIpcNotifyInterruptConfig_r5fss0_0                                     
-700eede8  Cpsw_gSpeedNames                                                       
-700eedf8  gEepromFxns_CAT24M                                                     
-700eee08  gIpcNotifyCoreIntrBitPos                                               
-700eee18  gSocModules                                                            
-700eee28  Cpsw_gDuplexNames                                                      
-700eee34  gAddrTranslateConfig                                                   
-700eee4c  gEepromAttrs_CAT24M                                                    
-700eee58  gEepromConfig                                                          
-700eee64  gEnetSoc_perObj                                                        
-700eee70  gI2cParams                                                             
-700eee7c  __TI_cleanup_ptr                                                       
-700eee80  __TI_dtors_ptr                                                         
-700eee84  gEepromParams                                                          
-700eee8c  gI2cConfig                                                             
-700eee9c  gUartConfig                                                            
-700eeea4  FreeRTOS_errno                                                         
-700eeeb8  __TI_ft_end                                                            
-700eeebc  _lock                                                                  
-700eeec0  _unlock                                                                
-700eeed0  gDebugLogZone                                                          
-700eeed4  gDebugP_uartDrvIndex                                                   
-700eeed8  gEdmaConfigNum                                                         
-700eeedc  gEepromConfigNum                                                       
-700eeee0  gEnetOsalHwiAllocCnt                                                   
-700eeee4  gEnetOsalHwiPeak                                                       
-700eeee8  gEnetOsalSemAllocCnt                                                   
-700eeeec  gEnetOsalSemPeak                                                       
-700eeef0  gHwiConfig                                                             
-700eeef4  gI2cConfigNum                                                          
-700eeef8  gIpcNotifyInterruptConfigNum_r5fss0_0                                  
-700eeefc  gIpcTask                                                               
-700eef00  gLogReaderTask                                                         
-700eef04  gMainTask                                                              
-700eef08  gUartConfigNum                                                         
-700eef0c  gUartDmaChConfig                                                       
-700eef10  gUdpTxTask                                                             
-700eef18  g_netif                                                                
-700eef28  hlwipIfApp                                                             
-700eef34  pxCurrentTCB                                                           
-700eef40  ulPortInterruptNesting                                                 
-700eef44  ulPortSchedularRunning                                                 
-700eef48  ulPortTaskHasFPUContext                                                
-700eef4c  ulPortYieldRequired                                                    
-700eefad  gEnetTrace_runtimeLevel                                                
-700eefaf  isMapAvailable                                                         
-700eefc1  HwiP_enableInt                                                         
-700ef001  HwiP_disableInt                                                        
-700ef061  HwiP_restoreInt                                                        
-700ef091  HwiP_clearInt                                                          
-700ef0d1  HwiP_post                                                              
-700ef111  HwiP_Params_init                                                       
-700ef141  HwiP_construct                                                         
-700ef331  HwiP_destruct                                                          
-700ef3a1  HwiP_init                                                              
-700ef551  HwiP_inISR                                                             
-700ef581  HwiP_setVimIrqPriMaskNonAtomic                                         
-700ef5d1  HwiP_setVimIrqPriMaskAtomic                                            
-700ef671  HwiP_restoreVimIrqPriMask                                              
-700ef681  HwiP_irq_handler_c                                                     
-700ef821  HwiP_fiq_handler                                                       
-700ef991  HwiP_reserved_handler                                                  
-700ef9d1  HwiP_undefined_handler_c                                               
-700ef9f1  HwiP_user_undefined_handler_c                                          
-700efa11  HwiP_prefetch_abort_handler_c                                          
-700efab1  HwiP_user_prefetch_abort_handler_c                                     
-700efaf1  HwiP_data_abort_handler_c                                              
-700efbb1  HwiP_user_data_abort_handler_c                                         
-700efbec  vPortRestoreTaskContext                                                
-700efc24  HwiP_svc_handler                                                       
-700efc94  HwiP_irq_handler                                                       
-700efdd8  HwiP_data_abort_handler                                                
-700efe1c  HwiP_prefetch_abort_handler                                            
-700efe68  HwiP_undefined_handler                                                 
-700efe98  GET_DFSR                                                               
-700efea0  GET_ADFSR                                                              
-700efea8  GET_DFAR                                                               
-700efeb0  GET_IFSR                                                               
-700efeb8  GET_AIFSR                                                              
-700efec0  GET_IFAR                                                               
-700efec8  GET_SPSR                                                               
-700efedc  HwiP_disable                                                           
-700efeec  HwiP_disableFIQ                                                        
-700efefc  HwiP_enable                                                            
-700eff0c  HwiP_enableFIQ                                                         
-700eff1c  HwiP_restore                                                           
-700eff24  HwiP_enableVIC                                                         
-700eff34  HwiP_disableVIC                                                        
-700eff44  HwiP_getCPSR                                                           
-700eff50  CacheP_disableL1d                                                      
-700eff78  CacheP_disableL1p                                                      
-700eff90  CacheP_enableL1d                                                       
-700effa8  CacheP_enableL1p                                                       
-700effc0  CacheP_invL1d                                                          
-700efff8  CacheP_invL1p                                                          
-700f0034  CacheP_invL1dAll                                                       
-700f003c  CacheP_invL1pAll                                                       
-700f0044  CacheP_wb                                                              
-700f0080  CacheP_wbInv                                                           
-700f00bc  CacheP_wbAll                                                           
-700f0164  CacheP_wbInvAll                                                        
-700f017c  CacheP_wbInvAllAsm                                                     
-700f021c  CacheP_getEnabled                                                      
-700f0254  CacheP_getCacheLevelInfo                                               
-700f0260  CacheP_configForceWrThru                                               
-700f0280  CacheP_setDLFO                                                         
-700f0291  CacheP_init                                                            
-700f0321  CacheP_disable                                                         
-700f0371  CacheP_enable                                                          
-700f03b1  CacheP_inv                                                             
-700f03f1  MpuP_getAttrs                                                          
-700f0451  MpuP_RegionAttrs_init                                                  
-700f0481  MpuP_setRegion                                                         
-700f0511  MpuP_isEnable                                                          
-700f0521  MpuP_disable                                                           
-700f0561  MpuP_enable                                                            
-700f05b1  MpuP_init                                                              
-700f0651  MpuP_isUserAuthorizedToAccessMemory                                    
-700f0730  MpuP_disableAsm                                                        
-700f0748  MpuP_disableBRAsm                                                      
-700f0758  MpuP_enableAsm                                                         
-700f0770  MpuP_enableBRAsm                                                       
-700f0780  MpuP_isEnableAsm                                                       
-700f0794  MpuP_setRegionAsm                                                      
-700f07b0  _c_int00_sbl                                                           
-700f07d4  _c_int00                                                               
-700f0901  _DebugP_assertNoLog                                                    
-700f0931  _system_pre_init                                                       
-700f0961  __mpu_init                                                             
-700f0970  abort                                                                  
-700f0978  __IRQ_STACK_START                                                      
-700f0a78  __FIQ_STACK_START                                                      
-700f0a78  __IRQ_STACK_END                                                        
-700f0b78  __FIQ_STACK_END                                                        
-700f0b78  __SVC_STACK_START                                                      
-700f1b78  __ABORT_STACK_START                                                    
-700f1b78  __SVC_STACK_END                                                        
-700f1c78  __ABORT_STACK_END                                                      
-700f1c78  __UNDEFINED_STACK_START                                                
-700f1d78  __UNDEFINED_STACK_END                                                  
+700a0300  __BSS_START                                                            
+700a0300  memp_memory_POOL_1568_base                                             
+700b2f1f  memp_memory_POOL_4096_base                                             
+700bafc0  memp_memory_POOL_128_base                                              
+700c2978  memp_memory_NETBUF_base                                                
+700c3997  memp_memory_PBUF_base                                                  
+700c49b6  memp_memory_TCPIP_MSG_API_base                                         
+700c59d5  memp_memory_TCPIP_MSG_INPKT_base                                       
+700c69f4  memp_memory_TCP_SEG_base                                               
+700c7a14  pfreeQ                                                                 
+700cb7a0  memp_memory_SYS_MBOX_base                                              
+700ccb40  memp_memory_RX_POOL_base                                               
+700cd360  gHwiCtrl                                                               
+700d05c0  gFreePbufArr                                                           
+700d09c0  memp_memory_ARP_QUEUE_base                                             
+700d0d9f  memp_memory_TCP_PCB_base                                               
+700d13a0  memp_memory_NETCONN_base                                               
+700d1b48  memp_memory_SYS_TIMEOUT_base                                           
+700d1d88  lwip_stats                                                             
+700d1f8c  memp_memory_FRAG_PBUF_base                                             
+700d2304  gEepromObject_CAT24M                                                   
+700d2470  memp_memory_ALTCP_PCB_base                                             
+700d25cf  memp_memory_NETDB_base                                                 
+700d272e  memp_memory_REASSDATA_base                                             
+700d2890  _CIOBUF_                                                               
+700d2890  __CIOBUF_                                                              
+700d29b0  memp_memory_IGMP_GROUP_base                                            
+700d2acf  memp_memory_TCP_PCB_LISTEN_base                                        
+700d2bee  memp_memory_UDP_PCB_base                                               
+700d2d0d  pbuf_free_ooseq_pending                                                
+700d2f24  xQueueRegistry                                                         
+700d3114  gEnetUtilsObj                                                          
+700d31ec  gIpcNotifyCtrl                                                         
+700d32a4  __TI_tmpnams                                                           
+700d3348  gTaskP_ctrl                                                            
+700d38a8  gDebugShmLogReaderCtrl                                                 
+700d39bc  memp_memory_RAW_PCB_base                                               
+700d3a3b  tcp_active_pcbs_changed                                                
+700d3ae4  gRovDummyQueue                                                         
+700d3bdc  memp_memory_PBUF_POOL_base                                             
+700d3c00  gClockCtrl                                                             
+700d3c18  ip_data                                                                
+700d3e3c  virtToPhymap                                                           
+700d3e60  parmbuf                                                                
+700d3f3c  gEepromHandle                                                          
+700d3f40  gI2cHandle                                                             
+700d3f44  gInterface                                                             
+700d3f48  gUartHandle                                                            
+700d3f4c  lock_tcpip_core                                                        
+700d3f50  netif_default                                                          
+700d3f54  netif_list                                                             
+700d3f58  tcp_active_pcbs                                                        
+700d3f5c  tcp_bound_pcbs                                                         
+700d3f60  tcp_input_pcb                                                          
+700d3f64  tcp_listen_pcbs                                                        
+700d3f68  tcp_ticks                                                              
+700d3f6c  tcp_tw_pcbs                                                            
+700d3f70  udp_pcbs                                                               
+700d3f80  __BSS_END                                                              
+700d3f80  _sys_memory                                                            
+700dbf80  __stack                                                                
+700dff80  __STACK_END                                                            
+700f7f80  gEdmaConfig                                                            
+700f7f80  gEnetSoc_cpsw3g                                                        
+700f7f80  gUartDmaHandle                                                         
+700f9ae0  gEnetSoc_dmaObj                                                        
+700fc330  gEnetSoc_cpsw3gMacObj                                                  
+700fc6d0  gEnetCpswCfg                                                           
+700fd2b4  gEnetPhyDrvDp83869                                                     
+700fd3b8  gEnetPhyDrvGeneric                                                     
+700fd4bc  gIpcNotifyMailboxConfig                                                
+700fd6b4  _ftable                                                                
+700fe274  _device                                                                
+700fe5c4  gUartParams                                                            
+700fe6c0  _stream                                                                
+700fe860  gEnetSoc_cpsw3gSocCfg                                                  
+700fe8c8  gEnetMacAddrPool                                                       
+700fe8f8  gSocModulesClockFrequency                                              
+700fe948  gClockConfig                                                           
+700fe9a8  gDmaCfg                                                                
+700fea20  gIpcNotifyInterruptConfig_r5fss0_0                                     
+700fea68  Cpsw_gSpeedNames                                                       
+700fea78  gEepromFxns_CAT24M                                                     
+700fea88  gIpcNotifyCoreIntrBitPos                                               
+700fea98  gSocModules                                                            
+700feaa8  Cpsw_gDuplexNames                                                      
+700feab4  gAddrTranslateConfig                                                   
+700feacc  gEepromAttrs_CAT24M                                                    
+700fead8  gEepromConfig                                                          
+700feae4  gEnetSoc_perObj                                                        
+700feaf0  gI2cParams                                                             
+700feafc  __TI_cleanup_ptr                                                       
+700feb00  __TI_dtors_ptr                                                         
+700feb04  gEepromParams                                                          
+700feb0c  gI2cConfig                                                             
+700feb1c  gUartConfig                                                            
+700feb24  FreeRTOS_errno                                                         
+700feb38  __TI_ft_end                                                            
+700feb3c  _lock                                                                  
+700feb40  _unlock                                                                
+700feb50  gDebugLogZone                                                          
+700feb54  gDebugP_uartDrvIndex                                                   
+700feb58  gEdmaConfigNum                                                         
+700feb5c  gEepromConfigNum                                                       
+700feb60  gEnetOsalHwiAllocCnt                                                   
+700feb64  gEnetOsalHwiPeak                                                       
+700feb68  gEnetOsalSemAllocCnt                                                   
+700feb6c  gEnetOsalSemPeak                                                       
+700feb70  gHwiConfig                                                             
+700feb74  gI2cConfigNum                                                          
+700feb78  gIpcNotifyInterruptConfigNum_r5fss0_0                                  
+700feb7c  gIpcTask                                                               
+700feb80  gLogReaderTask                                                         
+700feb84  gMainTask                                                              
+700feb88  gUartConfigNum                                                         
+700feb8c  gUartDmaChConfig                                                       
+700feb90  gUdpTxTask                                                             
+700feb98  g_netif                                                                
+700feba8  hlwipIfApp                                                             
+700febb4  pxCurrentTCB                                                           
+700febc0  ulPortInterruptNesting                                                 
+700febc4  ulPortSchedularRunning                                                 
+700febc8  ulPortTaskHasFPUContext                                                
+700febcc  ulPortYieldRequired                                                    
+700fec2d  gEnetTrace_runtimeLevel                                                
+700fec2f  isMapAvailable                                                         
+700fec41  HwiP_enableInt                                                         
+700fec81  HwiP_disableInt                                                        
+700fece1  HwiP_restoreInt                                                        
+700fed11  HwiP_clearInt                                                          
+700fed51  HwiP_post                                                              
+700fed91  HwiP_Params_init                                                       
+700fedc1  HwiP_construct                                                         
+700fefb1  HwiP_destruct                                                          
+700ff021  HwiP_init                                                              
+700ff1d1  HwiP_inISR                                                             
+700ff201  HwiP_setVimIrqPriMaskNonAtomic                                         
+700ff251  HwiP_setVimIrqPriMaskAtomic                                            
+700ff2f1  HwiP_restoreVimIrqPriMask                                              
+700ff301  HwiP_irq_handler_c                                                     
+700ff4a1  HwiP_fiq_handler                                                       
+700ff611  HwiP_reserved_handler                                                  
+700ff651  HwiP_undefined_handler_c                                               
+700ff671  HwiP_user_undefined_handler_c                                          
+700ff691  HwiP_prefetch_abort_handler_c                                          
+700ff731  HwiP_user_prefetch_abort_handler_c                                     
+700ff771  HwiP_data_abort_handler_c                                              
+700ff831  HwiP_user_data_abort_handler_c                                         
+700ff86c  vPortRestoreTaskContext                                                
+700ff8a4  HwiP_svc_handler                                                       
+700ff914  HwiP_irq_handler                                                       
+700ffa58  HwiP_data_abort_handler                                                
+700ffa9c  HwiP_prefetch_abort_handler                                            
+700ffae8  HwiP_undefined_handler                                                 
+700ffb18  GET_DFSR                                                               
+700ffb20  GET_ADFSR                                                              
+700ffb28  GET_DFAR                                                               
+700ffb30  GET_IFSR                                                               
+700ffb38  GET_AIFSR                                                              
+700ffb40  GET_IFAR                                                               
+700ffb48  GET_SPSR                                                               
+700ffb5c  HwiP_disable                                                           
+700ffb6c  HwiP_disableFIQ                                                        
+700ffb7c  HwiP_enable                                                            
+700ffb8c  HwiP_enableFIQ                                                         
+700ffb9c  HwiP_restore                                                           
+700ffba4  HwiP_enableVIC                                                         
+700ffbb4  HwiP_disableVIC                                                        
+700ffbc4  HwiP_getCPSR                                                           
+700ffbd0  CacheP_disableL1d                                                      
+700ffbf8  CacheP_disableL1p                                                      
+700ffc10  CacheP_enableL1d                                                       
+700ffc28  CacheP_enableL1p                                                       
+700ffc40  CacheP_invL1d                                                          
+700ffc78  CacheP_invL1p                                                          
+700ffcb4  CacheP_invL1dAll                                                       
+700ffcbc  CacheP_invL1pAll                                                       
+700ffcc4  CacheP_wb                                                              
+700ffd00  CacheP_wbInv                                                           
+700ffd3c  CacheP_wbAll                                                           
+700ffde4  CacheP_wbInvAll                                                        
+700ffdfc  CacheP_wbInvAllAsm                                                     
+700ffe9c  CacheP_getEnabled                                                      
+700ffed4  CacheP_getCacheLevelInfo                                               
+700ffee0  CacheP_configForceWrThru                                               
+700fff00  CacheP_setDLFO                                                         
+700fff11  CacheP_init                                                            
+700fffa1  CacheP_disable                                                         
+700ffff1  CacheP_enable                                                          
+70100031  CacheP_inv                                                             
+70100071  MpuP_getAttrs                                                          
+701000d1  MpuP_RegionAttrs_init                                                  
+70100101  MpuP_setRegion                                                         
+70100191  MpuP_isEnable                                                          
+701001a1  MpuP_disable                                                           
+701001e1  MpuP_enable                                                            
+70100231  MpuP_init                                                              
+701002d1  MpuP_isUserAuthorizedToAccessMemory                                    
+701003b0  MpuP_disableAsm                                                        
+701003c8  MpuP_disableBRAsm                                                      
+701003d8  MpuP_enableAsm                                                         
+701003f0  MpuP_enableBRAsm                                                       
+70100400  MpuP_isEnableAsm                                                       
+70100414  MpuP_setRegionAsm                                                      
+70100430  _c_int00_sbl                                                           
+70100454  _c_int00                                                               
+70100581  _DebugP_assertNoLog                                                    
+701005b1  _system_pre_init                                                       
+701005e1  __mpu_init                                                             
+701005f0  abort                                                                  
+701005f8  __IRQ_STACK_START                                                      
+701006f8  __FIQ_STACK_START                                                      
+701006f8  __IRQ_STACK_END                                                        
+701007f8  __FIQ_STACK_END                                                        
+701007f8  __SVC_STACK_START                                                      
+701017f8  __ABORT_STACK_START                                                    
+701017f8  __SVC_STACK_END                                                        
+701018f8  __ABORT_STACK_END                                                      
+701018f8  __UNDEFINED_STACK_START                                                
+701019f8  __UNDEFINED_STACK_END                                                  
 70200000  gGatewaySharedMem                                                      
 70204d30  dbg_ipc_recv_count                                                     
 70204d34  dbg_udp_rx_count                                                       

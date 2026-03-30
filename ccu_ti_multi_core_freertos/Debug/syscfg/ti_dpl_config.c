@@ -196,7 +196,7 @@ const MpuP_RegionConfig gMpuRegionConfig[CONFIG_MPU_NUM_REGIONS] RODATA_CFG_SECT
         },
     },
     {
-        .baseAddr = 0x70240000u,
+        .baseAddr = 0x70280000u,
         .size = MpuP_RegionSize_256K,
         .attrs = {
             .isEnable = 1,

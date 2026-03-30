@@ -9,6 +9,8 @@ Mọi phản hồi và giải pháp phải được căn chỉnh dựa trên cá
 - **Cấu trúc dự án:** Hiểu rõ codebase hiện tại để đảm bảo tính nhất quán (Coding convention, Folder structure).
 - **Mã nguồn tham khảo (Golden Reference):** - Đường dẫn: `D:\VinDynamics\Project\CCU_TI_RS485_CAN\2.Firmware\draft\mcu_plus_sdk_am263px_11_01_00_19`
   - Mục đích: Đây là bộ mẫu chuẩn về cách sử dụng SDK (Drivers, Peripherals, IPC, Real-time tasks). Khi viết code mới cho AM263P4, phải bắt chước style và cấu hình từ folder này. Yêu cầu: Phải tuân thủ API, cấu trúc Driver và cách sử dụng SysConfig từ SDK này. Không tự chế API.
+  - Đường dẫn: `D:\VinDynamics\Project\CCU_TI_RS485_CAN\2.Firmware\draft\ccu_ti`
+  - Mục đích: Đây là dự án tham chiếu, chạy bình thường, dùng để làm code tham chiếu khi fix bug như can, ethernet... không chạy.
 
 ## 3. Technical Constraints (AM263P4 & MCU+ SDK)
 - **SDK Version:** MCU+ SDK v11.01.00.19.

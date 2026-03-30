@@ -63,7 +63,7 @@
 #include <networking/enet/core/src/dma/cpdma/enet_cdma_memcfg.h>
 
 
-#define ENET_MEM_LARGE_POOL_NUM_PKTS        (192U)
+#define ENET_MEM_LARGE_POOL_NUM_PKTS        (64U)
 #define ENET_MEM_MEDIUM_POOL_NUM_PKTS       (0U)
 #define ENET_MEM_SMALL_POOL_NUM_PKTS        (0U)
 #define ENET_PKTINFOMEM_ONLY_NUM_PKTS       (16U)
