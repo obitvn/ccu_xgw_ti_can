@@ -273,9 +273,11 @@ section8.load_memory                 = "USER_SHM_MEM";
 section8.type                        = "NOLOAD";
 section8.$name                       = "User Shared Memory";
 section8.group                       = false;
-section8.output_section.create(1);
+section8.output_section.create(2);
 section8.output_section[0].$name     = ".bss.user_shared_mem";
 section8.output_section[0].alignment = 0;
+section8.output_section[1].$name     = ".bss.user_shared_mem_debug";
+section8.output_section[1].alignment = 0;
 
 section9.load_memory                 = "LOG_SHM_MEM";
 section9.$name                       = "Log Shared Memory";

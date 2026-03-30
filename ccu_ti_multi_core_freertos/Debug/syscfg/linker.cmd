@@ -124,6 +124,9 @@ SECTIONS
     .bss.user_shared_mem (NOLOAD) : {
     } > USER_SHM_MEM    
 
+    .bss.user_shared_mem_debug (NOLOAD) : {
+    } > USER_SHM_MEM    
+
     .bss.log_shared_mem (NOLOAD) : {
     } > LOG_SHM_MEM    
 

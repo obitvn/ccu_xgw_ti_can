@@ -111,6 +111,17 @@ bool imu_protocol_get_state_isr(imu_state_t* imu_state);
  */
 void imu_uart_isr_log_stats(void);
 
+/**
+ * @brief Process pending IMU IPC notification (call from main loop)
+ *
+ * BUG B010 FIX: This function checks if IMU data is ready and sends
+ * IPC notification to Core0 in task context (safe from spinlock deadlock).
+ * Should be called from the main loop, NOT from ISR context.
+ *
+ * @return true if notification was sent, false otherwise
+ */
+bool imu_uart_process_ipc_notification(void);
+
 /*==============================================================================
  * STUB CALLBACKS (for syscfg compatibility)
  *============================================================================*/

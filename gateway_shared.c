@@ -9,11 +9,13 @@
  * @author CCU Multicore Project
  * @date 2026-03-18
  * @date 2026-03-26 - Added lock-free ring buffer support
+ * @date 2026-03-29 - Added emergency stop handler (S006)
  */
 
 #include "gateway_shared.h"
 #include <kernel/dpl/DebugP.h>
 #include <string.h>
+#include <drivers/gpio.h>  /* For emergency GPIO output (optional) */
 
 /*==============================================================================
  * SHARED MEMORY INSTANCE
@@ -456,6 +458,9 @@ int gateway_write_imu_state(const imu_state_ipc_t* imu_state)
     gGatewaySharedMem.imu_ready_flag = 1;
     gateway_memory_barrier();
 
+    /* [QA TRACE T029] Increment IMU frame counter */
+    DEBUG_COUNTER_INC(dbg_imu_frame_count);
+
     return 0;
 }
 
@@ -484,6 +489,71 @@ int gateway_read_imu_state(imu_state_ipc_t* imu_state)
 int gateway_notify_imu_ready(void)
 {
     return IpcNotify_sendMsg(CSL_CORE_ID_R5FSS0_0, GATEWAY_IPC_CLIENT_ID, MSG_IMU_DATA_READY, 1);
+}
+
+/*==============================================================================
+ * EMERGENCY STOP HANDLERS
+ *============================================================================*/
+
+/**
+ * @brief Core 0: Emergency stop handler
+ *
+ * Called when emergency stop is triggered (from Core 1 via IPC or locally).
+ * Implements basic emergency stop actions:
+ * 1. Log event to syslog/UART
+ * 2. Set shared memory emergency flag
+ * 3. Notify application via IPC to Core 1
+ * 4. Optional: Set emergency GPIO output (if configured)
+ *
+ * @note This is a CORE 0 ONLY function
+ * @note Emergency GPIO is optional - requires CONFIG_GPIO_EMERGENCY_PIN to be defined
+ * @note Motor shutdown is handled by Core 1 via IPC notification
+ *
+ * Implementation Details:
+ * - Uses DebugP_log for immediate UART output
+ * - Uses LOG_ALERT for syslog integration (if enabled)
+ * - Sets emergency_stop_flag in shared memory for both cores
+ * - Sends MSG_EMERGENCY_STOP to Core 1 to trigger motor shutdown
+ * - Optional: Sets GPIO pin high if emergency GPIO is configured
+ *
+ * [STUB S006] - Implemented basic emergency stop handler
+ */
+void gateway_core0_emergency_stop_handler(void)
+{
+    /* 1. Log event immediately to UART (always available) */
+    DebugP_log("[Core0] *** EMERGENCY STOP TRIGGERED ***\r\n");
+
+    /* 2. Log to syslog if enabled (LOG_ALERT = highest priority) */
+    #ifdef SYSLOG_REDIRECT_DEBUGP
+    LOG_ALERT("Emergency stop triggered on Core0");
+    #endif
+
+    /* 3. Set shared memory emergency flag (visible to both cores) */
+    gateway_memory_barrier();
+    gGatewaySharedMem.emergency_stop_flag = 1;
+    gateway_memory_barrier();
+
+    /* 4. Update error statistics */
+    gGatewaySharedMem.stats.error_count++;
+
+    /* 5. Notify Core 1 to stop all motors via IPC */
+    /* Core 1 will handle CAN bus shutdown and motor stop commands */
+    IpcNotify_sendMsg(CSL_CORE_ID_R5FSS0_1, GATEWAY_IPC_CLIENT_ID, MSG_EMERGENCY_STOP, 1);
+
+    /* 6. Optional: Set emergency GPIO output (if configured) */
+    /* This requires a GPIO pin to be configured in SysConfig with CONFIG_GPIO_EMERGENCY_PIN */
+    #ifdef CONFIG_GPIO_EMERGENCY_PIN
+    #ifdef CONFIG_GPIO_EMERGENCY_BASE_ADDR
+    GPIO_pinWriteHigh(CONFIG_GPIO_EMERGENCY_BASE_ADDR, CONFIG_GPIO_EMERGENCY_PIN);
+    DebugP_log("[Core0] Emergency GPIO set HIGH\r\n");
+    #endif
+    #endif
+
+    /* 7. Notify application callback (if registered) */
+    /* Application can implement custom emergency stop logic */
+    /* TODO: Add callback registration mechanism if needed */
+
+    DebugP_log("[Core0] Emergency stop handling complete\r\n");
 }
 
 #if GATEWAY_USE_PINGPONG_BUFFER
@@ -1227,3 +1297,68 @@ const SharedMotorConfig_t* gateway_get_motor_config(uint8_t index)
 }
 
 #endif /* GATEWAY_USE_LOCKFREE_RINGBUF */
+
+/*==============================================================================
+ * QA DEBUG COUNTERS (for AGENT_QA instrumentation)
+ *============================================================================*/
+
+/**
+ * @brief Debug counters for runtime instrumentation
+ *
+ * [QA TRACE T009] - Task T009: Instrument shared memory counters
+ *
+ * These counters are placed at end of shared memory (offset 0x8000 from base 0x701D0000)
+ * in the .bss.user_shared_mem_debug section for non-cacheable access.
+ * All counters are accessible via JTAG for real-time debugging without stopping cores.
+ *
+ * Base Address: 0x701D0000 + 0x8000 = 0x701D8000
+ *
+ * Counter Map:
+ *   Offset  Variable                Purpose                              [Trace ID]
+ *   ------  --------------------    ----------------------------------  ----------
+ *   0x00    dbg_ipc_send_count      IPC sends Core0→Core1                [T023]
+ *   0x04    dbg_ipc_recv_count      IPC recvs Core1→Core0                [T024]
+ *   0x08    dbg_can_rx_count        CAN RX frames                        [T025]
+ *   0x0C    dbg_can_tx_count        CAN TX frames                        [T026]
+ *   0x10    dbg_udp_rx_count        UDP RX packets                       [T027]
+ *   0x14    dbg_udp_tx_count        UDP TX packets                       [T028]
+ *   0x18    dbg_imu_frame_count     IMU frames                           [T029]
+ *   0x1C    dbg_error_count         Total errors                         [T030]
+ *   0x20    dbg_last_error_code     Last error code                      [T031]
+ *   0x24    dbg_ipc_register_count  IPC registration calls                [T015]
+ *
+ * Usage:
+ *   - Increment counters: DEBUG_COUNTER_INC(dbg_can_rx_count);
+ *   - Set error: DEBUG_SET_ERROR(0x1234);
+ *   - Read via JTAG: Monitor address 0x701D8000 + offset
+ */
+
+/* [QA TRACE T023] IPC send count Core0→Core1 */
+volatile uint32_t dbg_ipc_send_count __attribute__((section(".bss.user_shared_mem_debug"))) = 0;
+
+/* [QA TRACE T024] IPC receive count Core1→Core0 */
+volatile uint32_t dbg_ipc_recv_count __attribute__((section(".bss.user_shared_mem_debug"))) = 0;
+
+/* [QA TRACE T025] CAN RX frame count */
+volatile uint32_t dbg_can_rx_count __attribute__((section(".bss.user_shared_mem_debug"))) = 0;
+
+/* [QA TRACE T026] CAN TX frame count */
+volatile uint32_t dbg_can_tx_count __attribute__((section(".bss.user_shared_mem_debug"))) = 0;
+
+/* [QA TRACE T027] UDP RX packet count */
+volatile uint32_t dbg_udp_rx_count __attribute__((section(".bss.user_shared_mem_debug"))) = 0;
+
+/* [QA TRACE T028] UDP TX packet count */
+volatile uint32_t dbg_udp_tx_count __attribute__((section(".bss.user_shared_mem_debug"))) = 0;
+
+/* [QA TRACE T029] IMU frame count */
+volatile uint32_t dbg_imu_frame_count __attribute__((section(".bss.user_shared_mem_debug"))) = 0;
+
+/* [QA TRACE T030] Total error count */
+volatile uint32_t dbg_error_count __attribute__((section(".bss.user_shared_mem_debug"))) = 0;
+
+/* [QA TRACE T031] Last error code */
+volatile uint32_t dbg_last_error_code __attribute__((section(".bss.user_shared_mem_debug"))) = 0;
+
+/* [QA TRACE T015] IPC registration count */
+volatile uint32_t dbg_ipc_register_count __attribute__((section(".bss.user_shared_mem_debug"))) = 0;

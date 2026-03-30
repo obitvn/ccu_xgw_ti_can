@@ -14,6 +14,8 @@
 #include "../common/crc32.h"
 #include "kernel/dpl/ClockP.h"
 #include "kernel/dpl/DebugP.h"
+#include "kernel/dpl/AddrTranslateP.h"
+#include "drivers/gpio.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "lwip/api.h"
@@ -21,6 +23,7 @@
 #include "lwip/mem.h"
 #include "lwip/sys.h"
 #include <string.h>
+#include "ti_drivers_config.h"
 
 /*==============================================================================
  * CONSTANTS
@@ -28,6 +31,12 @@
 
 #define XGW_UDP_TASK_PRIORITY    (configMAX_PRIORITIES - 3)
 #define XGW_UDP_TASK_STACK_SIZE   4096
+
+/* [QA TRACE T019, T020] Debug GPIO pins for UDP RX/TX instrumentation */
+#define DEBUG_GPIO_UDP_TX_BASE_ADDR      (CSL_GPIO3_U_BASE)
+#define DEBUG_GPIO_UDP_TX_PIN            (60U)  /* GPIO3 PA4 = UDP TX indicator [QA TRACE T020] */
+#define DEBUG_GPIO_UDP_RX_BASE_ADDR      (CSL_GPIO3_U_BASE)
+#define DEBUG_GPIO_UDP_RX_PIN            (61U)  /* GPIO3 PA5 = UDP RX indicator [QA TRACE T019] */
 
 /*==============================================================================
  * TYPE DEFINITIONS
@@ -71,6 +80,34 @@ static bool g_pc_ip_configured = false;  /* Track if IP was explicitly set */
 static void xgw_udp_recv_callback(void* arg, struct udp_pcb* pcb, struct pbuf* p,
                                    const ip_addr_t* addr, u16_t port);
 
+/* [QA TRACE T019, T020] Debug GPIO helper functions */
+static void debug_gpio_init_udp(void);
+
+/*==============================================================================
+ * DEBUG GPIO HELPER FUNCTIONS
+ *============================================================================*/
+
+/**
+ * @brief Initialize debug GPIO pins for UDP TX/RX instrumentation
+ *
+ * [QA TRACE T019, T020] Configure GPIO PA4 (TX) and PA5 (RX) as outputs
+ * MUST be called before any UDP trace points
+ */
+static void debug_gpio_init_udp(void)
+{
+    uint32_t baseAddr;
+
+    /* Configure PA4 as output (UDP TX indicator) [QA TRACE T020] */
+    baseAddr = (uint32_t)AddrTranslateP_getLocalAddr(DEBUG_GPIO_UDP_TX_BASE_ADDR);
+    GPIO_setDirMode(baseAddr, DEBUG_GPIO_UDP_TX_PIN, GPIO_DIRECTION_OUTPUT);
+    GPIO_pinWriteLow(baseAddr, DEBUG_GPIO_UDP_TX_PIN);
+
+    /* Configure PA5 as output (UDP RX indicator) [QA TRACE T019] */
+    baseAddr = (uint32_t)AddrTranslateP_getLocalAddr(DEBUG_GPIO_UDP_RX_BASE_ADDR);
+    GPIO_setDirMode(baseAddr, DEBUG_GPIO_UDP_RX_PIN, GPIO_DIRECTION_OUTPUT);
+    GPIO_pinWriteLow(baseAddr, DEBUG_GPIO_UDP_RX_PIN);
+}
+
 /*==============================================================================
  * PUBLIC FUNCTIONS
  *============================================================================*/
@@ -78,6 +115,9 @@ static void xgw_udp_recv_callback(void* arg, struct udp_pcb* pcb, struct pbuf* p
 int xgw_udp_init(void)
 {
     memset(&g_udp_state, 0, sizeof(xgw_udp_state_t));
+
+    /* [QA TRACE T019, T020] Initialize debug GPIO pins for UDP instrumentation */
+    debug_gpio_init_udp();
 
     DebugP_log("[xGW UDP] Initializing UDP interface...\r\n");
     DebugP_log("[xGW UDP] RX Port: %d, TX Port: %d\r\n", XGW_UDP_RX_PORT, XGW_UDP_TX_PORT);
@@ -136,7 +176,12 @@ int xgw_udp_start(void)
 
 int xgw_udp_send_motor_states(const xgw_motor_state_t* states, uint8_t count)
 {
+    /* [QA TRACE T020] GPIO PA4 pulse on UDP TX entry */
+    uint32_t baseAddr = (uint32_t)AddrTranslateP_getLocalAddr(DEBUG_GPIO_UDP_TX_BASE_ADDR);
+    GPIO_pinWriteHigh(baseAddr, DEBUG_GPIO_UDP_TX_PIN);
+
     if (!g_udp_state.started || states == NULL || count == 0) {
+        GPIO_pinWriteLow(baseAddr, DEBUG_GPIO_UDP_TX_PIN);
         return -1;
     }
 
@@ -178,6 +223,9 @@ int xgw_udp_send_motor_states(const xgw_motor_state_t* states, uint8_t count)
 
     /* Free pbuf */
     pbuf_free(p);
+
+    /* [QA TRACE T020] GPIO PA4 LOW on UDP TX exit */
+    GPIO_pinWriteLow(baseAddr, DEBUG_GPIO_UDP_TX_PIN);
 
     if (err == ERR_OK) {
         g_udp_state.tx_count++;
@@ -500,7 +548,12 @@ static void xgw_udp_recv_callback(void* arg, struct udp_pcb* pcb, struct pbuf* p
     (void)arg;
     (void)pcb;
 
+    /* [QA TRACE T019] GPIO PA5 pulse on UDP RX entry */
+    uint32_t baseAddr = (uint32_t)AddrTranslateP_getLocalAddr(DEBUG_GPIO_UDP_RX_BASE_ADDR);
+    GPIO_pinWriteHigh(baseAddr, DEBUG_GPIO_UDP_RX_PIN);
+
     if (p == NULL) {
+        GPIO_pinWriteLow(baseAddr, DEBUG_GPIO_UDP_RX_PIN);
         return;
     }
 
@@ -519,11 +572,15 @@ static void xgw_udp_recv_callback(void* arg, struct udp_pcb* pcb, struct pbuf* p
                     case XGW_MSG_TYPE_MOTOR_CMD:
                         xgw_udp_process_motor_cmd(data, length);
                         g_udp_state.rx_count++;
+                        /* [QA TRACE T027] Increment UDP RX counter */
+                        DEBUG_COUNTER_INC(dbg_udp_rx_count);
                         break;
 
                     case XGW_MSG_TYPE_MOTOR_SET:
                         xgw_udp_process_motor_set(data, length);
                         g_udp_state.rx_count++;
+                        /* [QA TRACE T027] Increment UDP RX counter */
+                        DEBUG_COUNTER_INC(dbg_udp_rx_count);
                         break;
 
                     default:
@@ -539,4 +596,7 @@ static void xgw_udp_recv_callback(void* arg, struct udp_pcb* pcb, struct pbuf* p
 
     /* Free pbuf */
     pbuf_free(p);
+
+    /* [QA TRACE T019] GPIO PA5 LOW on UDP RX exit */
+    GPIO_pinWriteLow(baseAddr, DEBUG_GPIO_UDP_RX_PIN);
 }

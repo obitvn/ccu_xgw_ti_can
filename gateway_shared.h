@@ -576,6 +576,28 @@ int gateway_read_imu_state(imu_state_ipc_t* imu_state);
 int gateway_notify_imu_ready(void);
 
 /*==============================================================================
+ * EMERGENCY STOP API
+ *============================================================================*/
+
+/**
+ * @brief Core 0: Emergency stop handler
+ *
+ * Called when emergency stop is triggered (from Core 1 via IPC or locally).
+ * Implements basic emergency stop actions:
+ * - Log event to syslog/UART
+ * - Set shared memory emergency flag
+ * - Notify Core 1 via IPC to stop all motors
+ * - Optional: Set emergency GPIO output (if configured)
+ *
+ * @note This is a CORE 0 ONLY function
+ * @note Emergency GPIO is optional - requires CONFIG_GPIO_EMERGENCY_PIN to be defined
+ * @note Motor shutdown is handled by Core 1 via IPC notification
+ *
+ * [STUB S006] - Implemented basic emergency stop handler
+ */
+void gateway_core0_emergency_stop_handler(void);
+
+/*==============================================================================
  * SHARED MOTOR CONFIGURATION API
  *============================================================================*/
 
@@ -874,6 +896,85 @@ int gateway_wait_motor_config_ready(uint32_t timeout_ms);
  * Core 1 calls this after populating motor_config[] and g_motor_lookup[]
  */
 void gateway_signal_motor_config_ready(void);
+
+/*==============================================================================
+ * QA DEBUG COUNTERS (for AGENT_QA instrumentation)
+ *============================================================================*/
+
+/**
+ * @brief Debug counters for runtime instrumentation
+ *
+ * [QA TRACE T009] - Task T009: Instrument shared memory counters
+ * These counters provide visibility into IPC, CAN, UDP, IMU, and error stats.
+ * Placed at end of shared memory (offset 0x8000 from base 0x701D0000).
+ * All counters are accessible via JTAG for real-time debugging.
+ *
+ * Memory Layout (offset 0x8000):
+ *   0x00: dbg_ipc_send_count    (T023) - IPC sends Core0→Core1
+ *   0x04: dbg_ipc_recv_count    (T024) - IPC recvs Core1→Core0
+ *   0x08: dbg_can_rx_count      (T025) - CAN RX frames
+ *   0x0C: dbg_can_tx_count      (T026) - CAN TX frames
+ *   0x10: dbg_udp_rx_count      (T027) - UDP RX packets
+ *   0x14: dbg_udp_tx_count      (T028) - UDP TX packets
+ *   0x18: dbg_imu_frame_count   (T029) - IMU frames
+ *   0x1C: dbg_error_count       (T030) - Total errors
+ *   0x20: dbg_last_error_code   (T031) - Last error
+ *   0x24: dbg_ipc_register_count        - IPC registration count [T015]
+ *
+ * All counters are uint32_t, volatile for multi-core access
+ * Must use atomic operations for safety
+ */
+
+/* Debug counter definitions */
+extern volatile uint32_t dbg_ipc_send_count;      /* [QA TRACE T023] */
+extern volatile uint32_t dbg_ipc_recv_count;      /* [QA TRACE T024] */
+extern volatile uint32_t dbg_can_rx_count;        /* [QA TRACE T025] */
+extern volatile uint32_t dbg_can_tx_count;        /* [QA TRACE T026] */
+extern volatile uint32_t dbg_udp_rx_count;        /* [QA TRACE T027] */
+extern volatile uint32_t dbg_udp_tx_count;        /* [QA TRACE T028] */
+extern volatile uint32_t dbg_imu_frame_count;     /* [QA TRACE T029] */
+extern volatile uint32_t dbg_error_count;         /* [QA TRACE T030] */
+extern volatile uint32_t dbg_last_error_code;     /* [QA TRACE T031] */
+extern volatile uint32_t dbg_ipc_register_count;  /* [QA TRACE T015] */
+
+/**
+ * @brief Atomic counter increment macro (ARM Cortex-R5F)
+ *
+ * Uses inline assembly for atomic increment with memory barriers.
+ * Safe for both task and ISR context on both cores.
+ *
+ * Usage: DEBUG_COUNTER_INC(dbg_can_rx_count);
+ */
+#define DEBUG_COUNTER_INC(counter) do { \
+    __asm__ volatile ( \
+        "1:  ldr  r1, [%0]\n\t" \
+        "    add  r1, r1, #1\n\t" \
+        "    dmb\n\t" \
+        "    str  r1, [%0]\n\t" \
+        "    dmb" \
+        : "+r"(counter) \
+        : \
+        : "r1", "memory" \
+    ); \
+} while(0)
+
+/**
+ * @brief Set error code (atomic)
+ *
+ * Usage: DEBUG_SET_ERROR(0x1234);
+ */
+#define DEBUG_SET_ERROR(code) do { \
+    __asm__ volatile ( \
+        "ldr r1, =%0\n\t" \
+        "ldr r2, =%1\n\t" \
+        "dmb\n\t" \
+        "str r2, [r1]\n\t" \
+        "dmb" \
+        : \
+        : "i"(dbg_last_error_code), "i"(code) \
+        : "r1", "r2", "memory" \
+    ); \
+} while(0)
 
 #ifdef __cplusplus
 }

@@ -15,11 +15,22 @@
 #include "ti_drivers_config.h"
 #include "ti_drivers_open_close.h"
 #include <drivers/uart.h>
+#include <drivers/gpio.h>
 #include <kernel/dpl/HwiP.h>
 #include <kernel/dpl/DebugP.h>
 #include <kernel/dpl/ClockP.h>
+#include <kernel/dpl/AddrTranslateP.h>
 #include "../../../gateway_shared.h"
 #include <string.h>
+
+/*==============================================================================
+ * QA TRACE GPIO DEFINITIONS
+ *============================================================================*/
+/* [QA TRACE T022] IMU UART ISR indicator - GPIO PA3 (Pin 43) */
+#ifndef DEBUG_GPIO_IMU_UART_ISR_PIN
+#define DEBUG_GPIO_IMU_UART_ISR_PIN           (43U)
+#define DEBUG_GPIO_IMU_UART_ISR_BASE_ADDR     (CSL_GPIO3_U_BASE)
+#endif
 
 /*==============================================================================
  * CRITICAL SECTION WRAPPERS (NoRTOS)
@@ -148,6 +159,15 @@ static volatile struct {
     uint32_t timestamp;        /* Timestamp in milliseconds */
     volatile bool updated;     /* Flag for new data */
 } g_imu_atomic_state = {0};
+
+/**
+ * @brief Flag to defer IPC notification to task context
+ *
+ * BUG B010 FIX: Set in ISR, checked and cleared in main loop.
+ * Prevents calling gateway_notify_imu_ready() (which uses IpcNotify_sendMsg
+ * with spinlocks) from UART ISR context where it can deadlock.
+ */
+static volatile bool g_imu_ipc_notify_pending = false;
 
 /*==============================================================================
  * FORWARD DECLARATIONS
@@ -364,8 +384,14 @@ static void update_imu_state_atomic(const float gyro[3], const float rpy[3],
 
     IMU_EXIT_CRITICAL();
 
-    /* Notify Core0 after critical section (avoid deadlock) */
-    gateway_notify_imu_ready();
+    /* BUG B010 FIX: Set flag for deferred IPC notification in task context */
+    /* DO NOT call gateway_notify_imu_ready() here - it uses IpcNotify_sendMsg
+     * which may use spinlocks that can deadlock in ISR context.
+     * Instead, set flag and let main loop call notification in task context. */
+    g_imu_ipc_notify_pending = true;
+
+    /* Memory barrier to ensure flag write is visible to main loop */
+    __asm__ volatile("dmb" ::: "memory");
 }
 
 /*==============================================================================
@@ -381,6 +407,16 @@ static void update_imu_state_atomic(const float gyro[3], const float rpy[3],
 static void imu_uart_isr(void* arg)
 {
     (void)arg;
+
+    /* [QA TRACE T022] GPIO PA3 toggle on ISR entry */
+    uint32_t gpio_base = (uint32_t)AddrTranslateP_getLocalAddr(DEBUG_GPIO_IMU_UART_ISR_BASE_ADDR);
+    /* Toggle using TI SDK GPIO API */
+    if (GPIO_pinRead(gpio_base, DEBUG_GPIO_IMU_UART_ISR_PIN)) {
+        GPIO_pinWriteLow(gpio_base, DEBUG_GPIO_IMU_UART_ISR_PIN);
+    } else {
+        GPIO_pinWriteHigh(gpio_base, DEBUG_GPIO_IMU_UART_ISR_PIN);
+    }
+
 #if IMU_ISR_ENABLE_TIMING
     uint64_t start_us = ClockP_getTimeUsec();
 #endif
@@ -525,6 +561,14 @@ static void imu_uart_isr(void* arg)
     g_isr_stats.isr_total_us += elapsed_us;
     g_isr_stats.isr_count++;
 #endif
+
+    /* [QA TRACE T022] GPIO PA3 toggle on ISR exit */
+    /* Toggle using TI SDK GPIO API */
+    if (GPIO_pinRead(gpio_base, DEBUG_GPIO_IMU_UART_ISR_PIN)) {
+        GPIO_pinWriteLow(gpio_base, DEBUG_GPIO_IMU_UART_ISR_PIN);
+    } else {
+        GPIO_pinWriteHigh(gpio_base, DEBUG_GPIO_IMU_UART_ISR_PIN);
+    }
 }
 
 /*==============================================================================
@@ -688,6 +732,34 @@ void imu_uart_deinit(void)
 
     g_imu_uart_state.initialized = false;
     DebugP_log("[IMU_ISR] UART interface deinitialized\r\n");
+}
+
+/**
+ * @brief Check and process pending IPC notification (call from main loop)
+ *
+ * BUG B010 FIX: This function should be called from the main loop (task context)
+ * to check if IMU data is ready and send IPC notification to Core0.
+ * Deferring the notification from ISR to task context prevents deadlock
+ * because gateway_notify_imu_ready() uses IpcNotify_sendMsg which may
+ * use spinlocks that are not safe in ISR context.
+ *
+ * @return true if notification was sent, false otherwise
+ */
+bool imu_uart_process_ipc_notification(void)
+{
+    if (g_imu_ipc_notify_pending) {
+        /* Send IPC notification in task context (safe) */
+        gateway_notify_imu_ready();
+
+        /* Clear flag after notification */
+        g_imu_ipc_notify_pending = false;
+
+        /* Memory barrier to ensure flag write is visible */
+        __asm__ volatile("dmb" ::: "memory");
+
+        return true;
+    }
+    return false;
 }
 
 /*==============================================================================

@@ -31,9 +31,16 @@
 **Known Issues** (not stubs):
 1. Core1 1000Hz busy-wait timer loop - Known limitation, TimerP ISR works correctly
 
+**Bug Analysis Complete**:
+- ✅ **B011**: lwIP SMP configuration - ANALYZED and DOCUMENTED
+  - See `BUG_B011_LWIP_SMP_ANALYSIS.md` for complete analysis
+  - Conclusion: Current configuration is SAFE for single-core FreeRTOS
+  - No SMP support needed for current architecture
+
 For detailed trace results, see:
 - `STUB_REPORT.md` - Complete stub elimination report
 - `CALL_GRAPH.md` - Full call graph with line numbers
+- `BUG_B011_LWIP_SMP_ANALYSIS.md` - lwIP SMP configuration analysis
 
 ---
 

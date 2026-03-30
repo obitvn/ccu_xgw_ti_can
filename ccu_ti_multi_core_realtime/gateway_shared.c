@@ -9,11 +9,19 @@
  * @author CCU Multicore Project
  * @date 2026-03-18
  * @date 2026-03-26 - Added lock-free ring buffer support
+ * @date 2026-03-29 - Added emergency stop handler for Core 1
  */
 
 #include "gateway_shared.h"
+#include "../common/motor_config_types.h"
+#include "can_interface.h"  /* For can_frame_t type definition */
 #include <kernel/dpl/DebugP.h>
 #include <string.h>
+
+/* Forward declarations for emergency stop handler */
+extern const motor_config_t* motor_get_config(uint8_t index);
+extern int32_t CAN_Transmit(uint8_t bus_id, const can_frame_t *frame);
+extern motor_cmd_ipc_t g_motor_commands_working[GATEWAY_NUM_MOTORS];
 
 /*==============================================================================
  * SHARED MEMORY INSTANCE
@@ -1249,6 +1257,115 @@ const SharedMotorConfig_t* gateway_get_motor_config(uint8_t index)
 
     gateway_memory_barrier();
     return &gGatewaySharedMem.motor_config[index];
+}
+
+/*==============================================================================
+ * EMERGENCY STOP HANDLERS
+ *============================================================================*/
+
+/**
+ * @brief Core 1 emergency stop handler (Bare-metal implementation)
+ *
+ * Called when emergency stop is triggered via IPC or local fault detection.
+ * Implements immediate motor shutdown actions for bare-metal Core 1:
+ *
+ * 1. Send CAN stop commands to all motors (broadcast on all buses)
+ * 2. Log emergency stop event to shared memory
+ * 3. Clear motor command buffers to prevent further transmission
+ * 4. Signal Core 0 via IPC notification
+ *
+ * @note This is a CORE 1 ONLY function (bare-metal, NoRTOS)
+ * @note Must be callable from interrupt context (no blocking, no malloc)
+ * @note Uses direct CAN transmission bypassing the normal command queue
+ *
+ * Implementation details:
+ * - Sends COMM_TYPE_MOTOR_STOP (0x04) command to all motors on all CAN buses
+ * - Clears g_motor_commands_working[] buffer (declared in main.c)
+ * - Sets emergency_stop_flag in shared memory for Core 0 visibility
+ * - Uses memory barriers to ensure visibility across cores
+ *
+ * @return 0 on success, -1 on error
+ */
+int gateway_core1_emergency_stop_handler(void)
+{
+    /*
+     * ACTION 1: Send CAN stop commands to all motors immediately
+     *
+     * Implementation: Build and transmit CAN frames with COMM_TYPE_MOTOR_STOP
+     * command to all motors on all CAN buses. This bypasses the normal
+     * command queue and transmission loop to ensure immediate shutdown.
+     *
+     * Note: We need to access motor configuration from motor_mapping module
+     * to get motor_id and can_bus for each motor. Since this function may be
+     * called from ISR context, we must use static allocation and avoid blocking.
+     */
+    extern const motor_config_t* motor_get_config(uint8_t index);
+    extern int32_t CAN_Transmit(uint8_t bus_id, const can_frame_t *frame);
+
+    /* CAN stop command frame - zero payload for immediate stop */
+    can_frame_t stop_frame;
+    stop_frame.can_id = (COMM_TYPE_MOTOR_STOP << 24);  /* Broadcast to all motors */
+    stop_frame.flags = 0x01;  /* Extended ID */
+    stop_frame.dlc = 8;       /* 8 bytes data (all zeros for stop) */
+    stop_frame.data[0] = 0;
+    stop_frame.data[1] = 0;
+    stop_frame.data[2] = 0;
+    stop_frame.data[3] = 0;
+    stop_frame.data[4] = 0;
+    stop_frame.data[5] = 0;
+    stop_frame.data[6] = 0;
+    stop_frame.data[7] = 0;
+
+    /* Send stop command to all motors on all CAN buses */
+    for (uint8_t motor_idx = 0; motor_idx < GATEWAY_NUM_MOTORS; motor_idx++) {
+        const motor_config_t *config = motor_get_config(motor_idx);
+
+        if (config != NULL && config->can_bus < NUM_CAN_BUSES) {
+            /* Set CAN ID for specific motor */
+            stop_frame.can_id = (COMM_TYPE_MOTOR_STOP << 24) | config->motor_id;
+
+            /* Transmit stop command immediately */
+            CAN_Transmit(config->can_bus, &stop_frame);
+        }
+    }
+
+    /*
+     * ACTION 2: Clear motor command working buffer
+     *
+     * Implementation: Zero out g_motor_commands_working[] array in main.c
+     * to prevent the main transmission loop from sending any more commands
+     * to motors. This ensures that even if new commands arrive from Core 0,
+     * they won't be transmitted until the emergency stop is cleared.
+     */
+    extern motor_cmd_ipc_t g_motor_commands_working[GATEWAY_NUM_MOTORS];
+    memset(g_motor_commands_working, 0, sizeof(motor_cmd_ipc_t) * GATEWAY_NUM_MOTORS);
+
+    /*
+     * ACTION 3: Log emergency stop event to shared memory
+     *
+     * Implementation: Set emergency_stop_flag in shared memory structure
+     * to signal Core 0 that emergency stop is active. Use memory barrier
+     * to ensure the write is visible to Core 0 immediately.
+     */
+    gateway_memory_barrier();
+    gGatewaySharedMem.emergency_stop_flag = 1;
+    gGatewaySharedMem.stats.error_count++;
+    gateway_memory_barrier();
+
+    /*
+     * ACTION 4: Signal Core 0 via IPC notification
+     *
+     * Implementation: Send IPC notification to Core 0 to inform that
+     * emergency stop has been triggered. This allows Core 0 to update
+     * its UI and take any necessary actions.
+     */
+    IpcNotify_sendMsg(CSL_CORE_ID_R5FSS0_0, GATEWAY_IPC_CLIENT_ID,
+                      MSG_EMERGENCY_STOP, 1);
+
+    /* Log emergency stop event for debugging (if DebugP available) */
+    DebugP_log("[Core1] *** EMERGENCY STOP *** - All motors stopped\r\n");
+
+    return 0;
 }
 
 #endif /* GATEWAY_USE_LOCKFREE_RINGBUF */

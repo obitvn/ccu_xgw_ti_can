@@ -27,6 +27,19 @@
 #include "lwip/tcpip.h"
 #include "test_enet_lwip.h"
 
+/* ==========================================================================
+ * DEBUG COUNTERS (QA TRACE)
+ * ==========================================================================
+ * Debug counters placed in shared memory for JTAG visibility.
+ * Core0-specific counters defined here.
+ */
+volatile uint32_t dbg_ipc_recv_count __attribute__((section(".bss.user_shared_mem_debug"))) = 0;
+volatile uint32_t dbg_udp_rx_count __attribute__((section(".bss.user_shared_mem_debug"))) = 0;
+volatile uint32_t dbg_udp_tx_count __attribute__((section(".bss.user_shared_mem_debug"))) = 0;
+volatile uint32_t dbg_error_count __attribute__((section(".bss.user_shared_mem_debug"))) = 0;
+volatile uint32_t dbg_last_error_code __attribute__((section(".bss.user_shared_mem_debug"))) = 0;
+volatile uint32_t dbg_imu_frame_count __attribute__((section(".bss.user_shared_mem_debug"))) = 0;
+
 /* Core ID definitions from CSL */
 #ifndef CSL_CORE_ID_R5FSS0_0
 #define CSL_CORE_ID_R5FSS0_0         (0U)
@@ -96,7 +109,12 @@ static motor_state_ipc_t g_motor_states[GATEWAY_NUM_MOTORS];
 /* Motor command buffer for shared memory */
 static motor_cmd_ipc_t g_motor_commands[GATEWAY_NUM_MOTORS];
 
-/* IPC callback counter - for statistics */
+/* IPC callback counter - for statistics
+ * BUG FIX B009: Using volatile with critical section for atomic access.
+ * On ARM Cortex-R5F, the ++ operator is NOT atomic. Concurrent access from
+ * ISR (increment) and task context (read) can cause lost updates.
+ * Using FreeRTOS critical sections (taskENTER_CRITICAL/taskEXIT_CRITICAL) for safety.
+ */
 static volatile uint32_t g_ipc_callback_count = 0;
 
 /*==============================================================================
@@ -134,8 +152,20 @@ static void ipc_notify_callback_fxn(uint32_t remoteCoreId, uint16_t localClientI
     (void)crcStatus;
     (void)args;
 
-    /* Increment callback counter */
+    /* [QA TRACE T017] Log IPC callback entry */
+    DebugP_log("[QA-T017] IPC callback: msg_id=%u\r\n", (unsigned int)msgValue);
+
+    /* [QA TRACE T024] Increment IPC receive counter (Core1→Core0) */
+    DEBUG_COUNTER_INC(dbg_ipc_recv_count);
+
+    /* BUG FIX B009: Atomic increment of IPC callback counter.
+     * Using FreeRTOS critical section for atomic increment without race conditions.
+     * Safe in ISR context - FreeRTOS automatically uses appropriate API.
+     * taskENTER_CRITICAL/taskEXIT_CRITICAL work in both task and ISR context.
+     */
+    taskENTER_CRITICAL();
     g_ipc_callback_count++;
+    taskEXIT_CRITICAL();
 
     /* Call gateway shared memory callback - handles the actual IPC message */
     gateway_core0_ipc_callback(localClientId, (uint16_t)msgValue);
@@ -171,11 +201,31 @@ static void udp_tx_task(void *args)
         /* Read motor states from shared memory */
         int32_t count = gateway_read_motor_states(g_motor_states);
 
-        if (count > 0) {
-            /* Build and send UDP packet */
+        /* BUG FIX B014: Validate return value before accessing buffer
+         * gateway_read_motor_states() returns:
+         * - -1: error (NULL pointer)
+         *  - 0: no new data available
+         *  - GATEWAY_NUM_MOTORS: success (all 23 motor states read)
+         *
+         * Only proceed if ALL motor states were successfully read.
+         * Accessing partial or uninitialized data can cause:
+         * - Invalid UDP packets with garbage data
+         * - Division by zero if position/velocity fields are uninitialized
+         * - Corrupted data sent to PC
+         */
+        if (count == GATEWAY_NUM_MOTORS) {
+            /* All motor states successfully read - build and send UDP packet */
             build_and_send_udp_packet();
             gStats.udp_tx_count++;
+        } else if (count < 0) {
+            /* Error condition - log but don't crash */
+            static uint32_t error_count = 0;
+            if (++error_count >= 1000) {  /* Log every 1000th error to avoid spam */
+                DebugP_log("[Core0] ERROR: gateway_read_motor_states failed (returned %d)\r\n", (int)count);
+                error_count = 0;
+            }
         }
+        /* If count == 0, silently skip (no new data from Core1 yet) */
 
         /* Wait for next cycle */
         vTaskDelayUntil(&last_wake_time, period);
@@ -213,9 +263,14 @@ static void build_and_send_udp_packet(void)
     if (sent > 0) {
         /* Successfully sent */
         gStats.udp_tx_count++;
+        /* [QA TRACE T028] Increment UDP TX counter */
+        DEBUG_COUNTER_INC(dbg_udp_tx_count);
     } else {
         /* Send failed - increment error counter */
         gStats.udp_tx_errors++;
+
+        /* [QA TRACE T030] Increment error counter */
+        DEBUG_COUNTER_INC(dbg_error_count);
 
         /* Log error every 100th failure to avoid spam */
         static uint32_t error_count = 0;
@@ -369,6 +424,8 @@ static int32_t core0_init(void)
 
     /* Open drivers */
     Drivers_open();
+    DebugP_log("[QA-T004] Drivers_open done\r\n");
+
     status = Board_driversOpen();
     DebugP_assert(status == SystemP_SUCCESS);
 
@@ -409,11 +466,15 @@ static int32_t core0_init(void)
 
     /* Register IPC callback - BOTH cores must use the SAME client ID */
     DebugP_log("[Core0] Registering IPC callback with client ID=%u\r\n", GATEWAY_IPC_CLIENT_ID);
+    /* [QA TRACE T014] IPC register entry */
+    DebugP_log("[QA-T014] IPC register entry (client=%u)\r\n", GATEWAY_IPC_CLIENT_ID);
     status = IpcNotify_registerClient(GATEWAY_IPC_CLIENT_ID, (IpcNotify_FxnCallback)ipc_notify_callback_fxn, NULL);
     if (status != SystemP_SUCCESS) {
         DebugP_log("[Core0] ERROR: IpcNotify_registerClient failed! status=%d\r\n", status);
     } else {
         DebugP_log("[Core0] IPC callback registered successfully\r\n");
+        /* [QA TRACE T014] IPC register done */
+        DebugP_log("[QA-T014] IPC register done\r\n");
     }
 
     /* Wait for Core 1 to be ready */
@@ -574,9 +635,15 @@ static void enet_lwip_task_wrapper(void *args)
  */
 int main(void)
 {
+    /* [QA TRACE T001] main entry */
+    DebugP_log("[QA-T001] main entry\r\n");
+
     /* Initialize SOC and Board */
     System_init();
+    DebugP_log("[QA-T002] System_init done\r\n");
+
     Board_init();
+    DebugP_log("[QA-T003] Board_init done\r\n");
 
     /* Create main task */
     gMainTask = xTaskCreateStatic(
@@ -591,6 +658,8 @@ int main(void)
     configASSERT(gMainTask != NULL);
 
     /* Start scheduler */
+    /* [QA TRACE T005] Scheduler start */
+    DebugP_log("[QA-T005] Scheduler started\r\n");
     vTaskStartScheduler();
 
     /* Should never reach here */

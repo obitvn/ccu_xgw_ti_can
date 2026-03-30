@@ -846,6 +846,45 @@ static inline uint8_t gateway_get_motor_index(uint8_t motor_id, uint8_t can_bus)
     return 0xFF;  /* Not found - invalid input */
 }
 
+/*==============================================================================
+ * EMERGENCY STOP API
+ *============================================================================*/
+
+/**
+ * @brief Core 1: Emergency stop handler (Bare-metal implementation)
+ *
+ * Called when emergency stop is triggered via IPC or local fault detection.
+ * Implements immediate motor shutdown actions for bare-metal Core 1:
+ *
+ * Actions performed:
+ * 1. Send CAN stop commands to all motors (broadcast on all buses)
+ * 2. Log emergency stop event to shared memory
+ * 3. Clear motor command buffers to prevent further transmission
+ * 4. Signal Core 0 via IPC notification
+ *
+ * @return 0 on success, -1 on error
+ *
+ * @note This is a CORE 1 ONLY function (bare-metal, NoRTOS)
+ * @note Must be callable from interrupt context (no blocking, no malloc)
+ * @note Uses direct CAN transmission bypassing the normal command queue
+ */
+int gateway_core1_emergency_stop_handler(void);
+
+/**
+ * @brief Check emergency stop flag
+ *
+ * @return 1 if emergency stop is active, 0 otherwise
+ */
+int gateway_check_emergency_stop(void);
+
+/**
+ * @brief Clear emergency stop flag
+ *
+ * Clears the emergency stop flag in shared memory.
+ * Should only be called after the emergency condition has been resolved.
+ */
+void gateway_clear_emergency_stop(void);
+
 #ifdef __cplusplus
 }
 #endif

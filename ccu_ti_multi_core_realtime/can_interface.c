@@ -18,6 +18,41 @@
 #include <kernel/dpl/DebugP.h>
 #include <kernel/dpl/HwiP.h>
 #include <string.h>
+#include "../gateway_shared.h"
+
+/* ==========================================================================
+ *                      DEBUG COUNTERS (QA TRACE)
+ * ==========================================================================
+ * Debug counters placed in shared memory for JTAG visibility.
+ * Defined here for can_interface.c instrumentation.
+ */
+volatile uint32_t dbg_can_rx_count __attribute__((section(".bss.user_shared_mem_debug"))) = 0;
+volatile uint32_t dbg_can_tx_count __attribute__((section(".bss.user_shared_mem_debug"))) = 0;
+
+/* ==========================================================================
+ *                      HELPER FUNCTIONS
+ * ========================================================================== */
+
+/**
+ * @brief Fast GPIO toggle for debug instrumentation
+ *
+ * @param baseAddr GPIO base address
+ * @param pin GPIO pin number
+ *
+ * Used by QA trace points for minimal overhead (~50ns)
+ * Inline function for performance
+ *
+ * Uses TI SDK GPIO API: GPIO_pinRead, GPIO_pinWriteHigh, GPIO_pinWriteLow
+ */
+static inline void GPIO_pinToggle(uint32_t baseAddr, uint32_t pin)
+{
+    /* Toggle using TI SDK GPIO API */
+    if (GPIO_pinRead(baseAddr, pin)) {
+        GPIO_pinWriteLow(baseAddr, pin);
+    } else {
+        GPIO_pinWriteHigh(baseAddr, pin);
+    }
+}
 
 /* ==========================================================================
  *                      Constants and Definitions
@@ -141,6 +176,10 @@ static void init_can_stb_gpios(void)
  */
 static void can_rx_isr(void *arg)
 {
+    // [QA TRACE T021] GPIO PA2 toggle on ISR entry
+    uint32_t debug_gpio_base = (uint32_t)AddrTranslateP_getLocalAddr(CSL_GPIO3_U_BASE);
+    GPIO_pinToggle(debug_gpio_base, 42U);  /* PA2 = CAN RX indicator */
+
     uint32_t bus_id = (uint32_t)arg;
     uint32_t baseAddr = g_mcan_base_addr[bus_id];
     uint32_t intrStatus;
@@ -155,7 +194,9 @@ static void can_rx_isr(void *arg)
     /* BUS-OFF INTERRUPT HANDLING */
     if (intrStatus & MCAN_INTR_SRC_BUS_OFF_STATUS)
     {
+        /* Bug B008 Fix: Atomic write with memory barrier */
         g_can_stats[bus_id].is_bus_off = true;
+        __asm volatile("dmb" ::: "memory");  /* Ensure visibility to main loop */
         DebugP_logError("[CAN] ISR: CAN%d Bus-Off detected!\r\n", bus_id);
     }
 
@@ -171,7 +212,16 @@ static void can_rx_isr(void *arg)
         MCAN_readMsgRam(baseAddr, MCAN_MEM_TYPE_FIFO, 0, MCAN_RX_FIFO_NUM_0, &g_rx_buffer);
 
         // Update statistics
+        /* Bug B008 Fix: Atomic increment with memory barrier
+         * While 32-bit aligned writes are atomic on ARM, ++ is read-modify-write.
+         * In bare-metal context, ISR has exclusive access during execution,
+         * but DMB ensures visibility to main loop when it reads stats.
+         */
         g_can_stats[bus_id].rx_count++;
+        __asm volatile("dmb" ::: "memory");  /* Ensure visibility to main loop */
+
+        /* [QA TRACE T025] Increment CAN RX counter */
+        DEBUG_COUNTER_INC(dbg_can_rx_count);
 
         // Call user callback if registered
         if (g_rx_callback != NULL)
@@ -201,6 +251,9 @@ static void can_rx_isr(void *arg)
             g_rx_callback(bus_id, &frame);
         }
     }
+
+    // [QA TRACE T021] GPIO PA2 toggle on ISR exit
+    GPIO_pinToggle(debug_gpio_base, 42U);  /* PA2 = CAN RX indicator */
 }
 
 /**
@@ -465,7 +518,9 @@ int32_t CAN_Transmit(uint8_t bus_id, const can_frame_t *frame)
     txElement->efc = 0;
     txElement->mm = 0;
 
-    for (uint8_t i = 0; i < frame->dlc && i < 8; i++) {
+    /* Bug B012 fix: Add explicit bounds check to prevent buffer overflow */
+    for (uint8_t i = 0; i < frame->dlc; i++) {
+        if (i >= 8) break;  /* Explicit bounds check: CAN data array max 8 bytes */
         txElement->data[i] = frame->data[i];
     }
 
@@ -475,11 +530,20 @@ int32_t CAN_Transmit(uint8_t bus_id, const can_frame_t *frame)
     int32_t ret = MCAN_txBufAddReq(baseAddr, buf_idx);
 
     if (ret == MCAN_STATUS_SUCCESS) {
+        /* Bug B008 Fix: Disable IRQ to protect stats update from concurrent ISR access */
+        uint32_t irq_state = HwiP_disable();
         g_can_stats[bus_id].tx_count++;
+        HwiP_restore(irq_state);
+
+        /* [QA TRACE T026] Increment CAN TX counter */
+        DEBUG_COUNTER_INC(dbg_can_tx_count);
         g_tx_buffer_index[bus_id] = (buf_idx + 1) % 32;
         return 0;
     } else {
+        /* Bug B008 Fix: Disable IRQ to protect stats update from concurrent ISR access */
+        uint32_t irq_state = HwiP_disable();
         g_can_stats[bus_id].error_count++;
+        HwiP_restore(irq_state);
         return -1;
     }
 }
@@ -521,8 +585,11 @@ int32_t CAN_TransmitBatch(uint8_t bus_id, const can_frame_t *frames, uint16_t co
         txElement->efc = 0;
         txElement->mm = 0;
 
-        for (uint8_t i = 0; i < frame->dlc && i < 8; i++) {
-            txElement->data[i] = frame->data[i];
+        /* Bug B012 fix: Add explicit bounds check to prevent buffer overflow */
+        /* Also fixes D013: Variable shadowing - inner loop uses byte_idx instead of i */
+        for (uint8_t byte_idx = 0; byte_idx < frame->dlc; byte_idx++) {
+            if (byte_idx >= 8) break;  /* Explicit bounds check: CAN data array max 8 bytes */
+            txElement->data[byte_idx] = frame->data[byte_idx];
         }
 
         MCAN_writeMsgRam(baseAddr, MCAN_MEM_TYPE_BUF, buf_idx, txElement);
@@ -533,11 +600,17 @@ int32_t CAN_TransmitBatch(uint8_t bus_id, const can_frame_t *frames, uint16_t co
             success_count++;
             buf_idx = (buf_idx + 1) % 32;
         } else {
+            /* Bug B008 Fix: Disable IRQ to protect stats update from concurrent ISR access */
+            uint32_t irq_state = HwiP_disable();
             g_can_stats[bus_id].error_count++;
+            HwiP_restore(irq_state);
         }
     }
 
+    /* Bug B008 Fix: Disable IRQ to protect stats update from concurrent ISR access */
+    uint32_t irq_state = HwiP_disable();
     g_can_stats[bus_id].tx_count += success_count;
+    HwiP_restore(irq_state);
     g_tx_buffer_index[bus_id] = buf_idx;
 
     return success_count;
@@ -572,7 +645,9 @@ int32_t CAN_PrepareTx(uint8_t bus_id, const can_frame_t *frame)
     txElement->efc = 0;
     txElement->mm = 0;
 
-    for (uint8_t i = 0; i < frame->dlc && i < 8; i++) {
+    /* Bug B012 fix: Add explicit bounds check to prevent buffer overflow */
+    for (uint8_t i = 0; i < frame->dlc; i++) {
+        if (i >= 8) break;  /* Explicit bounds check: CAN data array max 8 bytes */
         txElement->data[i] = frame->data[i];
     }
 
@@ -596,10 +671,16 @@ int32_t CAN_TriggerTx(uint8_t bus_id, uint8_t buf_idx)
     int32_t ret = MCAN_txBufAddReq(baseAddr, buf_idx);
 
     if (ret == MCAN_STATUS_SUCCESS) {
+        /* Bug B008 Fix: Disable IRQ to protect stats update from concurrent ISR access */
+        uint32_t irq_state = HwiP_disable();
         g_can_stats[bus_id].tx_count++;
+        HwiP_restore(irq_state);
         return 0;
     } else {
+        /* Bug B008 Fix: Disable IRQ to protect stats update from concurrent ISR access */
+        uint32_t irq_state = HwiP_disable();
         g_can_stats[bus_id].error_count++;
+        HwiP_restore(irq_state);
         return -1;
     }
 }
@@ -607,7 +688,15 @@ int32_t CAN_TriggerTx(uint8_t bus_id, uint8_t buf_idx)
 void CAN_GetStats(uint8_t bus_id, can_bus_stats_t *stats)
 {
     if (bus_id < NUM_CAN_BUSES && stats != NULL) {
+        /* Bug B008 Fix: Disable IRQ during stats read to prevent torn reads
+         * g_can_stats[] is modified by CAN RX ISR (lines 162, 178) and read here.
+         * On ARM Cortex-R5F, while 32-bit aligned accesses are atomic, reading
+         * the entire struct can see inconsistent state if ISR updates mid-copy.
+         * Disable interrupts to ensure atomic read of the entire structure.
+         */
+        uint32_t irq_state = HwiP_disable();
         memcpy(stats, &g_can_stats[bus_id], sizeof(can_bus_stats_t));
+        HwiP_restore(irq_state);
     }
 }
 
@@ -628,7 +717,10 @@ bool CAN_IsBusOff(uint8_t bus_id)
     MCAN_getProtocolStatus(baseAddr, &protStatus);
 
     bool is_bus_off = (protStatus.busOffStatus != 0);
+    /* Bug B008 Fix: Disable IRQ to protect stats update from concurrent ISR access */
+    uint32_t irq_state = HwiP_disable();
     g_can_stats[bus_id].is_bus_off = is_bus_off;
+    HwiP_restore(irq_state);
 
     return is_bus_off;
 }
@@ -649,8 +741,11 @@ int32_t CAN_GetErrorCounters(uint8_t bus_id, uint8_t* tx_err, uint8_t* rx_err)
     *tx_err = (psr >> 16) & 0xFF;
     *rx_err = (psr >> 8) & 0xFF;
 
+    /* Bug B008 Fix: Disable IRQ to protect stats update from concurrent ISR access */
+    uint32_t irq_state = HwiP_disable();
     g_can_stats[bus_id].tx_error_count = *tx_err;
     g_can_stats[bus_id].rx_error_count = *rx_err;
+    HwiP_restore(irq_state);
 
     return 0;
 }
@@ -678,7 +773,10 @@ int32_t CAN_RecoverFromBusOff(uint8_t bus_id)
     }
 
     if (CAN_IsBusOff(bus_id)) {
+        /* Bug B008 Fix: Disable IRQ to protect stats update from concurrent ISR access */
+        uint32_t irq_state = HwiP_disable();
         g_can_stats[bus_id].error_count++;
+        HwiP_restore(irq_state);
         return -1;
     }
 
