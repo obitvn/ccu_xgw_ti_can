@@ -58,7 +58,20 @@
             "projectInfo": {
                 "name": "ccu_ti_multi_core_freertos",
                 "resourceId": "/ccu_ti_multi_core_freertos"
-            }
+            },
+            "connections": [
+                {
+                    "name": "Texas Instruments XDS110 USB Debug Probe",
+                    "cores": [
+                        {
+                            "name": "Cortex_R5_0",
+                            "debuggerSettings": {
+                                "data": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n<PropertyValues/>\n"
+                            }
+                        }
+                    ]
+                }
+            ]
         },
         {
             "name": "ccu_ti_multi_core_realtime",

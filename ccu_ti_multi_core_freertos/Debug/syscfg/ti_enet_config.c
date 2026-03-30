@@ -63,7 +63,7 @@
 #include <networking/enet/core/src/dma/cpdma/enet_cdma_memcfg.h>
 
 
-#define ENET_MEM_LARGE_POOL_NUM_PKTS        (48U)
+#define ENET_MEM_LARGE_POOL_NUM_PKTS        (192U)
 #define ENET_MEM_MEDIUM_POOL_NUM_PKTS       (0U)
 #define ENET_MEM_SMALL_POOL_NUM_PKTS        (0U)
 #define ENET_PKTINFOMEM_ONLY_NUM_PKTS       (16U)
@@ -100,6 +100,7 @@ __attribute__ ((aligned(ENETDMA_CACHELINE_ALIGNMENT),
 static EnetMem_AppPktInfoMem gAppPktInfoContainerMem_SmallPool[ENET_MEM_SMALL_POOL_NUM_PKTS];
 
 
+ static EnetDma_Pkt gAppPktInfoMemOnly[ENET_PKTINFOMEM_ONLY_NUM_PKTS];
 
 static const EnetMem_Cfg gEthMemCfg =
 {
@@ -142,6 +143,12 @@ static const EnetMem_Cfg gEthMemCfg =
             .pktInfoContainerSize = sizeof(gAppPktInfoContainerMem_SmallPool),
         },
 
+    },
+    .pktInfoMemPool =
+    {
+        .numPkts     = ENET_PKTINFOMEM_ONLY_NUM_PKTS,
+        .pktInfoMem  = gAppPktInfoMemOnly,
+        .pktInfoSize = sizeof(gAppPktInfoMemOnly),
     },
 };
 

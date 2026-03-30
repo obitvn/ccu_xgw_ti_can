@@ -142,6 +142,9 @@ SECTIONS
     .bss:ENET_CPPI_DESC (NOLOAD) : {
     } > ENET_CPPI_DESC    
 
+    .bss:ENET_DMA_PKT_MEMPOOL (NOLOAD) : {
+    } > OCRAM   , align(128) 
+
 
 }
 

@@ -213,7 +213,7 @@ Cpsw_Cfg gEnetCpswCfg =
                 .macModeCfg =
                 {
                     .macOnlyCafEn    = false,
-                    .macOnlyEn       = false,
+                    .macOnlyEn       = true,
                 },
                 .pvidCfg =
                 {
@@ -249,7 +249,7 @@ Cpsw_Cfg gEnetCpswCfg =
                 .macModeCfg =
                 {
                     .macOnlyCafEn    = false,
-                    .macOnlyEn       = false,
+                    .macOnlyEn       = true,
                 },
                 .pvidCfg =
                 {
@@ -285,7 +285,7 @@ Cpsw_Cfg gEnetCpswCfg =
                 .macModeCfg =
                 {
                     .macOnlyCafEn    = false,
-                    .macOnlyEn       = false,
+                    .macOnlyEn       = true,
                 },
                 .pvidCfg =
                 {

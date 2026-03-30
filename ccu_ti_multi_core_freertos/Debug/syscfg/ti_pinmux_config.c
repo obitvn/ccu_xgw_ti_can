@@ -62,150 +62,6 @@ static Pinmux_PerCfg_t gPinMuxMainDomainCfg[] = {
         PIN_MDIO_MDIO,
         ( PIN_MODE(0) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
     },
-    /* RGMII2 pin config */
-    /* RGMII2_RD0 -> PR0_PRU0_GPIO0 (K17) */
-    {
-        PIN_PR0_PRU0_GPIO0,
-        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
-    },
-    /* RGMII2 pin config */
-    /* RGMII2_RD1 -> PR0_PRU0_GPIO1 (K18) */
-    {
-        PIN_PR0_PRU0_GPIO1,
-        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
-    },
-    /* RGMII2 pin config */
-    /* RGMII2_RD2 -> PR0_PRU0_GPIO2 (J18) */
-    {
-        PIN_PR0_PRU0_GPIO2,
-        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
-    },
-    /* RGMII2 pin config */
-    /* RGMII2_RD3 -> PR0_PRU0_GPIO3 (J17) */
-    {
-        PIN_PR0_PRU0_GPIO3,
-        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
-    },
-    /* RGMII2 pin config */
-    /* RGMII2_RXC -> PR0_PRU0_GPIO6 (K15) */
-    {
-        PIN_PR0_PRU0_GPIO6,
-        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
-    },
-    /* RGMII2 pin config */
-    /* RGMII2_RX_CTL -> PR0_PRU0_GPIO4 (K16) */
-    {
-        PIN_PR0_PRU0_GPIO4,
-        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
-    },
-    /* RGMII2 pin config */
-    /* RGMII2_TD0 -> PR0_PRU0_GPIO11 (M16) */
-    {
-        PIN_PR0_PRU0_GPIO11,
-        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
-    },
-    /* RGMII2 pin config */
-    /* RGMII2_TD1 -> PR0_PRU0_GPIO12 (M15) */
-    {
-        PIN_PR0_PRU0_GPIO12,
-        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
-    },
-    /* RGMII2 pin config */
-    /* RGMII2_TD2 -> PR0_PRU0_GPIO13 (H17) */
-    {
-        PIN_PR0_PRU0_GPIO13,
-        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
-    },
-    /* RGMII2 pin config */
-    /* RGMII2_TD3 -> PR0_PRU0_GPIO14 (H16) */
-    {
-        PIN_PR0_PRU0_GPIO14,
-        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
-    },
-    /* RGMII2 pin config */
-    /* RGMII2_TXC -> PR0_PRU0_GPIO16 (H18) */
-    {
-        PIN_PR0_PRU0_GPIO16,
-        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
-    },
-    /* RGMII2 pin config */
-    /* RGMII2_TX_CTL -> PR0_PRU0_GPIO15 (L16) */
-    {
-        PIN_PR0_PRU0_GPIO15,
-        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
-    },
-    /* RGMII2 pin config */
-    /* RGMII2_RD0 -> PR0_PRU0_GPIO0 (K17) */
-    {
-        PIN_PR0_PRU0_GPIO0,
-        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
-    },
-    /* RGMII2 pin config */
-    /* RGMII2_RD1 -> PR0_PRU0_GPIO1 (K18) */
-    {
-        PIN_PR0_PRU0_GPIO1,
-        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
-    },
-    /* RGMII2 pin config */
-    /* RGMII2_RD2 -> PR0_PRU0_GPIO2 (J18) */
-    {
-        PIN_PR0_PRU0_GPIO2,
-        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
-    },
-    /* RGMII2 pin config */
-    /* RGMII2_RD3 -> PR0_PRU0_GPIO3 (J17) */
-    {
-        PIN_PR0_PRU0_GPIO3,
-        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
-    },
-    /* RGMII2 pin config */
-    /* RGMII2_RXC -> PR0_PRU0_GPIO6 (K15) */
-    {
-        PIN_PR0_PRU0_GPIO6,
-        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
-    },
-    /* RGMII2 pin config */
-    /* RGMII2_RX_CTL -> PR0_PRU0_GPIO4 (K16) */
-    {
-        PIN_PR0_PRU0_GPIO4,
-        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
-    },
-    /* RGMII2 pin config */
-    /* RGMII2_TD0 -> PR0_PRU0_GPIO11 (M16) */
-    {
-        PIN_PR0_PRU0_GPIO11,
-        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
-    },
-    /* RGMII2 pin config */
-    /* RGMII2_TD1 -> PR0_PRU0_GPIO12 (M15) */
-    {
-        PIN_PR0_PRU0_GPIO12,
-        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
-    },
-    /* RGMII2 pin config */
-    /* RGMII2_TD2 -> PR0_PRU0_GPIO13 (H17) */
-    {
-        PIN_PR0_PRU0_GPIO13,
-        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
-    },
-    /* RGMII2 pin config */
-    /* RGMII2_TD3 -> PR0_PRU0_GPIO14 (H16) */
-    {
-        PIN_PR0_PRU0_GPIO14,
-        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
-    },
-    /* RGMII2 pin config */
-    /* RGMII2_TXC -> PR0_PRU0_GPIO16 (H18) */
-    {
-        PIN_PR0_PRU0_GPIO16,
-        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
-    },
-    /* RGMII2 pin config */
-    /* RGMII2_TX_CTL -> PR0_PRU0_GPIO15 (L16) */
-    {
-        PIN_PR0_PRU0_GPIO15,
-        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
-    },
     /* RGMII1 pin config */
     /* RGMII1_RD0 -> RGMII1_RD0 (U17) */
     {
@@ -349,6 +205,150 @@ static Pinmux_PerCfg_t gPinMuxMainDomainCfg[] = {
     {
         PIN_RGMII1_TX_CTL,
         ( PIN_MODE(0) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
+    },
+    /* RGMII2 pin config */
+    /* RGMII2_RD0 -> PR0_PRU0_GPIO0 (K17) */
+    {
+        PIN_PR0_PRU0_GPIO0,
+        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
+    },
+    /* RGMII2 pin config */
+    /* RGMII2_RD1 -> PR0_PRU0_GPIO1 (K18) */
+    {
+        PIN_PR0_PRU0_GPIO1,
+        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
+    },
+    /* RGMII2 pin config */
+    /* RGMII2_RD2 -> PR0_PRU0_GPIO2 (J18) */
+    {
+        PIN_PR0_PRU0_GPIO2,
+        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
+    },
+    /* RGMII2 pin config */
+    /* RGMII2_RD3 -> PR0_PRU0_GPIO3 (J17) */
+    {
+        PIN_PR0_PRU0_GPIO3,
+        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
+    },
+    /* RGMII2 pin config */
+    /* RGMII2_RXC -> PR0_PRU0_GPIO6 (K15) */
+    {
+        PIN_PR0_PRU0_GPIO6,
+        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
+    },
+    /* RGMII2 pin config */
+    /* RGMII2_RX_CTL -> PR0_PRU0_GPIO4 (K16) */
+    {
+        PIN_PR0_PRU0_GPIO4,
+        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
+    },
+    /* RGMII2 pin config */
+    /* RGMII2_TD0 -> PR0_PRU0_GPIO11 (M16) */
+    {
+        PIN_PR0_PRU0_GPIO11,
+        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
+    },
+    /* RGMII2 pin config */
+    /* RGMII2_TD1 -> PR0_PRU0_GPIO12 (M15) */
+    {
+        PIN_PR0_PRU0_GPIO12,
+        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
+    },
+    /* RGMII2 pin config */
+    /* RGMII2_TD2 -> PR0_PRU0_GPIO13 (H17) */
+    {
+        PIN_PR0_PRU0_GPIO13,
+        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
+    },
+    /* RGMII2 pin config */
+    /* RGMII2_TD3 -> PR0_PRU0_GPIO14 (H16) */
+    {
+        PIN_PR0_PRU0_GPIO14,
+        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
+    },
+    /* RGMII2 pin config */
+    /* RGMII2_TXC -> PR0_PRU0_GPIO16 (H18) */
+    {
+        PIN_PR0_PRU0_GPIO16,
+        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
+    },
+    /* RGMII2 pin config */
+    /* RGMII2_TX_CTL -> PR0_PRU0_GPIO15 (L16) */
+    {
+        PIN_PR0_PRU0_GPIO15,
+        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
+    },
+    /* RGMII2 pin config */
+    /* RGMII2_RD0 -> PR0_PRU0_GPIO0 (K17) */
+    {
+        PIN_PR0_PRU0_GPIO0,
+        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
+    },
+    /* RGMII2 pin config */
+    /* RGMII2_RD1 -> PR0_PRU0_GPIO1 (K18) */
+    {
+        PIN_PR0_PRU0_GPIO1,
+        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
+    },
+    /* RGMII2 pin config */
+    /* RGMII2_RD2 -> PR0_PRU0_GPIO2 (J18) */
+    {
+        PIN_PR0_PRU0_GPIO2,
+        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
+    },
+    /* RGMII2 pin config */
+    /* RGMII2_RD3 -> PR0_PRU0_GPIO3 (J17) */
+    {
+        PIN_PR0_PRU0_GPIO3,
+        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
+    },
+    /* RGMII2 pin config */
+    /* RGMII2_RXC -> PR0_PRU0_GPIO6 (K15) */
+    {
+        PIN_PR0_PRU0_GPIO6,
+        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
+    },
+    /* RGMII2 pin config */
+    /* RGMII2_RX_CTL -> PR0_PRU0_GPIO4 (K16) */
+    {
+        PIN_PR0_PRU0_GPIO4,
+        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
+    },
+    /* RGMII2 pin config */
+    /* RGMII2_TD0 -> PR0_PRU0_GPIO11 (M16) */
+    {
+        PIN_PR0_PRU0_GPIO11,
+        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
+    },
+    /* RGMII2 pin config */
+    /* RGMII2_TD1 -> PR0_PRU0_GPIO12 (M15) */
+    {
+        PIN_PR0_PRU0_GPIO12,
+        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
+    },
+    /* RGMII2 pin config */
+    /* RGMII2_TD2 -> PR0_PRU0_GPIO13 (H17) */
+    {
+        PIN_PR0_PRU0_GPIO13,
+        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
+    },
+    /* RGMII2 pin config */
+    /* RGMII2_TD3 -> PR0_PRU0_GPIO14 (H16) */
+    {
+        PIN_PR0_PRU0_GPIO14,
+        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
+    },
+    /* RGMII2 pin config */
+    /* RGMII2_TXC -> PR0_PRU0_GPIO16 (H18) */
+    {
+        PIN_PR0_PRU0_GPIO16,
+        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
+    },
+    /* RGMII2 pin config */
+    /* RGMII2_TX_CTL -> PR0_PRU0_GPIO15 (L16) */
+    {
+        PIN_PR0_PRU0_GPIO15,
+        ( PIN_MODE(3) | PIN_PULL_DISABLE | PIN_SLEW_RATE_LOW )
     },
 
             /* UART0 pin config */

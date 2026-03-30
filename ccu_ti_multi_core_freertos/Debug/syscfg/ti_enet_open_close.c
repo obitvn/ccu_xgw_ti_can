@@ -1452,7 +1452,7 @@ static const CpswAle_Cfg enetAppCpswAleCfg =
             .macModeCfg =
             {
                 .macOnlyCafEn    = false,
-                .macOnlyEn       = false,
+                .macOnlyEn       = true,
             },
             .pvidCfg =
             {
@@ -1488,7 +1488,7 @@ static const CpswAle_Cfg enetAppCpswAleCfg =
             .macModeCfg =
             {
                 .macOnlyCafEn    = false,
-                .macOnlyEn       = false,
+                .macOnlyEn       = true,
             },
             .pvidCfg =
             {
@@ -1524,7 +1524,7 @@ static const CpswAle_Cfg enetAppCpswAleCfg =
             .macModeCfg =
             {
                 .macOnlyCafEn    = false,
-                .macOnlyEn       = false,
+                .macOnlyEn       = true,
             },
             .pvidCfg =
             {
