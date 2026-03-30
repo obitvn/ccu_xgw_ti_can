@@ -43,7 +43,7 @@ static void test_netif_init(void)
     ip4_addr_t ipaddr, netmask, gw;
 
     /* Use static IP configuration */
-    IP4_ADDR(&ipaddr,  192, 168, 1, 100);
+    IP4_ADDR(&ipaddr,  192, 168, 1, 9);      /* Board IP */
     IP4_ADDR(&netmask, 255, 255, 255, 0);
     IP4_ADDR(&gw,      192, 168, 1, 1);
 
@@ -57,6 +57,12 @@ static void test_netif_init(void)
     /* Bring the network interface up */
     netif_set_up(&g_netif);
     netif_set_link_up(&g_netif);
+
+    DebugP_log("[NETIF] Interface %c%c: IP=%d.%d.%d.%d, up=%d, link_up=%d\r\n",
+               g_netif.name[0], g_netif.name[1],
+               ip4_addr1(&g_netif.ip_addr), ip4_addr2(&g_netif.ip_addr),
+               ip4_addr3(&g_netif.ip_addr), ip4_addr4(&g_netif.ip_addr),
+               netif_is_up(&g_netif), netif_is_link_up(&g_netif));
 #endif /* LWIP_IPV4 && USE_ETHERNET */
 }
 
@@ -127,6 +133,7 @@ void main_loop(void *a0)
 #endif
 
     /* MAIN LOOP for driver update */
+    uint32_t loop_count = 0;
     while (!LWIP_EXAMPLE_APP_ABORT()) {
 #if NO_SYS
         /* handle timers (already done in tcpip.c when NO_SYS=0) */
@@ -135,6 +142,20 @@ void main_loop(void *a0)
 
 #if USE_ETHERNET
         sys_msleep(1);
+
+        /* Print status every 5 seconds */
+        if (++loop_count >= 5000) {
+            loop_count = 0;
+#if LWIP_IPV4
+            if (g_netif.num != 255) {  /* Check if netif is initialized */
+                DebugP_log("[NETIF-STAT] IP=%d.%d.%d.%d, up=%d, link=%d, rx_pkts=%u, tx_pkts=%u\r\n",
+                           ip4_addr1(&g_netif.ip_addr), ip4_addr2(&g_netif.ip_addr),
+                           ip4_addr3(&g_netif.ip_addr), ip4_addr4(&g_netif.ip_addr),
+                           netif_is_up(&g_netif), netif_is_link_up(&g_netif),
+                           g_netif.input, g_netif.output);
+            }
+#endif
+        }
 #endif /* USE_ETHERNET */
 
 #if ENABLE_LOOPBACK && !LWIP_NETIF_LOOPBACK_MULTITHREADING

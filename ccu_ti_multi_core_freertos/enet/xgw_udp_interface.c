@@ -179,11 +179,15 @@ int xgw_udp_start(void)
 int xgw_udp_send_motor_states(const xgw_motor_state_t* states, uint8_t count)
 {
     /* [QA TRACE T020] GPIO PA4 pulse on UDP TX entry */
+    /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
     uint32_t baseAddr = (uint32_t)AddrTranslateP_getLocalAddr(DEBUG_GPIO_UDP_TX_BASE_ADDR);
     GPIO_pinWriteHigh(baseAddr, DEBUG_GPIO_UDP_TX_PIN);
+    */
 
     if (!g_udp_state.started || states == NULL || count == 0) {
+        /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
         GPIO_pinWriteLow(baseAddr, DEBUG_GPIO_UDP_TX_PIN);
+        */
         return -1;
     }
 
@@ -227,7 +231,9 @@ int xgw_udp_send_motor_states(const xgw_motor_state_t* states, uint8_t count)
     pbuf_free(p);
 
     /* [QA TRACE T020] GPIO PA4 LOW on UDP TX exit */
+    /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
     GPIO_pinWriteLow(baseAddr, DEBUG_GPIO_UDP_TX_PIN);
+    */
 
     if (err == ERR_OK) {
         g_udp_state.tx_count++;
@@ -550,12 +556,20 @@ static void xgw_udp_recv_callback(void* arg, struct udp_pcb* pcb, struct pbuf* p
     (void)arg;
     (void)pcb;
 
+    /* [DEBUG-UDP-RX] Packet received */
+    DebugP_log("[xGW UDP] RX callback: p=%p, len=%d, port=%d\r\n", p, p ? p->len : 0, port);
+
     /* [QA TRACE T019] GPIO PA5 pulse on UDP RX entry */
+    /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
     uint32_t baseAddr = (uint32_t)AddrTranslateP_getLocalAddr(DEBUG_GPIO_UDP_RX_BASE_ADDR);
     GPIO_pinWriteHigh(baseAddr, DEBUG_GPIO_UDP_RX_PIN);
+    */
 
     if (p == NULL) {
+        /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
         GPIO_pinWriteLow(baseAddr, DEBUG_GPIO_UDP_RX_PIN);
+        */
+        DebugP_log("[xGW UDP] RX: p=NULL, returning\r\n");
         return;
     }
 
@@ -590,15 +604,23 @@ static void xgw_udp_recv_callback(void* arg, struct udp_pcb* pcb, struct pbuf* p
                         g_udp_state.parse_errors++;
                         break;
                 }
+            } else {
+                DebugP_log("[xGW UDP] RX: Packet too short: %d < %d\r\n", length, sizeof(xgw_header_t));
             }
             /* NOTE: User callback (g_rx_callback) removed to prevent duplicate processing.
              * All UDP packet processing is now handled directly in this callback. */
+        } else {
+            DebugP_log("[xGW UDP] RX: Wrong port: %d (expected %d)\r\n", port, XGW_UDP_RX_PORT);
         }
+    } else {
+        DebugP_log("[xGW UDP] RX: Invalid length: %d\r\n", p ? p->len : 0);
     }
 
     /* Free pbuf */
     pbuf_free(p);
 
     /* [QA TRACE T019] GPIO PA5 LOW on UDP RX exit */
+    /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
     GPIO_pinWriteLow(baseAddr, DEBUG_GPIO_UDP_RX_PIN);
+    */
 }
