@@ -117,7 +117,9 @@ int xgw_udp_init(void)
     memset(&g_udp_state, 0, sizeof(xgw_udp_state_t));
 
     /* [QA TRACE T019, T020] Initialize debug GPIO pins for UDP instrumentation */
+    /* TODO: Enable GPIO3 PA4/PA5 in SysConfig before uncommenting
     debug_gpio_init_udp();
+    */
 
     DebugP_log("[xGW UDP] Initializing UDP interface...\r\n");
     DebugP_log("[xGW UDP] RX Port: %d, TX Port: %d\r\n", XGW_UDP_RX_PORT, XGW_UDP_TX_PORT);

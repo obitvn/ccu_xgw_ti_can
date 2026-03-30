@@ -395,8 +395,10 @@ static int32_t init_udp(void)
 
     DebugP_log("[Core0] Initializing xGW UDP interface...\r\n");
 
+    DebugP_log("[DEBUG-udp-01] About to call xgw_udp_init()...\r\n");
     /* Initialize xGW UDP interface */
     status = xgw_udp_init();
+    DebugP_log("[DEBUG-udp-02] xgw_udp_init() returned, status=%d\r\n", status);
     if (status != 0) {
         DebugP_log("[Core0] ERROR: xGW UDP interface init failed!\r\n");
         return -1;
@@ -407,6 +409,7 @@ static int32_t init_udp(void)
     /* status = xgw_udp_register_rx_callback(xgw_udp_rx_callback_wrapper); */
 
     DebugP_log("[Core0] xGW UDP interface initialized (will start after tcpip_init)\r\n");
+    DebugP_log("[DEBUG-udp-03] init_udp() complete\r\n");
     return 0;
 }
 
@@ -453,13 +456,17 @@ static int32_t core0_init(void)
 #endif
 
     /* Initialize Ethernet */
+    DebugP_log("[DEBUG-init-01] Calling init_ethernet()...\r\n");
     status = init_ethernet();
+    DebugP_log("[DEBUG-init-02] init_ethernet() returned, status=%d\r\n", status);
     if (status != 0) {
         DebugP_log("[Core0] WARNING: Ethernet init failed!\r\n");
     }
 
     /* Initialize UDP */
+    DebugP_log("[DEBUG-init-03] Calling init_udp()...\r\n");
     status = init_udp();
+    DebugP_log("[DEBUG-init-04] init_udp() returned, status=%d\r\n", status);
     if (status != 0) {
         DebugP_log("[Core0] WARNING: UDP init failed!\r\n");
     }
@@ -509,8 +516,12 @@ static void freertos_main(void *args)
 
     (void)args;
 
+    DebugP_log("[DEBUG-001] freertos_main entry\r\n");
+
     /* Initialize Core 0 */
+    DebugP_log("[DEBUG-002] Calling core0_init()...\r\n");
     status = core0_init();
+    DebugP_log("[DEBUG-003] core0_init() returned, status=%d\r\n", status);
     if (status != 0) {
         DebugP_log("[Core0] ERROR: Initialization failed!\r\n");
         vTaskDelete(NULL);
@@ -518,6 +529,7 @@ static void freertos_main(void *args)
     }
 
     /* Create UDP TX task (1000Hz) */
+    DebugP_log("[DEBUG-004] Creating UDP TX task...\r\n");
     gUdpTxTask = xTaskCreateStatic(
         udp_tx_task,
         "UdpTx",
@@ -527,12 +539,14 @@ static void freertos_main(void *args)
         gUdpTxTaskStack,
         &gUdpTxTaskObj
     );
+    DebugP_log("[DEBUG-005] UDP TX task created, ptr=%p\r\n", (void*)gUdpTxTask);
     configASSERT(gUdpTxTask != NULL);
 
     /* Note: UDP RX is handled by lwIP in EnetLwip task via callback */
     /* xgw_udp_interface registers a callback with lwIP for receiving packets */
 
     /* Create IPC process task */
+    DebugP_log("[DEBUG-006] Creating IPC process task...\r\n");
     gIpcTask = xTaskCreateStatic(
         ipc_process_task,
         "IpcProcess",
@@ -542,15 +556,19 @@ static void freertos_main(void *args)
         gIpcTaskStack,
         &gIpcTaskObj
     );
+    DebugP_log("[DEBUG-007] IPC task created, ptr=%p\r\n", (void*)gIpcTask);
     configASSERT(gIpcTask != NULL);
 
     /* Create Log Reader task - reads Core 1 logs from shared memory */
+    DebugP_log("[DEBUG-008] Creating Log Reader task...\r\n");
     status = log_reader_task_create();
+    DebugP_log("[DEBUG-009] Log Reader task creation returned, status=%d\r\n", status);
     if (status != 0) {
         DebugP_log("[Core0] WARNING: Log Reader task creation failed!\r\n");
     }
 
     /* Create Ethernet/LwIP task (runs main_loop in separate task) */
+    DebugP_log("[DEBUG-010] Creating Ethernet/LwIP task...\r\n");
     xTaskCreateStatic(
         enet_lwip_task_wrapper,
         "EnetLwip",
@@ -560,14 +578,17 @@ static void freertos_main(void *args)
         gEnetLwipTaskStack,
         &gEnetLwipTaskObj
     );
+    DebugP_log("[DEBUG-011] Ethernet/LwIP task created\r\n");
 
     /* Note: xGW UDP interface will be started in lwip_init_callback() AFTER tcpip_init() */
     /* This ensures lwIP is properly initialized before creating UDP PCBs */
 
-    DebugP_log("[Core0] All tasks created successfully\r\n");
+    DebugP_log("[DEBUG-012] All tasks created successfully\r\n");
 
     /* Main task no longer needed - delete itself */
+    DebugP_log("[DEBUG-013] Deleting main task...\r\n");
     vTaskDelete(NULL);
+    DebugP_log("[DEBUG-014] Main task deleted (should not reach here)\r\n");
 }
 
 /*==============================================================================
