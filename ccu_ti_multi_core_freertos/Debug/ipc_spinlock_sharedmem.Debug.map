@@ -1,7 +1,7 @@
 ******************************************************************************
             TI ARM Clang Linker PC v4.0.4                      
 ******************************************************************************
->> Linked Mon Mar 30 18:37:37 2026
+>> Linked Tue Mar 31 21:22:14 2026
 
 OUTPUT FILE NAME:   <ccu_ti_multi_core_freertos.out>
 ENTRY POINT SYMBOL: "_vectors"  address: 00000000
@@ -1179,47 +1179,47 @@ section   page    origin      length       input sections
                   7007b2fa    00000006     --HOLE-- [fill = 0]
                   7007b300    0000009a                                                           : mdio_manual_ioctl.obj (.text.Mdio_manualModePhyRegValWriteC45)
                   7007b39a    00000006     --HOLE-- [fill = 0]
-                  7007b3a0    0000009a     lwipif-cpsw-freertos.am263px.r5f.ti-arm-clang.debug.lib : pbufQ.obj (.text.pbufQ_init_freeQ)
+                  7007b3a0    0000009a     main.o (.text.ipc_notify_callback_fxn)
                   7007b43a    00000006     --HOLE-- [fill = 0]
-                  7007b440    0000009a     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : udp.obj (.text.udp_new_port)
+                  7007b440    0000009a     lwipif-cpsw-freertos.am263px.r5f.ti-arm-clang.debug.lib : pbufQ.obj (.text.pbufQ_init_freeQ)
                   7007b4da    00000006     --HOLE-- [fill = 0]
-                  7007b4e0    0000009a     main.o (.text.udp_tx_task)
+                  7007b4e0    0000009a     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : udp.obj (.text.udp_new_port)
                   7007b57a    00000006     --HOLE-- [fill = 0]
-                  7007b580    00000098     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : csl_cpgmac_sl.obj (.text.CSL_CPGMAC_SL_getMacStatusReg)
-                  7007b618    00000008     --HOLE-- [fill = 0]
-                  7007b620    00000098                                                           : enetphy.obj (.text.EnetPhy_findingState)
-                  7007b6b8    00000098     libsysbm.a : hostlseek.c.obj (.text.HOSTlseek)
-                  7007b750    00000098     drivers.am263px.r5f.ti-arm-clang.freertos.debug.lib : ipc_notify_v1.obj (.text.IpcNotify_registerClient)
-                  7007b7e8    00000008     --HOLE-- [fill = 0]
-                  7007b7f0    00000098     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : ip4_frag.obj (.text.ip_reass_enqueue_new_datagram)
+                  7007b580    0000009a     main.o (.text.udp_tx_task)
+                  7007b61a    00000006     --HOLE-- [fill = 0]
+                  7007b620    00000098     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : csl_cpgmac_sl.obj (.text.CSL_CPGMAC_SL_getMacStatusReg)
+                  7007b6b8    00000008     --HOLE-- [fill = 0]
+                  7007b6c0    00000098                                                           : enetphy.obj (.text.EnetPhy_findingState)
+                  7007b758    00000098     libsysbm.a : hostlseek.c.obj (.text.HOSTlseek)
+                  7007b7f0    00000098     drivers.am263px.r5f.ti-arm-clang.freertos.debug.lib : ipc_notify_v1.obj (.text.IpcNotify_registerClient)
                   7007b888    00000008     --HOLE-- [fill = 0]
-                  7007b890    00000098                                                      : netif.obj (.text.netif_issue_reports)
+                  7007b890    00000098     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : ip4_frag.obj (.text.ip_reass_enqueue_new_datagram)
                   7007b928    00000008     --HOLE-- [fill = 0]
-                  7007b930    00000098                                                      : pbuf.obj (.text.pbuf_alloced_custom)
+                  7007b930    00000098                                                      : netif.obj (.text.netif_issue_reports)
                   7007b9c8    00000008     --HOLE-- [fill = 0]
-                  7007b9d0    00000096     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : csl_cpsw.obj (.text.CSL_CPSW_getTxMaxLenPerPriority)
-                  7007ba66    0000000a     --HOLE-- [fill = 0]
-                  7007ba70    00000096                                                           : cpsw_ale.obj (.text.CpswAle_isSupported)
+                  7007b9d0    00000098                                                      : pbuf.obj (.text.pbuf_alloced_custom)
+                  7007ba68    00000008     --HOLE-- [fill = 0]
+                  7007ba70    00000096     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : csl_cpsw.obj (.text.CSL_CPSW_getTxMaxLenPerPriority)
                   7007bb06    0000000a     --HOLE-- [fill = 0]
-                  7007bb10    00000096                                                           : cpsw_cpts.obj (.text.CpswCpts_isSupported)
+                  7007bb10    00000096                                                           : cpsw_ale.obj (.text.CpswAle_isSupported)
                   7007bba6    0000000a     --HOLE-- [fill = 0]
-                  7007bbb0    00000096                                                           : cpsw_hostport.obj (.text.CpswHostPort_isSupported)
+                  7007bbb0    00000096                                                           : cpsw_cpts.obj (.text.CpswCpts_isSupported)
                   7007bc46    0000000a     --HOLE-- [fill = 0]
-                  7007bc50    00000096                                                           : cpsw_macport_est_ioctl.obj (.text.CpswMacPortEst_ioctl_handler_ENET_TAS_IOCTL_SET_STATE)
+                  7007bc50    00000096                                                           : cpsw_hostport.obj (.text.CpswHostPort_isSupported)
                   7007bce6    0000000a     --HOLE-- [fill = 0]
-                  7007bcf0    00000096                                                           : cpsw_macport.obj (.text.CpswMacPort_isSupported)
+                  7007bcf0    00000096                                                           : cpsw_macport_est_ioctl.obj (.text.CpswMacPortEst_ioctl_handler_ENET_TAS_IOCTL_SET_STATE)
                   7007bd86    0000000a     --HOLE-- [fill = 0]
-                  7007bd90    00000096                                                           : cpsw_stats.obj (.text.CpswStats_isSupported)
+                  7007bd90    00000096                                                           : cpsw_macport.obj (.text.CpswMacPort_isSupported)
                   7007be26    0000000a     --HOLE-- [fill = 0]
-                  7007be30    00000096                                                           : enet.obj (.text.Enet_init)
+                  7007be30    00000096                                                           : cpsw_stats.obj (.text.CpswStats_isSupported)
                   7007bec6    0000000a     --HOLE-- [fill = 0]
-                  7007bed0    00000096     lwipif-cpsw-freertos.am263px.r5f.ti-arm-clang.debug.lib : lwip2enet.obj (.text.Lwip2Enet_allocateObj)
+                  7007bed0    00000096                                                           : enet.obj (.text.Enet_init)
                   7007bf66    0000000a     --HOLE-- [fill = 0]
-                  7007bf70    00000096     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : mdio_ioctl.obj (.text.Mdio_normal_ioctl_handler_ENET_MDIO_IOCTL_C22_WRITE)
+                  7007bf70    00000096     lwipif-cpsw-freertos.am263px.r5f.ti-arm-clang.debug.lib : lwip2enet.obj (.text.Lwip2Enet_allocateObj)
                   7007c006    0000000a     --HOLE-- [fill = 0]
-                  7007c010    00000096     drivers.am263px.r5f.ti-arm-clang.freertos.debug.lib : uart_v0_lld.obj (.text.UART_subConfigTCRTLRModeEn)
+                  7007c010    00000096     enet-cpsw.am263px.r5f.ti-arm-clang.freertos.debug.lib : mdio_ioctl.obj (.text.Mdio_normal_ioctl_handler_ENET_MDIO_IOCTL_C22_WRITE)
                   7007c0a6    0000000a     --HOLE-- [fill = 0]
-                  7007c0b0    00000096     main.o (.text.ipc_notify_callback_fxn)
+                  7007c0b0    00000096     drivers.am263px.r5f.ti-arm-clang.freertos.debug.lib : uart_v0_lld.obj (.text.UART_subConfigTCRTLRModeEn)
                   7007c146    0000000a     --HOLE-- [fill = 0]
                   7007c150    00000096     lwip-freertos.am263px.r5f.ti-arm-clang.debug.lib : udp.obj (.text.udp_remove)
                   7007c1e6    0000000a     --HOLE-- [fill = 0]
@@ -5792,14 +5792,14 @@ MODULE SUMMARY
        Module                                  code     ro data   rw data
        ------                                  ----     -------   -------
     .\
-       main.o                                  2432     2702      24508  
+       main.o                                  2436     2702      24508  
        gateway_shared.o                        1628     881       19760  
        motor_mapping.o                         880      339       1384   
        log_reader_task.o                       160      110       2204   
        test.o                                  1124     772       8      
        freertos_hooks.o                        156      188       0      
     +--+---------------------------------------+--------+---------+---------+
-       Total:                                  6380     4992      47864  
+       Total:                                  6384     4992      47864  
                                                                          
     .\common\
        crc32.o                                 80       1024      0      
@@ -6046,7 +6046,7 @@ MODULE SUMMARY
        Heap:                                   0        0         32768  
        Stack:                                  0        0         16384  
     +--+---------------------------------------+--------+---------+---------+
-       Grand Total:                            322794   67159     417902 
+       Grand Total:                            322798   67159     417902 
 
 
 GLOBAL SYMBOLS: SORTED ALPHABETICALLY BY Name 
@@ -6066,7 +6066,7 @@ address   name
 7008d471  CSL_CPGMAC_SL_enableIdleMode                                           
 7008d4a1  CSL_CPGMAC_SL_enableLoopback                                           
 7008eae1  CSL_CPGMAC_SL_getMacControlReg                                         
-7007b581  CSL_CPGMAC_SL_getMacStatusReg                                          
+7007b621  CSL_CPGMAC_SL_getMacStatusReg                                          
 7008e531  CSL_CPGMAC_SL_isGMIIEnabled                                            
 7008c451  CSL_CPGMAC_SL_isMACResetDone                                           
 7008d4d1  CSL_CPGMAC_SL_resetMac                                                 
@@ -6123,7 +6123,7 @@ address   name
 70075671  CSL_CPSW_getPortControlReg                                             
 70077b01  CSL_CPSW_getPortEstConfig                                              
 700845b1  CSL_CPSW_getPortStats                                                  
-7007b9d1  CSL_CPSW_getTxMaxLenPerPriority                                        
+7007ba71  CSL_CPSW_getTxMaxLenPerPriority                                        
 7008faf1  CSL_CPSW_isAleVlanAwareEnabled                                         
 7008d801  CSL_CPSW_isCpdmaResetDone                                              
 700807d1  CSL_CPSW_mapMacAddr2TableWord                                          
@@ -6298,7 +6298,7 @@ address   name
 7008ddf1  CpswHostPort_ioctl_handler_ENET_HOSTPORT_IOCTL_GET_MAXLEN              
 700866f1  CpswHostPort_ioctl_handler_ENET_HOSTPORT_IOCTL_SET_INGRESS_DSCP_PRI_MAP
 70056eb1  CpswHostPort_open                                                      
-7007bc51  CpswMacPortEst_ioctl_handler_ENET_TAS_IOCTL_SET_STATE                  
+7007bcf1  CpswMacPortEst_ioctl_handler_ENET_TAS_IOCTL_SET_STATE                  
 70081941  CpswMacPort_close                                                      
 700857c1  CpswMacPort_disablePort                                                
 7008bbf1  CpswMacPort_initCfg                                                    
@@ -6577,7 +6577,7 @@ address   name
 70079021  Enet_close                                                             
 70075b41  Enet_getDmaHandle                                                      
 70084151  Enet_getHandle                                                         
-7007be31  Enet_init                                                              
+7007bed1  Enet_init                                                              
 7008fc91  Enet_initUtilsCfg                                                      
 70067861  Enet_ioctl                                                             
 70089351  Enet_ioctl_register_CPSW_ALE_IOCTL_ADD_MCAST                           
@@ -6634,7 +6634,7 @@ address   name
 700876f1  GenericPhy_writeReg                                                    
 70084c80  HOSTclose                                                              
 700428f8  HOSTexit                                                               
-7007b6b8  HOSTlseek                                                              
+7007b758  HOSTlseek                                                              
 7007c464  HOSTopen                                                               
 7007f1b4  HOSTread                                                               
 7007a680  HOSTrename                                                             
@@ -6702,7 +6702,7 @@ address   name
 7008da71  IpcNotify_getConfig                                                    
 7004c3b1  IpcNotify_init                                                         
 70057be1  IpcNotify_isr                                                          
-7007b751  IpcNotify_registerClient                                               
+7007b7f1  IpcNotify_registerClient                                               
 7006e0c1  IpcNotify_sendMsg                                                      
 7008f1e1  IpcNotify_sendSync                                                     
 7007fa11  IpcNotify_syncAll                                                      
@@ -6769,7 +6769,7 @@ address   name
 7008b001  Mdio_manual_ioctl_handler_ENET_MDIO_IOCTL_IS_ALIVE                     
 70087881  Mdio_manual_ioctl_handler_ENET_MDIO_IOCTL_IS_LINKED                    
 700725e1  Mdio_normal_ioctl_handler_ENET_MDIO_IOCTL_C22_READ                     
-7007bf71  Mdio_normal_ioctl_handler_ENET_MDIO_IOCTL_C22_WRITE                    
+7007c011  Mdio_normal_ioctl_handler_ENET_MDIO_IOCTL_C22_WRITE                    
 70076021  Mdio_normal_ioctl_handler_ENET_MDIO_IOCTL_C45_READ                     
 700769c1  Mdio_normal_ioctl_handler_ENET_MDIO_IOCTL_C45_WRITE                    
 7008b821  Mdio_normal_ioctl_handler_ENET_MDIO_IOCTL_IS_ALIVE                     
@@ -7226,11 +7226,11 @@ ffffffff  binit
 70083361  pbufQ_deQ                                                              
 7007eb01  pbufQ_enQ                                                              
 7008dc71  pbufQ_init                                                             
-7007b3a1  pbufQ_init_freeQ                                                       
+7007b441  pbufQ_init_freeQ                                                       
 7008f301  pbuf_add_header                                                        
 70050ce1  pbuf_alloc                                                             
 70079c71  pbuf_alloc_reference                                                   
-7007b931  pbuf_alloced_custom                                                    
+7007b9d1  pbuf_alloced_custom                                                    
 70066d21  pbuf_cat                                                               
 7008e4b1  pbuf_chain                                                             
 7008ca51  pbuf_clen                                                              
@@ -7847,15 +7847,15 @@ address   name
 7007afe1  vApplicationMallocFailedHook                                           
 7007b081  CSL_CPSW_setPortStatsEnableReg                                         
 7007b121  CpswAle_setPolicerControl                                              
-7007b3a1  pbufQ_init_freeQ                                                       
-7007b581  CSL_CPGMAC_SL_getMacStatusReg                                          
-7007b6b8  HOSTlseek                                                              
-7007b751  IpcNotify_registerClient                                               
-7007b931  pbuf_alloced_custom                                                    
-7007b9d1  CSL_CPSW_getTxMaxLenPerPriority                                        
-7007bc51  CpswMacPortEst_ioctl_handler_ENET_TAS_IOCTL_SET_STATE                  
-7007be31  Enet_init                                                              
-7007bf71  Mdio_normal_ioctl_handler_ENET_MDIO_IOCTL_C22_WRITE                    
+7007b441  pbufQ_init_freeQ                                                       
+7007b621  CSL_CPGMAC_SL_getMacStatusReg                                          
+7007b758  HOSTlseek                                                              
+7007b7f1  IpcNotify_registerClient                                               
+7007b9d1  pbuf_alloced_custom                                                    
+7007ba71  CSL_CPSW_getTxMaxLenPerPriority                                        
+7007bcf1  CpswMacPortEst_ioctl_handler_ENET_TAS_IOCTL_SET_STATE                  
+7007bed1  Enet_init                                                              
+7007c011  Mdio_normal_ioctl_handler_ENET_MDIO_IOCTL_C22_WRITE                    
 7007c151  udp_remove                                                             
 7007c1f1  EnetAppUtils_addHostPortEntry                                          
 7007c291  EnetSoc_getMacPortMii                                                  

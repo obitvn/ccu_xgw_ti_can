@@ -936,6 +936,8 @@ extern volatile uint32_t dbg_imu_frame_count;     /* [QA TRACE T029] */
 extern volatile uint32_t dbg_error_count;         /* [QA TRACE T030] */
 extern volatile uint32_t dbg_last_error_code;     /* [QA TRACE T031] */
 extern volatile uint32_t dbg_ipc_register_count;  /* [QA TRACE T015] */
+extern volatile uint32_t dbg_imu_uart_isr_count;  /* [DEBUG] IMU UART ISR call count */
+extern volatile uint32_t dbg_imu_rx_byte_count;   /* [DEBUG] IMU RX byte count */
 
 /**
  * @brief Atomic counter increment macro (ARM Cortex-R5F)

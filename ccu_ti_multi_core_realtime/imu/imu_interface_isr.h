@@ -65,7 +65,19 @@ typedef struct {
 int imu_uart_isr_init(void);
 
 /**
- * @brief Send data to IMU via UART
+ * @brief Read bytes from IMU UART RX buffer (non-blocking)
+ *
+ * Call this from main loop to read received IMU data.
+ * Data is removed from buffer after reading.
+ *
+ * @param buffer Output buffer
+ * @param max_len Maximum bytes to read
+ * @return Number of bytes read
+ */
+uint32_t imu_uart_read(uint8_t *buffer, uint32_t max_len);
+
+/**
+ * @brief Send data to IMU via UART (not implemented)
  *
  * @param data Data buffer to send
  * @param length Data length

@@ -20,6 +20,11 @@
 #include <string.h>
 #include "../gateway_shared.h"
 
+/* Fallback for MCAN_STATUS_E_TIMEOUT if not defined in SDK */
+#ifndef MCAN_STATUS_E_TIMEOUT
+#define MCAN_STATUS_E_TIMEOUT  (-10)  /* Generic timeout error */
+#endif
+
 /* ==========================================================================
  *                      DEBUG COUNTERS (QA TRACE)
  * ==========================================================================
@@ -57,6 +62,10 @@ static inline void GPIO_pinToggle(uint32_t baseAddr, uint32_t pin)
 /* ==========================================================================
  *                      Constants and Definitions
  * ========================================================================== */
+
+// Debug GPIO pins for tracing execution (use existing STB GPIOs as indicators)
+#define DEBUG_GPIO_TRACE_BASE     CONFIG_GPIO_STB_MCAN0_BASE_ADDR
+#define DEBUG_GPIO_TRACE_PIN      CONFIG_GPIO_STB_MCAN0_PIN
 
 // MCAN interrupt numbers (from syscfg generated config)
 static const uint32_t g_mcan_intr_num[NUM_CAN_BUSES] = {
@@ -276,15 +285,18 @@ static int32_t init_single_mcan(uint8_t bus_id)
     int32_t ret;
 
     DebugP_log("[CAN] Initializing CAN%d (base: 0x%08X)...\r\n", bus_id, baseAddr);
+    DebugP_log("[CAN] CAN%d: About to set SW_INIT mode...\r\n", bus_id);
 
     // Enable MCAN peripheral clock
     // MCAN4-7 are in different clock domains and need explicit enable
     uint32_t rcmId = g_mcan_rcm_id[bus_id];
+    DebugP_log("[CAN] CAN%d: Enabling clock (rcmId=%d)...\r\n", bus_id, rcmId);
     ret = SOC_moduleClockEnable(rcmId, 1);
     if (ret != SystemP_SUCCESS) {
         DebugP_log("[CAN] ERROR: Failed to enable clock for CAN%d (rcmId=%d)\r\n", bus_id, rcmId);
         return ret;
     }
+    DebugP_log("[CAN] CAN%d: Clock enabled successfully\r\n", bus_id);
 
     // Small delay after clock enable to ensure peripheral is ready
     volatile uint32_t delay = 1000;
@@ -292,11 +304,23 @@ static int32_t init_single_mcan(uint8_t bus_id)
         __asm__("nop");
     }
 
+    DebugP_log("[CAN] CAN%d: About to call MCAN_setOpMode(SW_INIT)...\r\n", bus_id);
     // Set to Software Initialization mode
     MCAN_setOpMode(baseAddr, MCAN_OPERATION_MODE_SW_INIT);
-    while (MCAN_OPERATION_MODE_SW_INIT != MCAN_getOpMode(baseAddr)) {
-        // Wait
+    DebugP_log("[CAN] CAN%d: MCAN_setOpMode returned, about to wait for mode switch...\r\n", bus_id);
+
+    // [FIX] Add timeout protection for mode switch
+    uint32_t timeout = 100000;
+    while (MCAN_OPERATION_MODE_SW_INIT != MCAN_getOpMode(baseAddr) && timeout > 0) {
+        timeout--;
     }
+    if (timeout == 0) {
+        DebugP_log("[CAN] ERROR: CAN%d timeout waiting for SW_INIT mode!\r\n", bus_id);
+        DebugP_log("[CAN] Current mode: 0x%X, expected: 0x%X\r\n",
+                   MCAN_getOpMode(baseAddr), MCAN_OPERATION_MODE_SW_INIT);
+        return MCAN_STATUS_E_TIMEOUT;
+    }
+    DebugP_log("[CAN] CAN%d: SW_INIT mode confirmed\r\n", bus_id);
 
     // Initialize MCAN for CAN 2.0 mode
     MCAN_InitParams initParams;
@@ -337,6 +361,8 @@ static int32_t init_single_mcan(uint8_t bus_id)
         DebugP_log("[CAN] ERROR: MCAN_config failed for CAN%d (ret=%d)\r\n", bus_id, ret);
         return ret;
     }
+
+    DebugP_log("[CAN] CAN%d config done, starting bit timing...\r\n", bus_id);
 
     // Set bit timing for 1 Mbps @ 80 MHz MCAN clock
     MCAN_BitTimingParams bitTiming;
@@ -393,8 +419,15 @@ static int32_t init_single_mcan(uint8_t bus_id)
 
     // Set to Normal operation mode
     MCAN_setOpMode(baseAddr, MCAN_OPERATION_MODE_NORMAL);
-    while (MCAN_OPERATION_MODE_NORMAL != MCAN_getOpMode(baseAddr)) {
-        // Wait
+
+    // [FIX] Add timeout protection for mode switch
+    timeout = 100000;
+    while (MCAN_OPERATION_MODE_NORMAL != MCAN_getOpMode(baseAddr) && timeout > 0) {
+        timeout--;
+    }
+    if (timeout == 0) {
+        DebugP_log("[CAN] ERROR: CAN%d timeout waiting for NORMAL mode!\r\n", bus_id);
+        return MCAN_STATUS_E_TIMEOUT;
     }
 
     DebugP_log("[CAN] CAN%d initialized successfully (1 Mbps, CAN 2.0)\r\n", bus_id);
@@ -465,19 +498,28 @@ int32_t CAN_StartRxInterrupts(void)
     HwiP_Params hwiParams;
 
     DebugP_log("\r\n[CAN] Starting RX interrupts...\r\n");
+    DebugP_log("[CAN] About to call HwiP_Params_init...\r\n");
 
     HwiP_Params_init(&hwiParams);
 
+    DebugP_log("[CAN] HwiP_Params_init done, about to loop through %d CAN buses...\r\n", NUM_CAN_BUSES);
+
     for (uint8_t i = 0; i < NUM_CAN_BUSES; i++) {
+        DebugP_log("[CAN] Loop iteration: CAN%d, is_initialized=%d\r\n", i, g_can_stats[i].is_initialized);
         if (!g_can_stats[i].is_initialized) {
+            DebugP_log("[CAN] Skipping CAN%d (not initialized)\r\n", i);
             continue;
         }
 
+        DebugP_log("[CAN] CAN%d: Setting up ISR params: intNum=%d\r\n", i, g_mcan_intr_num[i]);
         hwiParams.intNum = g_mcan_intr_num[i];
         hwiParams.callback = &can_rx_isr;
         hwiParams.args = (void*)(uint32_t)i;
 
+        DebugP_log("[CAN] CAN%d: About to call HwiP_construct...\r\n", i);
         ret = HwiP_construct(&g_mcan_hwi_objects[i], &hwiParams);
+        DebugP_log("[CAN] CAN%d: HwiP_construct returned (ret=%d)\r\n", i, ret);
+
         if (ret != SystemP_SUCCESS) {
             DebugP_log("[CAN] ERROR: Failed to register ISR for CAN%d (ret=%d)\r\n", i, ret);
             return -1;

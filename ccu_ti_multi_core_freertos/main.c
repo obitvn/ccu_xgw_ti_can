@@ -159,13 +159,19 @@ static void ipc_notify_callback_fxn(uint32_t remoteCoreId, uint16_t localClientI
     DEBUG_COUNTER_INC(dbg_ipc_recv_count);
 
     /* BUG FIX B009: Atomic increment of IPC callback counter.
-     * Using FreeRTOS critical section for atomic increment without race conditions.
-     * Safe in ISR context - FreeRTOS automatically uses appropriate API.
-     * taskENTER_CRITICAL/taskEXIT_CRITICAL work in both task and ISR context.
+     * [FIX B019] CRITICAL: This callback runs in ISR context (IpcNotify_isr)
+     * Must use taskENTER_CRITICAL_FROM_ISR() instead of taskENTER_CRITICAL()
+     *
+     * FreeRTOS rule:
+     * - taskENTER_CRITICAL() → ONLY from task context
+     * - taskENTER_CRITICAL_FROM_ISR() → from ISR context
+     *
+     * Previous code used taskENTER_CRITICAL() which causes assertion failure
+     * because vTaskEnterCritical() cannot be called from ISR context.
      */
-    taskENTER_CRITICAL();
+    UBaseType_t uxSavedInterruptStatus = taskENTER_CRITICAL_FROM_ISR();
     g_ipc_callback_count++;
-    taskEXIT_CRITICAL();
+    taskEXIT_CRITICAL_FROM_ISR(uxSavedInterruptStatus);
 
     /* Call gateway shared memory callback - handles the actual IPC message */
     gateway_core0_ipc_callback(localClientId, (uint16_t)msgValue);

@@ -38,6 +38,11 @@
 volatile uint32_t dbg_ipc_send_count __attribute__((section(".bss.user_shared_mem_debug"))) = 0;
 volatile uint32_t dbg_ipc_register_count __attribute__((section(".bss.user_shared_mem_debug"))) = 0;
 
+/* IMU Debug counters - for tracking IMU UART ISR activity */
+volatile uint32_t dbg_imu_uart_isr_count __attribute__((section(".bss.user_shared_mem_debug"))) = 0;
+volatile uint32_t dbg_imu_rx_byte_count __attribute__((section(".bss.user_shared_mem_debug"))) = 0;
+volatile uint32_t dbg_imu_frame_count __attribute__((section(".bss.user_shared_mem_debug"))) = 0;
+
 /* Core ID definitions from CSL */
 #ifndef CSL_CORE_ID_R5FSS0_0
 #define CSL_CORE_ID_R5FSS0_0         (0U)
@@ -591,21 +596,33 @@ static int32_t core1_init(void)
     /* Note: dispatcher_timer removed - not properly integrated (callback never registered) */
 
     /* Start CAN RX interrupts */
+    DebugP_log("[Core1] >>>>> BEFORE CAN_StartRxInterrupts() <<<<<\r\n");
     CAN_StartRxInterrupts();
-    DebugP_log("[Core1] CAN RX interrupts started\r\n");
+    DebugP_log("[Core1] >>>>> AFTER CAN_StartRxInterrupts() <<<<<\r\n");
 
+    /* [DEBUG-TRACE] Print marker before IMU init */
+    DebugP_log("[Core1] ====== BEFORE IMU INIT (HwiP_construct FIX B020) ======\r\n");
+
+    /* [FIX B020] Re-enabled IMU init with HwiP_construct (matches working reference ccu_ti) */
     /* Initialize IMU (YIS320) */
+    DebugP_log("[Core1] About to initialize IMU...\r\n");
     status = imu_uart_isr_init();
     if (status != 0) {
-        DebugP_log("[Core1] WARNING: IMU UART ISR init failed!\r\n");
+        DebugP_log("[Core1] WARNING: IMU UART ISR init failed! status=%d\r\n", status);
     } else {
-        DebugP_log("[Core1] IMU initialized\r\n");
+        DebugP_log("[Core1] IMU initialized SUCCESSFULLY!\r\n");
     }
+
+    DebugP_log("[Core1] ====== AFTER IMU INIT ======\r\n");
 
     status = imu_protocol_manager_init(IMU_TYPE_YIS320);
     if (status != 0) {
-        DebugP_log("[Core1] WARNING: IMU protocol handler init failed!\r\n");
+        DebugP_log("[Core1] WARNING: IMU protocol handler init failed! status=%d\r\n", status);
+    } else {
+        DebugP_log("[Core1] IMU protocol handler initialized OK\r\n");
     }
+
+    DebugP_log("[Core1] ====== IMU PROTOCOL DONE ======\r\n");
 
     DebugP_log("\r\n========================================\r\n");
     DebugP_log("  Core 1 Init Complete!\r\n");
@@ -698,6 +715,9 @@ static void main_loop(void)
         if ((g_cycle_count - last_heartbeat_log) >= 1000) {
             DebugP_log("[Core1] Heartbeat: cycle=%u, timer_isr=%u, ipc_events=%u, ringbuf_init=%d\r\n",
                        g_cycle_count, g_timer_isr_count, g_ipc_event_count, g_ringbuf_initialized);
+            /* [DEBUG] IMU UART ISR status */
+            DebugP_log("[Core1] IMU: isr_cnt=%u, bytes=%u, frames=%u\r\n",
+                       dbg_imu_uart_isr_count, dbg_imu_rx_byte_count, dbg_imu_frame_count);
             last_heartbeat_log = g_cycle_count;
         }
 

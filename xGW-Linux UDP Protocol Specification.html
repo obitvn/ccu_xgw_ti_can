@@ -1,0 +1,846 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><title>xGW-Linux UDP Protocol Specification</title><style>
+/* cspell:disable-file */
+/* webkit printing magic: print all background colors */
+html {
+	-webkit-print-color-adjust: exact;
+}
+* {
+	box-sizing: border-box;
+	-webkit-print-color-adjust: exact;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+}
+@media only screen {
+	body {
+		margin: 2em auto;
+		max-width: 900px;
+		color: rgb(55, 53, 47);
+	}
+}
+
+body {
+	line-height: 1.5;
+	white-space: pre-wrap;
+}
+
+a,
+a.visited {
+	color: inherit;
+	text-decoration: underline;
+}
+
+.pdf-relative-link-path {
+	font-size: 80%;
+	color: #444;
+}
+
+h1,
+h2,
+h3 {
+	letter-spacing: -0.01em;
+	line-height: 1.2;
+	font-weight: 600;
+	margin-bottom: 0;
+}
+
+/* Override strong tags inside headings to maintain consistent weight */
+h1 strong,
+h2 strong,
+h3 strong {
+	font-weight: 600;
+}
+
+.page-title {
+	font-size: 2.5rem;
+	font-weight: 700;
+	margin-top: 0;
+	margin-bottom: 0.75em;
+}
+
+h1 {
+	font-size: 1.875rem;
+	margin-top: 1.875rem;
+}
+
+h2 {
+	font-size: 1.5rem;
+	margin-top: 1.5rem;
+}
+
+h3 {
+	font-size: 1.25rem;
+	margin-top: 1.25rem;
+}
+
+.source {
+	border: 1px solid #ddd;
+	border-radius: 3px;
+	padding: 1.5em;
+	word-break: break-all;
+}
+
+.callout {
+	border-radius: 10px;
+	padding: 1rem;
+}
+
+figure {
+	margin: 1.25em 0;
+	page-break-inside: avoid;
+}
+
+figcaption {
+	opacity: 0.5;
+	font-size: 85%;
+	margin-top: 0.5em;
+}
+
+mark {
+	background-color: transparent;
+}
+
+.indented {
+	padding-left: 1.5em;
+}
+
+hr {
+	background: transparent;
+	display: block;
+	width: 100%;
+	height: 1px;
+	visibility: visible;
+	border: none;
+	border-bottom: 1px solid rgba(55, 53, 47, 0.09);
+}
+
+img {
+	max-width: 100%;
+}
+
+@media only print {
+	img {
+		max-height: 100vh;
+		object-fit: contain;
+	}
+
+	table.collection-content {
+		width: 100%;
+		table-layout: fixed;
+	}
+
+	table.collection-content th,
+	table.collection-content td {
+		overflow-wrap: anywhere;
+	}
+
+	table.collection-content td > .user,
+	table.collection-content td > time {
+		white-space: pre-wrap;
+	}
+}
+
+@page {
+	margin: 1in;
+}
+
+.collection-content-wrapper {
+	overflow-x: auto;
+}
+
+@media only print {
+	.collection-content-wrapper {
+		overflow-x: visible;
+	}
+}
+
+.collection-content {
+	font-size: 0.875rem;
+}
+
+.collection-content td {
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.column-list {
+	display: flex;
+	gap: 46px;
+}
+
+.column {
+	min-width: 0;
+	overflow: hidden;
+}
+
+.column > *:first-child {
+	margin-top: 0;
+}
+
+.table_of_contents-item {
+	display: block;
+	font-size: 0.875rem;
+	line-height: 1.3;
+	padding: 0.125rem;
+}
+
+.table_of_contents-indent-1 {
+	margin-left: 1.5rem;
+}
+
+.table_of_contents-indent-2 {
+	margin-left: 3rem;
+}
+
+.table_of_contents-indent-3 {
+	margin-left: 4.5rem;
+}
+
+.table_of_contents-link {
+	text-decoration: none;
+	opacity: 0.7;
+	border-bottom: 1px solid rgba(55, 53, 47, 0.18);
+}
+
+table,
+th,
+td {
+	border: 1px solid rgba(55, 53, 47, 0.09);
+	border-collapse: collapse;
+}
+
+table {
+	border-left: none;
+	border-right: none;
+}
+
+th,
+td {
+	font-weight: normal;
+	padding: 0.25em 0.5em;
+	line-height: 1.5;
+	min-height: 1.5em;
+	text-align: left;
+}
+
+th {
+	color: rgba(55, 53, 47, 0.6);
+}
+
+ol,
+ul {
+	margin: 0;
+	margin-block-start: 0.6em;
+	margin-block-end: 0.6em;
+}
+
+li > ol:first-child,
+li > ul:first-child {
+	margin-block-start: 0.6em;
+}
+
+ul > li {
+	list-style: disc;
+}
+
+ul.to-do-list {
+	padding-inline-start: 0;
+}
+
+ul.to-do-list > li {
+	list-style: none;
+}
+
+.to-do-children-checked {
+	text-decoration: line-through;
+	opacity: 0.375;
+}
+
+ul.toggle > li {
+	list-style: none;
+}
+
+ul {
+	padding-inline-start: 1.7em;
+}
+
+ul > li {
+	padding-left: 0.1em;
+}
+
+ol {
+	padding-inline-start: 1.6em;
+}
+
+ol > li {
+	padding-left: 0.2em;
+}
+
+.mono ol {
+	padding-inline-start: 2em;
+}
+
+.mono ol > li {
+	text-indent: -0.4em;
+}
+
+.toggle {
+	padding-inline-start: 0em;
+	list-style-type: none;
+}
+
+/* Indent toggle children */
+.toggle > li > details {
+	padding-left: 1.7em;
+}
+
+.toggle > li > details > summary {
+	margin-left: -1.1em;
+}
+
+.selected-value {
+	display: inline-block;
+	padding: 0 0.5em;
+	background: rgba(206, 205, 202, 0.5);
+	border-radius: 3px;
+	margin-right: 0.5em;
+	margin-top: 0.3em;
+	margin-bottom: 0.3em;
+	white-space: nowrap;
+}
+
+.collection-title {
+	display: inline-block;
+	margin-right: 1em;
+}
+
+.page-description {
+	margin-bottom: 2em;
+}
+
+.simple-table {
+	margin-top: 1em;
+	font-size: 0.875rem;
+	empty-cells: show;
+}
+.simple-table td {
+	height: 29px;
+	min-width: 120px;
+}
+
+.simple-table th {
+	height: 29px;
+	min-width: 120px;
+}
+
+.simple-table-header-color {
+	background: rgb(247, 246, 243);
+	color: black;
+}
+.simple-table-header {
+	font-weight: 500;
+}
+
+time {
+	opacity: 0.5;
+}
+
+.icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	max-width: 1.2em;
+	max-height: 1.2em;
+	text-decoration: none;
+	vertical-align: text-bottom;
+	margin-right: 0.5em;
+}
+
+img.icon {
+	border-radius: 3px;
+}
+
+.callout img.notion-static-icon {
+	width: 1em;
+	height: 1em;
+}
+
+.callout p {
+	margin: 0;
+}
+
+.callout h1,
+.callout h2,
+.callout h3 {
+	margin: 0 0 0.6rem;
+}
+
+.user-icon {
+	width: 1.5em;
+	height: 1.5em;
+	border-radius: 100%;
+	margin-right: 0.5rem;
+}
+
+.user-icon-inner {
+	font-size: 0.8em;
+}
+
+.text-icon {
+	border: 1px solid #000;
+	text-align: center;
+}
+
+.page-cover-image {
+	display: block;
+	object-fit: cover;
+	width: 100%;
+	max-height: 30vh;
+}
+
+.page-header-icon {
+	font-size: 3rem;
+	margin-bottom: 1rem;
+}
+
+.page-header-icon-with-cover {
+	margin-top: -0.72em;
+	margin-left: 0.07em;
+}
+
+.page-header-icon img {
+	border-radius: 3px;
+}
+
+.link-to-page {
+	margin: 1em 0;
+	padding: 0;
+	border: none;
+	font-weight: 500;
+}
+
+p > .user {
+	opacity: 0.5;
+}
+
+td > .user,
+td > time {
+	white-space: nowrap;
+}
+
+input[type="checkbox"] {
+	transform: scale(1.5);
+	margin-right: 0.6em;
+	vertical-align: middle;
+}
+
+p {
+	margin-top: 0.5em;
+	margin-bottom: 0.5em;
+}
+
+.image {
+	border: none;
+	margin: 1.5em 0;
+	padding: 0;
+	border-radius: 0;
+	text-align: center;
+}
+
+.code,
+code {
+	background: rgba(135, 131, 120, 0.15);
+	border-radius: 3px;
+	padding: 0.2em 0.4em;
+	border-radius: 3px;
+	font-size: 85%;
+	tab-size: 2;
+}
+
+code {
+	color: #eb5757;
+}
+
+.code {
+	padding: 1.5em 1em;
+}
+
+.code-wrap {
+	white-space: pre-wrap;
+	word-break: break-all;
+}
+
+.code > code {
+	background: none;
+	padding: 0;
+	font-size: 100%;
+	color: inherit;
+}
+
+blockquote {
+	font-size: 1em;
+	margin: 1em 0;
+	padding-left: 1em;
+	border-left: 3px solid rgb(55, 53, 47);
+}
+
+blockquote.quote-large {
+	font-size: 1.25em;
+}
+
+.bookmark {
+	text-decoration: none;
+	max-height: 8em;
+	padding: 0;
+	display: flex;
+	width: 100%;
+	align-items: stretch;
+}
+
+.bookmark-title {
+	font-size: 0.85em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	height: 1.75em;
+	white-space: nowrap;
+}
+
+.bookmark-text {
+	display: flex;
+	flex-direction: column;
+}
+
+.bookmark-info {
+	flex: 4 1 180px;
+	padding: 12px 14px 14px;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+}
+
+.bookmark-image {
+	width: 33%;
+	flex: 1 1 180px;
+	display: block;
+	position: relative;
+	object-fit: cover;
+	border-radius: 1px;
+}
+
+.bookmark-description {
+	color: rgba(55, 53, 47, 0.6);
+	font-size: 0.75em;
+	overflow: hidden;
+	max-height: 4.5em;
+	word-break: break-word;
+}
+
+.bookmark-href {
+	font-size: 0.75em;
+	margin-top: 0.25em;
+}
+
+.sans { font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol"; }
+.code { font-family: "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace; }
+.serif { font-family: Lyon-Text, Georgia, ui-serif, serif; }
+.mono { font-family: iawriter-mono, Nitti, Menlo, Courier, monospace; }
+.pdf .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK JP'; }
+.pdf:lang(zh-CN) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK SC'; }
+.pdf:lang(zh-TW) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK TC'; }
+.pdf:lang(ko-KR) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK KR'; }
+.pdf .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK JP'; }
+.pdf:lang(zh-CN) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC'; }
+.pdf:lang(zh-TW) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK TC'; }
+.pdf:lang(ko-KR) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK KR'; }
+.pdf .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK JP'; }
+.pdf:lang(zh-CN) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK SC'; }
+.pdf:lang(zh-TW) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK TC'; }
+.pdf:lang(ko-KR) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK KR'; }
+.pdf .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK JP'; }
+.pdf:lang(zh-CN) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC'; }
+.pdf:lang(zh-TW) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK TC'; }
+.pdf:lang(ko-KR) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK KR'; }
+.highlight-default {
+	color: rgba(44, 44, 43, 1);
+}
+.highlight-gray {
+	color: rgba(125, 122, 117, 1);
+	fill: rgba(125, 122, 117, 1);
+}
+.highlight-brown {
+	color: rgba(159, 118, 90, 1);
+	fill: rgba(159, 118, 90, 1);
+}
+.highlight-orange {
+	color: rgba(210, 123, 45, 1);
+	fill: rgba(210, 123, 45, 1);
+}
+.highlight-yellow {
+	color: rgba(203, 148, 52, 1);
+	fill: rgba(203, 148, 52, 1);
+}
+.highlight-teal {
+	color: rgba(80, 148, 110, 1);
+	fill: rgba(80, 148, 110, 1);
+}
+.highlight-blue {
+	color: rgba(56, 125, 201, 1);
+	fill: rgba(56, 125, 201, 1);
+}
+.highlight-purple {
+	color: rgba(154, 107, 180, 1);
+	fill: rgba(154, 107, 180, 1);
+}
+.highlight-pink {
+	color: rgba(193, 76, 138, 1);
+	fill: rgba(193, 76, 138, 1);
+}
+.highlight-red {
+	color: rgba(207, 81, 72, 1);
+	fill: rgba(207, 81, 72, 1);
+}
+.highlight-default_background {
+	color: rgba(44, 44, 43, 1);
+}
+.highlight-gray_background {
+	background: rgba(42, 28, 0, 0.07);
+}
+.highlight-brown_background {
+	background: rgba(139, 46, 0, 0.086);
+}
+.highlight-orange_background {
+	background: rgba(224, 101, 1, 0.129);
+}
+.highlight-yellow_background {
+	background: rgba(211, 168, 0, 0.137);
+}
+.highlight-teal_background {
+	background: rgba(0, 100, 45, 0.09);
+}
+.highlight-blue_background {
+	background: rgba(0, 124, 215, 0.094);
+}
+.highlight-purple_background {
+	background: rgba(102, 0, 178, 0.078);
+}
+.highlight-pink_background {
+	background: rgba(197, 0, 93, 0.086);
+}
+.highlight-red_background {
+	background: rgba(223, 22, 0, 0.094);
+}
+.block-color-default {
+	color: inherit;
+	fill: inherit;
+}
+.block-color-gray {
+	color: rgba(125, 122, 117, 1);
+	fill: rgba(125, 122, 117, 1);
+}
+.block-color-brown {
+	color: rgba(159, 118, 90, 1);
+	fill: rgba(159, 118, 90, 1);
+}
+.block-color-orange {
+	color: rgba(210, 123, 45, 1);
+	fill: rgba(210, 123, 45, 1);
+}
+.block-color-yellow {
+	color: rgba(203, 148, 52, 1);
+	fill: rgba(203, 148, 52, 1);
+}
+.block-color-teal {
+	color: rgba(80, 148, 110, 1);
+	fill: rgba(80, 148, 110, 1);
+}
+.block-color-blue {
+	color: rgba(56, 125, 201, 1);
+	fill: rgba(56, 125, 201, 1);
+}
+.block-color-purple {
+	color: rgba(154, 107, 180, 1);
+	fill: rgba(154, 107, 180, 1);
+}
+.block-color-pink {
+	color: rgba(193, 76, 138, 1);
+	fill: rgba(193, 76, 138, 1);
+}
+.block-color-red {
+	color: rgba(207, 81, 72, 1);
+	fill: rgba(207, 81, 72, 1);
+}
+.block-color-default_background {
+	color: inherit;
+	fill: inherit;
+}
+.block-color-gray_background {
+	background: rgba(240, 239, 237, 1);
+}
+.block-color-brown_background {
+	background: rgba(245, 237, 233, 1);
+}
+.block-color-orange_background {
+	background: rgba(251, 235, 222, 1);
+}
+.block-color-yellow_background {
+	background: rgba(249, 243, 220, 1);
+}
+.block-color-teal_background {
+	background: rgba(232, 241, 236, 1);
+}
+.block-color-blue_background {
+	background: rgba(229, 242, 252, 1);
+}
+.block-color-purple_background {
+	background: rgba(243, 235, 249, 1);
+}
+.block-color-pink_background {
+	background: rgba(250, 233, 241, 1);
+}
+.block-color-red_background {
+	background: rgba(252, 233, 231, 1);
+}
+.select-value-color-default { background-color: rgba(42, 28, 0, 0.07); }
+.select-value-color-gray { background-color: rgba(28, 19, 1, 0.11); }
+.select-value-color-brown { background-color: rgba(127, 51, 0, 0.156); }
+.select-value-color-orange { background-color: rgba(196, 88, 0, 0.203); }
+.select-value-color-yellow { background-color: rgba(209, 156, 0, 0.282); }
+.select-value-color-green { background-color: rgba(0, 96, 38, 0.156); }
+.select-value-color-blue { background-color: rgba(0, 118, 217, 0.203); }
+.select-value-color-purple { background-color: rgba(92, 0, 163, 0.141); }
+.select-value-color-pink { background-color: rgba(183, 0, 78, 0.152); }
+.select-value-color-red { background-color: rgba(206, 24, 0, 0.164); }
+
+.checkbox {
+	display: inline-flex;
+	vertical-align: text-bottom;
+	width: 16;
+	height: 16;
+	background-size: 16px;
+	margin-left: 2px;
+	margin-right: 5px;
+}
+
+.checkbox-on {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22%2358A9D7%22%2F%3E%0A%3Cpath%20d%3D%22M6.71429%2012.2852L14%204.9995L12.7143%203.71436L6.71429%209.71378L3.28571%206.2831L2%207.57092L6.71429%2012.2852Z%22%20fill%3D%22white%22%2F%3E%0A%3C%2Fsvg%3E");
+}
+
+.checkbox-off {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20x%3D%220.75%22%20y%3D%220.75%22%20width%3D%2214.5%22%20height%3D%2214.5%22%20fill%3D%22white%22%20stroke%3D%22%2336352F%22%20stroke-width%3D%221.5%22%2F%3E%0A%3C%2Fsvg%3E");
+}
+	
+</style></head><body><article id="2d35c99c-acd5-807c-8a02-db7af99f9df7" class="page sans"><header><h1 class="page-title" dir="auto">xGW-Linux UDP Protocol Specification</h1><p class="page-description" dir="auto"></p></header><div class="page-body"><div style="display:contents" dir="auto"><p id="2d35c99c-acd5-80f1-8729-cc58d80a2746" class=""><strong>Project:</strong> xGW Robot Communication Interface</p></div><div style="display:contents" dir="auto"><p id="2d35c99c-acd5-8020-8f4e-d3e29a5e7d40" class=""><strong>Version:</strong> 2.0</p></div><div style="display:contents" dir="auto"><p id="2d35c99c-acd5-8020-9bed-f5451c1c2291" class=""><strong>Date:</strong> 2025-12-24</p></div><div style="display:contents" dir="auto"><p id="2d35c99c-acd5-80dc-bf52-eba09005b47d" class=""><strong>Author: </strong>Chu Tiến Thịnh</p></div><div style="display:contents" dir="auto"><p id="2d35c99c-acd5-8042-be08-f69c45e67e6a" class=""><strong>Transport:</strong> Ethernet UDP</p></div><div style="display:contents" dir="auto"><p id="2d35c99c-acd5-8087-99bc-d95d6bcbb5a2" class=""><strong>Endianness:</strong> Little Endian (Standard for ARM &amp; x86)</p></div><div style="display:contents" dir="auto"><p id="2d35c99c-acd5-807a-9569-e22c72c3054c" class=""><strong>Alignment:</strong> 4-Byte (32-bit) Aligned</p></div><div style="display:contents" dir="auto"><hr id="2d35c99c-acd5-806b-bdf2-fc46764624de"/></div><div style="display:contents" dir="auto"><h2 id="2d35c99c-acd5-800f-b686-fdd3fa2af6f4" class="">1. Overview &amp; Architecture</h2></div><div style="display:contents" dir="auto"><p id="2d35c99c-acd5-8019-82f0-e5657e69b2cd" class="">Giao thức được thiết kế để truyền tải dữ liệu thời gian thực (Real-time) giữa mạch nhúng Gateway (xGW) và máy tính điều khiển (Linux/ROS). Cấu trúc dữ liệu được tối ưu hóa cho việc căn chỉnh bộ nhớ (memory alignment), giúp tăng tốc độ xử lý (Zero-copy parsing) và tránh các lỗi truy cập bộ nhớ trên vi xử lý ARM.</p></div><div style="display:contents" dir="auto"><p id="2e85c99c-acd5-80fd-a500-f008795de5c6" class="">Port PC gửi đi         61904   (0xF1D0) <br/>Port Mạch gửi về   53489  (0xD0F1)</p></div><div style="display:contents" dir="auto"><h3 id="2d35c99c-acd5-8063-9ac7-fb0d2a9f1c0e" class="">1.1. Packet Structure</h3></div><div style="display:contents" dir="auto"><p id="2d35c99c-acd5-808e-b207-d0eed48801f5" class="">Mọi gói tin UDP gửi đi đều tuân theo cấu trúc phẳng sau:</p></div><div style="display:contents" dir="auto"><p id="2d35c99c-acd5-80d1-9ece-daa70ccc8db7" class="">Plaintext</p></div><div style="display:contents" dir="auto"><p id="2d35c99c-acd5-80b2-950e-e0e2d9c4223d" class=""><code>|-------------------|---------------------------------------------------|<br/>|   Common Header   |                      Payload                      |<br/>|    (32 Bytes)     |              (Variable Length Data)               |<br/>|-------------------|---------------------------------------------------|</code></p></div><div style="display:contents" dir="auto"><h3 id="2d35c99c-acd5-80f1-b171-fc52ed6bb87f" class="">1.2. Message Types</h3></div><div style="display:contents" dir="ltr"><table id="2d35c99c-acd5-8017-b141-ecfe485fd38f" class="simple-table"><tbody><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8073-82c6-deee049d8c08"><td id="TZ=c" class=""><strong>Type ID</strong></td><td id="@~Zu" class=""><strong>Define Name</strong></td><td id="RTTm" class=""><strong>Direction</strong></td><td id="E=]x" class=""><strong>Description</strong></td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8003-b054-c5197d0ff189"><td id="TZ=c" class=""><strong>0x01</strong></td><td id="@~Zu" class=""><code>MSG_TYPE_MOTOR_STATE</code></td><td id="RTTm" class="">xGW -&gt; Linux</td><td id="E=]x" class="">Feedback state from motors (Pos, Vel, Torque, Temp)</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8080-a636-e42b3ecff992"><td id="TZ=c" class=""><strong>0x02</strong></td><td id="@~Zu" class=""><code>MSG_TYPE_MOTOR_CMD</code></td><td id="RTTm" class="">Linux -&gt; xGW</td><td id="E=]x" class="">Control command to motors</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-80e4-bfa4-f540122d23cc"><td id="TZ=c" class=""><strong>0x03</strong></td><td id="@~Zu" class=""><code>MSG_TYPE_IMU_STATE</code></td><td id="RTTm" class="">xGW -&gt; Linux</td><td id="E=]x" class="">High-frequency IMU data</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-80a8-a103-c166785cbd80"><td id="TZ=c" class=""><strong>0x04</strong></td><td id="@~Zu" class=""><code>MSG_TYPE_RS485_DATA</code></td><td id="RTTm" class="">Bidirectional</td><td id="E=]x" class="">UART/RS485 Tunneling data</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8019-a353-ee1df0504b90"><td id="TZ=c" class=""><strong>0x05</strong></td><td id="@~Zu" class=""><code>MSG_TYPE_XGW_DIAG</code></td><td id="RTTm" class="">xGW -&gt; Linux</td><td id="E=]x" class="">Board health status (Voltage, Current, Load...)</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8031-a0c9-d8ce340ecda1"><td id="TZ=c" class=""><strong>0x06</strong></td><td id="@~Zu" class=""><code>MSG_TYPE_XGW_CONFIG</code></td><td id="RTTm" class="">Bidirectional</td><td id="E=]x" class="">System configuration (Set/Get parameters)</td></tr></div><div style="display:contents" dir="ltr"><tr id="2e85c99c-acd5-80ca-9dbe-ef5960f46ea0"><td id="TZ=c" class="">0x07</td><td id="@~Zu" class=""><code>MSG_TYPE_MOTOR_SET</code></td><td id="RTTm" class="">Linux -&gt; xGW</td><td id="E=]x" class="">Enable, Disable motor</td></tr></div><div style="display:contents" dir="ltr"><tr id="2e85c99c-acd5-80e2-9c02-c796dc1793d9"><td id="TZ=c" class=""></td><td id="@~Zu" class=""></td><td id="RTTm" class=""></td><td id="E=]x" class=""></td></tr></div></tbody></table></div><div style="display:contents" dir="auto"><hr id="2d35c99c-acd5-8034-bb70-f61166343cc0"/></div><div style="display:contents" dir="auto"><h2 id="2d35c99c-acd5-801c-9e3a-f1bfc004ac28" class="">2. Common Header (Fixed 32 Bytes)</h2></div><div style="display:contents" dir="auto"><p id="2d35c99c-acd5-80b7-9ea2-dcf595e13476" class="">Header cố định 32 bytes cho tất cả các loại gói tin.</p></div><div style="display:contents" dir="ltr"><table id="2d35c99c-acd5-80d5-9b1b-f9c1da216bcb" class="simple-table"><tbody><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-807e-a245-c42ba867eceb"><td id=":RUG" class=""><strong>Offset</strong></td><td id="{Dhy" class=""><strong>Field</strong></td><td id=";eNP" class=""><strong>Type</strong></td><td id="q~F{" class=""><strong>Description</strong></td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-80a5-bc6c-de26a6d513eb"><td id=":RUG" class="">0</td><td id="{Dhy" class=""><code>magic</code></td><td id=";eNP" class=""><code>uint16_t</code></td><td id="q~F{" class="">Fixed <strong>0x5A5A</strong> (Protocol Signature)</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-801f-8669-e7beb299e688"><td id=":RUG" class="">2</td><td id="{Dhy" class=""><code>header_meta</code></td><td id=";eNP" class=""><code>uint16_t</code></td><td id="q~F{" class="">User-defined flags or Sub-ID (Default: 0)</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8055-850b-f323ac8dc5ac"><td id=":RUG" class="">4</td><td id="{Dhy" class=""><code>version</code></td><td id=";eNP" class=""><code>uint8_t</code></td><td id="q~F{" class="">Protocol Version (<strong>0x02</strong>)</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-80d4-b063-cf85953a806d"><td id=":RUG" class="">5</td><td id="{Dhy" class=""><code>msg_type</code></td><td id=";eNP" class=""><code>uint8_t</code></td><td id="q~F{" class="">Message Type ID (0x01 - 0x06)</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8010-82b1-f7f56174afa9"><td id=":RUG" class="">6</td><td id="{Dhy" class=""><code>count</code></td><td id=";eNP" class=""><code>uint8_t</code></td><td id="q~F{" class="">Number of elements in payload (e.g., N motors)</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8097-b3a9-cba751f7e7a0"><td id=":RUG" class="">7</td><td id="{Dhy" class=""><code>reserved</code></td><td id=";eNP" class=""><code>uint8_t</code></td><td id="q~F{" class="">Padding for alignment</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-80a6-850d-e9fb81f98135"><td id=":RUG" class="">8</td><td id="{Dhy" class=""><code>sequence</code></td><td id=";eNP" class=""><code>uint32_t</code></td><td id="q~F{" class="">Packet counter for loss detection</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-80d1-b715-fb024af4ae87"><td id=":RUG" class="">12</td><td id="{Dhy" class=""><code>payload_len</code></td><td id=";eNP" class=""><code>uint32_t</code></td><td id="q~F{" class="">Total size of payload in bytes</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-80f5-b0e5-fb92f911b358"><td id=":RUG" class="">16</td><td id="{Dhy" class=""><code>timestamp_ns</code></td><td id=";eNP" class=""><code>uint64_t</code></td><td id="q~F{" class="">Monotonic timestamp (nanoseconds)</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-80ce-8989-f1ae232be08b"><td id=":RUG" class="">24</td><td id="{Dhy" class=""><code>crc32</code></td><td id=";eNP" class=""><code>uint32_t</code></td><td id="q~F{" class="">Checksum of Header + Payload</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8022-a7ac-e8eeaf670fc6"><td id=":RUG" class="">28</td><td id="{Dhy" class=""><code>reserved_pad</code></td><td id=";eNP" class=""><code>uint32_t</code></td><td id="q~F{" class="">Final padding to reach 32 bytes</td></tr></div></tbody></table></div><div style="display:contents" dir="auto"><hr id="2d35c99c-acd5-800e-8052-e32bec1a35de"/></div><div style="display:contents" dir="auto"><h2 id="2d35c99c-acd5-8090-92a4-e7d21adb2300" class="">3. Payload Definitions</h2></div><div style="display:contents" dir="auto"><h3 id="2d35c99c-acd5-8092-a0f5-e694ec2bfa14" class="">3.1. Motor State (<code>Type: 0x01</code>)</h3></div><div style="display:contents" dir="auto"><ul id="2d35c99c-acd5-8088-aa6c-e98b2ab695fd" class="bulleted-list"><li style="list-style-type:disc"><strong>Size per Element:</strong> 20 Bytes</li></ul></div><div style="display:contents" dir="auto"><ul id="2d35c99c-acd5-80ab-8acd-c6feb6c79804" class="bulleted-list"><li style="list-style-type:disc"><strong>Total Payload:</strong> <code>count</code> * 20 Bytes</li></ul></div><div style="display:contents" dir="ltr"><table id="2d35c99c-acd5-804a-814d-c65f8e348aad" class="simple-table"><tbody><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-800d-9dc8-eaf947612cdf"><td id="}}oz" class=""><strong>Offset</strong></td><td id="?gSC" class=""><strong>Field</strong></td><td id="KCcz" class=""><strong>Type</strong></td><td id="BCc;" class=""><strong>Unit</strong></td><td id="}RFQ" class=""><strong>Description</strong></td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-803f-9220-d7e75411e581"><td id="}}oz" class="">0</td><td id="?gSC" class=""><code>motor_id</code></td><td id="KCcz" class=""><code>uint8_t</code></td><td id="BCc;" class="">-</td><td id="}RFQ" class="">Unique Motor ID (0-23)</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-806f-a3f3-f5aba62f867d"><td id="}}oz" class="">1</td><td id="?gSC" class=""><code>error_code</code></td><td id="KCcz" class=""><code>uint8_t</code></td><td id="BCc;" class="">-</td><td id="}RFQ" class="">Hardware Error Code (0 = OK)</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8047-a064-ee27c22fc9f6"><td id="}}oz" class="">2</td><td id="?gSC" class=""><code>pattern</code></td><td id="KCcz" class=""><code>int8_t</code></td><td id="BCc;" class="">-</td><td id="}RFQ" class="">Current Control Pattern/State</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8062-b643-da559be49c90"><td id="}}oz" class="">3</td><td id="?gSC" class=""><code>reserved</code></td><td id="KCcz" class=""><code>uint8_t</code></td><td id="BCc;" class="">-</td><td id="}RFQ" class="">Padding</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-80bf-b416-d55db21554f7"><td id="}}oz" class="">4</td><td id="?gSC" class=""><code>position</code></td><td id="KCcz" class=""><code>float</code></td><td id="BCc;" class="">rad</td><td id="}RFQ" class="">Shaft Position</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-80f6-ac7f-f2e5e3902c80"><td id="}}oz" class="">8</td><td id="?gSC" class=""><code>velocity</code></td><td id="KCcz" class=""><code>float</code></td><td id="BCc;" class="">rad/s</td><td id="}RFQ" class="">Shaft Velocity</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8009-9689-d090416e385d"><td id="}}oz" class="">12</td><td id="?gSC" class=""><code>torque</code></td><td id="KCcz" class=""><code>float</code></td><td id="BCc;" class="">Nm</td><td id="}RFQ" class="">Output Torque</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8065-8323-c88e8f9bfe73"><td id="}}oz" class="">16</td><td id="?gSC" class=""><code>temp</code></td><td id="KCcz" class=""><code>float</code></td><td id="BCc;" class="">°C</td><td id="}RFQ" class="">Motor/Driver Temperature</td></tr></div></tbody></table></div><div style="display:contents" dir="auto"><h3 id="2d35c99c-acd5-80e7-b2d5-e5a4a5af0686" class="">3.2. Motor Command (<code>Type: 0x02</code>)</h3></div><div style="display:contents" dir="auto"><ul id="2d35c99c-acd5-8022-9633-e119d93330ae" class="bulleted-list"><li style="list-style-type:disc"><strong>Size per Element:</strong> 24 Bytes</li></ul></div><div style="display:contents" dir="auto"><ul id="2d35c99c-acd5-8042-a43e-e8008781dcbf" class="bulleted-list"><li style="list-style-type:disc"><strong>Total Payload:</strong> <code>count</code> * 24 Bytes</li></ul></div><div style="display:contents" dir="ltr"><table id="2d35c99c-acd5-807e-96b8-f7414a016adf" class="simple-table"><tbody><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-805f-9446-f075f14ee389"><td id="mC&lt;s" class=""><strong>Offset</strong></td><td id="@a`x" class=""><strong>Field</strong></td><td id="^h:y" class=""><strong>Type</strong></td><td id="wse^" class=""><strong>Unit</strong></td><td id="qRuR" class=""><strong>Description</strong></td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8098-9a0a-d2384f5af344"><td id="mC&lt;s" class="">0</td><td id="@a`x" class=""><code>motor_id</code></td><td id="^h:y" class=""><code>uint8_t</code></td><td id="wse^" class="">-</td><td id="qRuR" class="">Target Motor ID</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-80ee-a767-c3164da58567"><td id="mC&lt;s" class="">1</td><td id="@a`x" class=""><code>mode</code></td><td id="^h:y" class=""><code>uint8_t</code></td><td id="wse^" class="">-</td><td id="qRuR" class="">MIT=0 …., etc.</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8096-ac8e-ff022e57a034"><td id="mC&lt;s" class="">2</td><td id="@a`x" class=""><code>reserved</code></td><td id="^h:y" class=""><code>uint8_t[2]</code></td><td id="wse^" class="">-</td><td id="qRuR" class="">Padding</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-801e-b5e1-f8247056791d"><td id="mC&lt;s" class="">4</td><td id="@a`x" class=""><code>position</code></td><td id="^h:y" class=""><code>float</code></td><td id="wse^" class="">rad</td><td id="qRuR" class="">Target Position</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8047-8312-e18c8a0a3d85"><td id="mC&lt;s" class="">8</td><td id="@a`x" class=""><code>velocity</code></td><td id="^h:y" class=""><code>float</code></td><td id="wse^" class="">rad/s</td><td id="qRuR" class="">Target Velocity</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-801d-a14a-cbde6bb60038"><td id="mC&lt;s" class="">12</td><td id="@a`x" class=""><code>torque</code></td><td id="^h:y" class=""><code>float</code></td><td id="wse^" class="">Nm</td><td id="qRuR" class="">Feed-forward Torque</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8043-9695-e06d2746df29"><td id="mC&lt;s" class="">16</td><td id="@a`x" class=""><code>kp</code></td><td id="^h:y" class=""><code>float</code></td><td id="wse^" class="">-</td><td id="qRuR" class="">P Gain</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8056-8b19-c46023fb51bd"><td id="mC&lt;s" class="">20</td><td id="@a`x" class=""><code>kd</code></td><td id="^h:y" class=""><code>float</code></td><td id="wse^" class="">-</td><td id="qRuR" class="">D Gain</td></tr></div></tbody></table></div><div style="display:contents" dir="auto"><p id="2e85c99c-acd5-80e7-81e3-c1e8e4621ea9" class="">Mặc định MIT mode = 0.</p></div><div style="display:contents" dir="auto"><h3 id="2d35c99c-acd5-806d-a792-d43ace021bc6" class="">3.3. IMU State (<code>Type: 0x03</code>)</h3></div><div style="display:contents" dir="auto"><ul id="2d35c99c-acd5-807e-b88f-c35b4de95abe" class="bulleted-list"><li style="list-style-type:disc"><strong>Size per Element:</strong> 68 Bytes</li></ul></div><div style="display:contents" dir="auto"><ul id="2d35c99c-acd5-80a5-8d36-d54e12fb0c67" class="bulleted-list"><li style="list-style-type:disc"><strong>Total Payload:</strong> <code>count</code> (usually 1) * 68 Bytes</li></ul></div><div style="display:contents" dir="ltr"><table id="2d35c99c-acd5-8096-92ea-d0847432ba88" class="simple-table"><tbody><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-80dd-b561-d6885cb162d5"><td id="gV?x" class=""><strong>Offset</strong></td><td id="[@yB" class=""><strong>Field</strong></td><td id="&lt;}Nq" class=""><strong>Type</strong></td><td id="&lt;?Sz" class=""><strong>Unit</strong></td><td id="OYb?" class=""><strong>Description</strong></td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8080-9c6f-e6a86ec59775"><td id="gV?x" class="">0</td><td id="[@yB" class=""><code>imu_id</code></td><td id="&lt;}Nq" class=""><code>uint8_t</code></td><td id="&lt;?Sz" class="">-</td><td id="OYb?" class="">IMU Sensor ID</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-80d3-b12d-f9125e48a731"><td id="gV?x" class="">1</td><td id="[@yB" class=""><code>reserved</code></td><td id="&lt;}Nq" class=""><code>uint8_t</code></td><td id="&lt;?Sz" class="">-</td><td id="OYb?" class="">Padding</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8054-9611-d0d5545fcc0a"><td id="gV?x" class="">2</td><td id="[@yB" class=""><code>temp_cdeg</code></td><td id="&lt;}Nq" class=""><code>int16_t</code></td><td id="&lt;?Sz" class="">0.01°C</td><td id="OYb?" class="">Value 4500 = 45.00°C</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-80f2-827c-f714174d36b5"><td id="gV?x" class="">4</td><td id="[@yB" class=""><code>gyro[3]</code></td><td id="&lt;}Nq" class=""><code>float[3]</code></td><td id="&lt;?Sz" class="">rad/s</td><td id="OYb?" class="">Angular Velocity [x, y, z]</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-803a-9d10-cd6766ca1376"><td id="gV?x" class="">16</td><td id="[@yB" class=""><code>quat[4]</code></td><td id="&lt;}Nq" class=""><code>float[4]</code></td><td id="&lt;?Sz" class="">-</td><td id="OYb?" class="">Quaternion [w, x, y, z]</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-80db-8a9a-c6148c26ef35"><td id="gV?x" class="">32</td><td id="[@yB" class=""><code>euler[3]</code></td><td id="&lt;}Nq" class=""><code>float[3]</code></td><td id="&lt;?Sz" class="">rad</td><td id="OYb?" class="">Euler Angles [roll, pitch, yaw]</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8086-a0bf-e767db055301"><td id="gV?x" class="">44</td><td id="[@yB" class=""><code>mag_val[3]</code></td><td id="&lt;}Nq" class=""><code>float[3]</code></td><td id="&lt;?Sz" class="">Gauss</td><td id="OYb?" class="">Raw Magnetic Field</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-80c9-aa42-eeb3a4191d21"><td id="gV?x" class="">56</td><td id="[@yB" class=""><code>mag_norm[3]</code></td><td id="&lt;}Nq" class=""><code>float[3]</code></td><td id="&lt;?Sz" class="">-</td><td id="OYb?" class="">Normalized Magnetic Vector</td></tr></div></tbody></table></div><div style="display:contents" dir="auto"><h3 id="2d35c99c-acd5-8051-97d8-e9e52903726b" class="">3.4. RS485 Data (<code>Type: 0x04</code>)</h3></div><div style="display:contents" dir="auto"><ul id="2d35c99c-acd5-80e4-9328-fa46e49507d3" class="bulleted-list"><li style="list-style-type:disc"><strong>Structure:</strong> <code>Header</code> + <code>Data Array</code></li></ul></div><div style="display:contents" dir="auto"><ul id="2d35c99c-acd5-8063-8b79-dd2dd8f99944" class="bulleted-list"><li style="list-style-type:disc"><strong>Total Payload:</strong> 8 Bytes + N Bytes Data</li></ul></div><div style="display:contents" dir="ltr"><table id="2d35c99c-acd5-80f6-89e1-cba00f6dd9e8" class="simple-table"><tbody><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-80b6-a8b3-edde15cb8f47"><td id="\^\;" class=""><strong>Offset</strong></td><td id="EM[X" class=""><strong>Field</strong></td><td id="hu}S" class=""><strong>Type</strong></td><td id="FGvI" class=""><strong>Description</strong></td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8075-bea3-c962ee04399b"><td id="\^\;" class="">0</td><td id="EM[X" class=""><code>port_id</code></td><td id="hu}S" class=""><code>uint8_t</code></td><td id="FGvI" class="">RS485 Port ID (0, 1...)</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-80fb-bcdb-f0691b42ce1f"><td id="\^\;" class="">1</td><td id="EM[X" class=""><code>reserved</code></td><td id="hu}S" class=""><code>uint8_t[3]</code></td><td id="FGvI" class="">Padding</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-801f-b793-df3bf7933a28"><td id="\^\;" class="">4</td><td id="EM[X" class=""><code>baud_rate</code></td><td id="hu}S" class=""><code>uint32_t</code></td><td id="FGvI" class="">Baudrate of this data chunk</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-80b9-91d6-c5b65382d496"><td id="\^\;" class="">8</td><td id="EM[X" class=""><code>data[...]</code></td><td id="hu}S" class=""><code>uint8_t[]</code></td><td id="FGvI" class="">Raw byte stream</td></tr></div></tbody></table></div><div style="display:contents" dir="auto"><h3 id="2d35c99c-acd5-8003-9202-f1232687a19b" class="">3.5. xGW Diagnostics (<code>Type: 0x05</code>)</h3></div><div style="display:contents" dir="auto"><ul id="2d35c99c-acd5-8079-909b-c0380ca55f59" class="bulleted-list"><li style="list-style-type:disc"><strong>Size:</strong> 32 Bytes</li></ul></div><div style="display:contents" dir="ltr"><table id="2d35c99c-acd5-8001-957c-e4939ee57d60" class="simple-table"><tbody><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-807e-9ffb-f67004f17c4e"><td id="mMuW" class=""><strong>Offset</strong></td><td id="|gdS" class=""><strong>Field</strong></td><td id="}SEV" class=""><strong>Type</strong></td><td id="Vv{g" class=""><strong>Unit</strong></td><td id="uO~g" class=""><strong>Description</strong></td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8065-90ac-cb44bc36a01f"><td id="mMuW" class="">0</td><td id="|gdS" class=""><code>uptime_ms</code></td><td id="}SEV" class=""><code>uint32_t</code></td><td id="Vv{g" class="">ms</td><td id="uO~g" class="">Time since boot</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8046-b780-f37f25389073"><td id="mMuW" class="">4</td><td id="|gdS" class=""><code>voltage_in</code></td><td id="}SEV" class=""><code>uint16_t</code></td><td id="Vv{g" class="">10mV</td><td id="uO~g" class="">Input Voltage (e.g., 2400 = 24.0V)</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-80f0-868b-ce52b5c37d7d"><td id="mMuW" class="">6</td><td id="|gdS" class=""><code>current_in</code></td><td id="}SEV" class=""><code>uint16_t</code></td><td id="Vv{g" class="">10mA</td><td id="uO~g" class="">Input Current (e.g., 100 = 1.0A)</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-80dc-869f-e4780304eebd"><td id="mMuW" class="">8</td><td id="|gdS" class=""><code>temp_mcu</code></td><td id="}SEV" class=""><code>int16_t</code></td><td id="Vv{g" class="">0.01°C</td><td id="uO~g" class="">MCU Core Temp</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8049-a768-e958c1831951"><td id="mMuW" class="">10</td><td id="|gdS" class=""><code>temp_pwr</code></td><td id="}SEV" class=""><code>int16_t</code></td><td id="Vv{g" class="">0.01°C</td><td id="uO~g" class="">Power Stage Temp</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-802b-8e82-f236699ecef8"><td id="mMuW" class="">12</td><td id="|gdS" class=""><code>cpu_load</code></td><td id="}SEV" class=""><code>uint8_t</code></td><td id="Vv{g" class="">%</td><td id="uO~g" class="">CPU Usage (0-100)</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-80a5-84c7-f12d781fe333"><td id="mMuW" class="">13</td><td id="|gdS" class=""><code>ram_usage</code></td><td id="}SEV" class=""><code>uint8_t</code></td><td id="Vv{g" class="">%</td><td id="uO~g" class="">RAM Usage (0-100)</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-80ca-b83f-c591d5df1793"><td id="mMuW" class="">14</td><td id="|gdS" class=""><code>bus_load_can</code></td><td id="}SEV" class=""><code>uint8_t</code></td><td id="Vv{g" class="">%</td><td id="uO~g" class="">CAN Bus Load (0-100)</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-80f2-b8e8-e7e0dde59710"><td id="mMuW" class="">15</td><td id="|gdS" class=""><code>bus_load_485</code></td><td id="}SEV" class=""><code>uint8_t</code></td><td id="Vv{g" class="">%</td><td id="uO~g" class="">RS485 Bus Load (0-100)</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8039-9e3c-e7134dea3c3d"><td id="mMuW" class="">16</td><td id="|gdS" class=""><code>status_flags</code></td><td id="}SEV" class=""><code>uint32_t</code></td><td id="Vv{g" class="">Mask</td><td id="uO~g" class="">Bit 0: OverHeat, Bit 1: LowBat...</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8010-91d4-e9ef4f8caa74"><td id="mMuW" class="">20</td><td id="|gdS" class=""><code>reserved</code></td><td id="}SEV" class=""><code>uint8_t[12]</code></td><td id="Vv{g" class="">-</td><td id="uO~g" class="">Padding to 32 bytes</td></tr></div></tbody></table></div><div style="display:contents" dir="auto"><p id="2e85c99c-acd5-8011-9ca8-f9a0f535386b" class="">
+</p></div><div style="display:contents" dir="auto"><h3 id="2d35c99c-acd5-80ca-82fc-d591384e03d0" class="">3.6. xGW Configuration (<code>Type: 0x06</code>)</h3></div><div style="display:contents" dir="auto"><ul id="2d35c99c-acd5-80f2-b944-d324c87dfd70" class="bulleted-list"><li style="list-style-type:disc"><strong>Size:</strong> 48 Bytes</li></ul></div><div style="display:contents" dir="auto"><ul id="2d35c99c-acd5-800f-aa54-ccd3678e14c4" class="bulleted-list"><li style="list-style-type:disc"><strong>Operations:</strong> * <code>cmd_id = 0</code>: Get Config (Request)<div style="display:contents" dir="auto"><ul id="2d35c99c-acd5-80d6-81a6-fd328edd0123" class="bulleted-list"><li style="list-style-type:circle"><code>cmd_id = 1</code>: Set Config (Apply temporarily)</li></ul></div><div style="display:contents" dir="auto"><ul id="2d35c99c-acd5-80d7-a295-e0cd66464bc2" class="bulleted-list"><li style="list-style-type:circle"><code>cmd_id = 2</code>: Save Config (Write to Flash)</li></ul></div><div style="display:contents" dir="auto"><ul id="2d35c99c-acd5-8033-9c01-c0d5a0e8c685" class="bulleted-list"><li style="list-style-type:circle"><code>cmd_id = 3</code>: Reboot xGW</li></ul></div></li></ul></div><div style="display:contents" dir="ltr"><table id="2d35c99c-acd5-8082-a277-c285f8026606" class="simple-table"><tbody><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-80de-afc0-d46d6ce52df1"><td id="LVYZ" class=""><strong>Offset</strong></td><td id="\`CG" class=""><strong>Field</strong></td><td id="qB;q" class=""><strong>Type</strong></td><td id="gPId" class=""><strong>Description</strong></td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-80ee-ac8c-d3071bb51ca5"><td id="LVYZ" class="">0</td><td id="\`CG" class=""><code>cmd_id</code></td><td id="qB;q" class=""><code>uint8_t</code></td><td id="gPId" class="">Command ID</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-80a2-867a-d75f2a6f04a5"><td id="LVYZ" class="">1</td><td id="\`CG" class=""><code>reserved</code></td><td id="qB;q" class=""><code>uint8_t[3]</code></td><td id="gPId" class="">Padding</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-807b-8d5b-d85dada3d874"><td id="LVYZ" class="">4</td><td id="\`CG" class=""><code>can_baud</code></td><td id="qB;q" class=""><code>uint32_t</code></td><td id="gPId" class="">CAN Bitrate (bps)</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8046-8440-cbf10d85f3ab"><td id="LVYZ" class="">8</td><td id="\`CG" class=""><code>rs485_baud</code></td><td id="qB;q" class=""><code>uint32_t</code></td><td id="gPId" class="">RS485 Baudrate (bps)</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8067-a0d0-e1e03458e906"><td id="LVYZ" class="">12</td><td id="\`CG" class=""><code>ip_addr</code></td><td id="qB;q" class=""><code>uint32_t</code></td><td id="gPId" class="">IPv4 Address (Big Endian or LE consistency)</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-80d1-898f-e94e4e21ef31"><td id="LVYZ" class="">16</td><td id="\`CG" class=""><code>net_mask</code></td><td id="qB;q" class=""><code>uint32_t</code></td><td id="gPId" class="">Subnet Mask</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8082-beb5-d127174cd5fb"><td id="LVYZ" class="">20</td><td id="\`CG" class=""><code>gateway</code></td><td id="qB;q" class=""><code>uint32_t</code></td><td id="gPId" class="">Gateway IP</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8068-b0b9-e8cc86c4c9de"><td id="LVYZ" class="">24</td><td id="\`CG" class=""><code>udp_port_host</code></td><td id="qB;q" class=""><code>uint16_t</code></td><td id="gPId" class="">Host (Linux) UDP Port</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-80eb-b642-d101590ede9d"><td id="LVYZ" class="">26</td><td id="\`CG" class=""><code>udp_port_xgw</code></td><td id="qB;q" class=""><code>uint16_t</code></td><td id="gPId" class="">xGW UDP Port</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-80a9-9870-f98abbf09cb6"><td id="LVYZ" class="">28</td><td id="\`CG" class=""><code>motor_map_id</code></td><td id="qB;q" class=""><code>uint32_t</code></td><td id="gPId" class="">Motor Mapping Profile ID</td></tr></div><div style="display:contents" dir="ltr"><tr id="2d35c99c-acd5-8002-94fb-c4798712a645"><td id="LVYZ" class="">32</td><td id="\`CG" class=""><code>reserved</code></td><td id="qB;q" class=""><code>uint8_t[16]</code></td><td id="gPId" class="">Future Use</td></tr></div></tbody></table></div><div style="display:contents" dir="auto"><hr id="2d35c99c-acd5-8097-a400-cdacdc635534"/></div><div style="display:contents" dir="auto"><h3 id="2e85c99c-acd5-8054-bec4-e0c12cc65dea" class="">3.3. Motor set opreration (<code>Type: 0x07</code>)</h3></div><div style="display:contents" dir="auto"><ul id="2e85c99c-acd5-80e8-864a-f99f0d4b6cac" class="bulleted-list"><li style="list-style-type:disc"><strong>Size:</strong>  Bytes</li></ul></div><div style="display:contents" dir="ltr"><table id="2e85c99c-acd5-80f2-b568-f3fb079a59b4" class="simple-table"><tbody><div style="display:contents" dir="ltr"><tr id="2e85c99c-acd5-8031-b7f3-c70af9c1747f"><td id="LVYZ" class=""><strong>Offset</strong></td><td id="\`CG" class=""><strong>Field</strong></td><td id="qB;q" class=""><strong>Type</strong></td><td id="gPId" class=""><strong>Description</strong></td></tr></div><div style="display:contents" dir="ltr"><tr id="2e85c99c-acd5-80d9-864b-d3ad1f83a0f3"><td id="LVYZ" class="">0</td><td id="\`CG" class=""><code>motor id</code></td><td id="qB;q" class=""><code>uint8_t</code></td><td id="gPId" class="">motor id.</td></tr></div><div style="display:contents" dir="ltr"><tr id="2e85c99c-acd5-80b0-a663-c4996075cae7"><td id="LVYZ" class="">1</td><td id="\`CG" class=""><code>mode</code></td><td id="qB;q" class=""><code>uint8_t</code></td><td id="gPId" class="">0: disable, 1 enable, 2 mech zero, 3 zero sta.</td></tr></div><div style="display:contents" dir="ltr"><tr id="2e85c99c-acd5-80f4-abae-c81ee14aa23a"><td id="LVYZ" class="">4</td><td id="\`CG" class=""><code>reserved</code></td><td id="qB;q" class=""><code>uint8_t[2]</code></td><td id="gPId" class=""></td></tr></div></tbody></table></div><div style="display:contents" dir="auto"><h2 id="2d35c99c-acd5-806f-8aa9-efd64593f526" class="">4. C/C++ Implementation Header</h2></div><div style="display:contents" dir="auto"><p id="2d35c99c-acd5-803d-8726-cfcc7b669670" class="">C</p></div><div style="display:contents" dir="auto"><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" integrity="sha512-7Z9J3l1+EYfeaPKcGXu3MS/7T+w19WtKQY/n+xzmw4hZhJ9tyYmcUS+4QqAlzhicE5LAfMQSF3iFTK9bQdTxXg==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ==" crossorigin="anonymous" referrerPolicy="no-referrer"/><pre id="2d35c99c-acd5-8070-afed-e38840d66de6" class="code code-wrap"><code class="language-JavaScript" style="white-space:pre-wrap;word-break:break-all">#ifndef XGW_PROTOCOL_H
+#define XGW_PROTOCOL_H
+
+#include &lt;stdint.h&gt;
+
+#define PROTOCOL_MAGIC_V2    0x5A5A
+#define PROTOCOL_VERSION     0x02
+
+// Message Types
+#define MSG_TYPE_MOTOR_STATE 0x01
+#define MSG_TYPE_MOTOR_CMD   0x02
+#define MSG_TYPE_IMU_STATE   0x03
+#define MSG_TYPE_RS485_DATA  0x04
+#define MSG_TYPE_XGW_DIAG    0x05
+#define MSG_TYPE_XGW_CONFIG  0x06
+
+#pragma pack(push, 1)
+
+// --- Common Header (32 Bytes) ---
+typedef struct {
+    uint16_t magic;         // 0x5A5A
+    uint16_t header_meta;   // Custom Flags/Sub-ID
+    uint8_t  version;       // 0x02
+    uint8_t  msg_type;      // MSG_TYPE_...
+    uint8_t  count;         // Element count
+    uint8_t  reserved;      // Padding
+    uint32_t sequence;      // Packet counter
+    uint32_t payload_len;   // Payload size
+    uint64_t timestamp_ns;  // Sync Timestamp
+    uint32_t crc32;         // Checksum
+    uint32_t reserved_pad;  // Padding -&gt; 32 bytes
+} NetHeader_t;
+
+// --- Motor State (20 Bytes) ---
+typedef struct {
+    uint8_t  motor_id;
+    uint8_t  error_code;
+    int8_t   pattern;
+    uint8_t  reserved;
+    float    position;
+    float    velocity;
+    float    torque;
+    float    temp;
+} NetMotorState_t;
+
+// --- Motor Command (24 Bytes) ---
+typedef struct {
+    uint8_t  motor_id;
+    uint8_t  mode;
+    uint8_t  reserved[2];
+    float    position;
+    float    velocity;
+    float    torque;
+    float    kp;
+    float    kd;
+} NetMotorCmd_t;
+
+// --- IMU State (68 Bytes) ---
+typedef struct {
+    uint8_t  imu_id;
+    uint8_t  reserved;
+    int16_t  temp_cdeg;     // Scale: 100
+    float    gyro[3];
+    float    quat[4];
+    float    euler[3];
+    float    mag_val[3];
+    float    mag_norm[3];
+} NetImuState_t;
+
+// --- RS485 Header (Followed by raw data) ---
+typedef struct {
+    uint8_t  port_id;
+    uint8_t  reserved[3];
+    uint32_t baud_rate;
+} NetRs485Header_t;
+
+// --- Diagnostics (32 Bytes) ---
+typedef struct {
+    uint32_t uptime_ms;
+    uint16_t voltage_in;    // 10mV
+    uint16_t current_in;    // 10mA
+    int16_t  temp_mcu;      // 0.01C
+    int16_t  temp_pwr;      // 0.01C
+    uint8_t  cpu_load;
+    uint8_t  ram_usage;
+    uint8_t  bus_load_can;
+    uint8_t  bus_load_485;
+    uint32_t status_flags;
+    uint8_t  reserved[12];
+} NetXgwDiag_t;
+
+// --- Configuration (48 Bytes) ---
+typedef struct {
+    uint8_t  cmd_id;        // 0:GET, 1:SET, 2:SAVE, 3:BOOT
+    uint8_t  reserved[3];
+    uint32_t can_baud;
+    uint32_t rs485_baud;
+    uint32_t ip_addr;
+    uint32_t net_mask;
+    uint32_t gateway;
+    uint16_t udp_port_host;
+    uint16_t udp_port_gw;
+    uint32_t motor_map_id;
+    uint8_t  reserved_block[16];
+} NetXgwConfig_t;
+
+#pragma pack(pop)
+
+#endif // XGW_PROTOCOL_H</code></pre></div><div style="display:contents" dir="auto"><p id="2d35c99c-acd5-80c3-bf9d-cdb67696c281" class="">
+</p></div><div style="display:contents" dir="auto"><h2 id="2d35c99c-acd5-8014-99b2-f6d20c2405cd" class="">5. Implementation Notes</h2></div><div style="display:contents" dir="auto"><ol type="1" id="2d35c99c-acd5-8024-9d22-ecf75a4dddfb" class="numbered-list" start="1"><li><strong>Checksum Calculation:</strong><div style="display:contents" dir="auto"><ul id="2d35c99c-acd5-8056-bfe4-d44c68910ae1" class="bulleted-list"><li style="list-style-type:disc">Trường <code>crc32</code> trong Header nên được khởi tạo bằng 0 trước khi tính toán.</li></ul></div><div style="display:contents" dir="auto"><ul id="2d35c99c-acd5-8064-a5b7-f609f4aeb84a" class="bulleted-list"><li style="list-style-type:disc">CRC được tính trên toàn bộ buffer (Header + Payload).</li></ul></div></li></ol></div><div style="display:contents" dir="auto"><ol type="1" id="2d35c99c-acd5-804e-a7c5-d3cda53194d4" class="numbered-list" start="2"><li><strong>IMU Temperature:</strong><div style="display:contents" dir="auto"><ul id="2d35c99c-acd5-80b0-afba-d817fa88ad2d" class="bulleted-list"><li style="list-style-type:disc">Giá trị <code>temp_cdeg</code> là <code>int16_t</code>. Khi Linux nhận: <code>float imu_temp = raw_data-&gt;temp_cdeg / 100.0f;</code></li></ul></div></li></ol></div><div style="display:contents" dir="auto"><ol type="1" id="2d35c99c-acd5-80eb-ba99-fb83d452a623" class="numbered-list" start="3"><li><strong>Dynamic Parsing:</strong><div style="display:contents" dir="auto"><ul id="2d35c99c-acd5-80a3-a6e1-d46ba62b6c6a" class="bulleted-list"><li style="list-style-type:disc">Bên nhận <strong>KHÔNG</strong> nên hardcode số lượng motor.</li></ul></div><div style="display:contents" dir="auto"><ul id="2d35c99c-acd5-80fd-b976-e51e268b8e64" class="bulleted-list"><li style="list-style-type:disc">Luôn sử dụng <code>header.count</code> để xác định số lần lặp khi parse payload.</li></ul></div><div style="display:contents" dir="auto"><ul id="2d35c99c-acd5-80b5-9500-f79b415954b5" class="bulleted-list"><li style="list-style-type:disc">Luôn kiểm tra <code>header.payload_len</code> so với kích thước thực nhận từ socket <code>recv_len</code> để đảm bảo an toàn bộ nhớ.</li></ul></div></li></ol></div><div style="display:contents" dir="auto"><ol type="1" id="2d35c99c-acd5-804d-8c04-cd5108c771ee" class="numbered-list" start="4"><li><strong>Packet Size Examples:</strong><div style="display:contents" dir="auto"><ul id="2d35c99c-acd5-805e-bf6f-f94c70cc663d" class="bulleted-list"><li style="list-style-type:disc"><strong>23 Motors Command:</strong> 32 (Header) + 23 * 24 = 584 bytes.</li></ul></div><div style="display:contents" dir="auto"><ul id="2d35c99c-acd5-80b1-81dc-c3db17554610" class="bulleted-list"><li style="list-style-type:disc"><strong>55 Motors Command:</strong> 32 (Header) + 55 * 24 = <strong>1352</strong> bytes (vẫn nhỏ hơn MTU 1500).</li></ul></div><div style="display:contents" dir="auto"><ul id="2d35c99c-acd5-8024-ba64-eea1faece578" class="bulleted-list"><li style="list-style-type:disc"><strong>40 Motors Command:</strong> 32 (Header) + 40 * 24 = 992 bytes.</li></ul></div><div style="display:contents" dir="auto"><ul id="2d35c99c-acd5-8021-8e6b-ce5780847054" class="bulleted-list"><li style="list-style-type:disc"><strong>1 IMU Feedback:</strong> 32 (Header) + 68 = 100 bytes.</li></ul></div><div style="display:contents" dir="auto"><ul id="2d35c99c-acd5-80e4-8dfc-e64eadde4e33" class="bulleted-list"><li style="list-style-type:disc">All sizes are well within standard Ethernet MTU (1500 bytes).</li></ul></div></li></ol></div><div style="display:contents" dir="ltr"><figure id="2d35c99c-acd5-8092-8e44-cad871877432" class="link-to-page"><a></a></figure></div><div style="display:contents" dir="auto"><p id="3335c99c-acd5-805d-a19e-c82b5c68e6d9" class="">
+</p></div></div></article><span class="sans" style="font-size:14px;padding-top:2em"></span></body></html>
