@@ -12,17 +12,13 @@
 #include "yis320/yis320_protocol.h"
 #include <string.h>
 #include <stddef.h>  /* For NULL */
+#include <kernel/dpl/HwiP.h>  /* For HwiP_disable/restore */
 
 /*==============================================================================
  * CRITICAL SECTION WRAPPERS (NoRTOS)
  *============================================================================*/
-#ifdef __TI_ARM_CLANG__
-    #define IMU_ENTER_CRITICAL()    uint32_t imu_cs_key = __get_CPU_state()
-    #define IMU_EXIT_CRITICAL()     __set_CPU_state(imu_cs_key)
-#else
-    #define IMU_ENTER_CRITICAL()    __disable_irq()
-    #define IMU_EXIT_CRITICAL()     __enable_irq()
-#endif
+#define IMU_ENTER_CRITICAL()    uintptr_t imu_cs_key = HwiP_disable()
+#define IMU_EXIT_CRITICAL()     HwiP_restore(imu_cs_key)
 
 /*==============================================================================
  * INTERNAL DATA

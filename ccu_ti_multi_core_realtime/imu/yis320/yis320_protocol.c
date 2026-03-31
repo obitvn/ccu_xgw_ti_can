@@ -677,6 +677,9 @@ static void vtable_process_rx_data(imu_protocol_handler_t* handler, const uint8_
                 /* Notify Core 0 that IMU data is ready */
                 gateway_notify_imu_ready();
             }
+
+            /* [FIX] Also update local state for Core1 (imu_protocol_get_state) */
+            imu_protocol_update_state(&temp_state);
             /* ========== END IPC INTEGRATION ========== */
 
             consumed += frame_size;  /* Just advance pointer - NO memmove! */
