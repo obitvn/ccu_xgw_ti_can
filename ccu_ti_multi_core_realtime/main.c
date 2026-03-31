@@ -593,6 +593,9 @@ static int32_t core1_init(void)
         DebugP_log("[Core1] WARNING: Timer init failed, using simulated timing\r\n");
     }
 
+    /* [DEBUG] Log marker to confirm we reach IMU init section */
+    DebugP_log("[Core1] *** TIMER DONE, ABOUT TO START CAN RX ***\r\n");
+
     /* Note: dispatcher_timer removed - not properly integrated (callback never registered) */
 
     /* Start CAN RX interrupts */
@@ -623,6 +626,9 @@ static int32_t core1_init(void)
     }
 
     DebugP_log("[Core1] ====== IMU PROTOCOL DONE ======\r\n");
+
+    /* [DEBUG] Add marker to confirm init complete */
+    DebugP_log("[Core1] *** INIT COMPLETE, ENTERING MAIN LOOP ***\r\n");
 
     DebugP_log("\r\n========================================\r\n");
     DebugP_log("  Core 1 Init Complete!\r\n");
@@ -716,9 +722,62 @@ static void main_loop(void)
             DebugP_log("[Core1] Heartbeat: cycle=%u, timer_isr=%u, ipc_events=%u, ringbuf_init=%d\r\n",
                        g_cycle_count, g_timer_isr_count, g_ipc_event_count, g_ringbuf_initialized);
             /* [DEBUG] IMU UART ISR status */
-            DebugP_log("[Core1] IMU: isr_cnt=%u, bytes=%u, frames=%u\r\n",
+            DebugP_log("[Core1] IMU ISR: isr_cnt=%u, bytes=%u, frames=%u\r\n",
                        dbg_imu_uart_isr_count, dbg_imu_rx_byte_count, dbg_imu_frame_count);
+
+            /* [IMU DATA] Log parsed IMU data from protocol handler */
+            imu_state_t imu_state;
+            if (imu_protocol_get_state(&imu_state)) {
+                DebugP_log("[Core1] IMU Data: gyro=[%.3f,%.3f,%.3f] rad/s, rpy=[%.3f,%.3f,%.3f] rad\r\n",
+                           imu_state.gyroscope[0], imu_state.gyroscope[1], imu_state.gyroscope[2],
+                           imu_state.rpy[0], imu_state.rpy[1], imu_state.rpy[2]);
+                DebugP_log("[Core1] IMU Quat: [%.4f,%.4f,%.4f,%.4f], ts=%u ms\r\n",
+                           imu_state.quaternion[0], imu_state.quaternion[1], imu_state.quaternion[2], imu_state.quaternion[3],
+                           (unsigned int)imu_state.timestamp);
+            } else {
+                DebugP_log("[Core1] IMU: No new data\r\n");
+            }
+
             last_heartbeat_log = g_cycle_count;
+        }
+
+        /* [IMU] Read and process UART data from ISR buffer */
+        if (imu_uart_is_initialized()) {
+            uint8_t imu_rx_buffer[64];
+            uint32_t bytes_read;
+
+            bytes_read = imu_uart_read(imu_rx_buffer, sizeof(imu_rx_buffer));
+            if (bytes_read > 0) {
+                /* [DEBUG] Log when we see YIS320 header (0x59 0x53) - limited logging */
+                if (bytes_read >= 2 && imu_rx_buffer[0] == 0x59 && imu_rx_buffer[1] == 0x53) {
+                    static uint32_t dbg_header_count = 0;
+                    if (dbg_header_count < 5) {  /* Only log first 5 headers */
+                        DebugP_log("[Core1] IMU RX: found YIS320 header! bytes=%u\r\n", bytes_read);
+                        /* Dump first 20 bytes for inspection */
+                        DebugP_log("[Core1] IMU dump: ");
+                        for (uint32_t i = 0; i < (bytes_read < 20 ? bytes_read : 20); i++) {
+                            DebugP_log("%02X ", imu_rx_buffer[i]);
+                        }
+                        DebugP_log("\r\n");
+                        dbg_header_count++;
+                    }
+                }
+                /* Pass to protocol handler for parsing */
+                imu_protocol_process_uart_rx(imu_rx_buffer, (uint16_t)bytes_read);
+            }
+        } else {
+            /* [DEBUG] Log if UART not initialized (should not happen after init) */
+            static bool dbg_logged = false;
+            if (!dbg_logged) {
+                DebugP_log("[Core1] WARNING: IMU UART not initialized!\r\n");
+                dbg_logged = true;
+            }
+        }
+
+        /* BUG B010 FIX: Process IMU IPC notification in task context */
+        /* Check if IMU data is ready and notify Core0 (safe from ISR deadlock) */
+        if (imu_uart_process_ipc_notification()) {
+            /* IMU data notification sent to Core0 */
         }
 
         /* BUG B010 FIX: Process IMU IPC notification in task context */

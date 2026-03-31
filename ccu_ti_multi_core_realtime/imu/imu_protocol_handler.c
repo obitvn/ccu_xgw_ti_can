@@ -100,13 +100,26 @@ bool imu_protocol_get_state(imu_state_t* imu_state)
     // Copy current IMU state (thread-safe in FreeRTOS)
     *imu_state = g_imu_state;
 
-    return g_imu_state.updated;
+    // Clear updated flag so next call returns false until new data arrives
+    bool was_updated = g_imu_state.updated;
+    g_imu_state.updated = false;
+
+    return was_updated;
 }
 
 void imu_protocol_process_uart_rx(const uint8_t* data, uint16_t length)
 {
-    if (!g_imu_manager_initialized || data == NULL || length == 0) {
+    /* [TEMP FIX] Bypass g_imu_manager_initialized check to force parsing */
+    if (data == NULL || length == 0) {
         return;
+    }
+
+    /* Force initialization if not already done */
+    if (!g_imu_manager_initialized) {
+        /* Try to initialize - YIS320 = 0 */
+        if (imu_protocol_handler_init(&g_imu_handler, (imu_type_t)0) == 0) {
+            g_imu_manager_initialized = true;
+        }
     }
 
     // Process received data through protocol handler
