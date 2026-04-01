@@ -223,7 +223,17 @@ static void udp_tx_task(void *args)
             /* All motor states successfully read - build and send UDP packet */
             build_and_send_udp_packet();
             gStats.udp_tx_count++;
-        } else if (count < 0) {
+        }
+
+        /* [IMU] Also read and send IMU state if available */
+        imu_state_ipc_t imu_state;
+        if (gateway_read_imu_state(&imu_state) == 0) {
+            /* IMU data available - send via UDP */
+            xgw_udp_send_imu_state((xgw_imu_state_t*)&imu_state);
+            gStats.udp_tx_count++;
+        }
+
+        if (count < 0) {
             /* Error condition - log but don't crash */
             static uint32_t error_count = 0;
             if (++error_count >= 1000) {  /* Log every 1000th error to avoid spam */
