@@ -161,8 +161,8 @@ static void test_init(void *arg)
     /* Start xGW UDP interface */
     DebugP_log("[Core0] Starting xGW UDP interface...\r\n");
 
-    /* Set PC IP address for UDP TX */
-    uint8_t pc_ip[4] = {192, 168, 1, 3};  /* 192.168.1.3 */
+    /* Set PC IP address for UDP TX - Use broadcast to avoid routing issues */
+    uint8_t pc_ip[4] = {255, 255, 255, 255};  /* Broadcast */
     xgw_udp_set_pc_ip(pc_ip);
 
     int32_t status = xgw_udp_start();
@@ -245,4 +245,36 @@ void main_loop(void *a0)
     }
 
     DebugP_log("[Core0] main_loop exit!\r\n");
+}
+
+/**
+ * @brief Check if Ethernet link is up
+ *
+ * This function checks if the Ethernet link is up, which is required
+ * before sending UDP packets. Sending packets before link is up will
+ * result in ERR_BUF errors.
+ *
+ * @return true if link is up, false otherwise
+ */
+bool enet_is_link_up(void)
+{
+#if LWIP_IPV4
+    if (g_netif[NETIF_INST_ID0] != NULL) {
+        bool link_up = netif_is_link_up(g_netif[NETIF_INST_ID0]);
+        bool netif_up = netif_is_up(g_netif[NETIF_INST_ID0]);
+        /* Debug: Log status every check (can be removed later) */
+        static uint32_t debug_count = 0;
+        if (++debug_count % 50 == 0) {  /* Every 5 seconds @ 100ms check */
+            DebugP_log("[NETIF] link_up=%d, netif_up=%d\r\n", link_up, netif_up);
+        }
+        return link_up && netif_up;
+    } else {
+        /* Debug: Log if netif is NULL */
+        static uint32_t null_count = 0;
+        if (++null_count % 50 == 0) {
+            DebugP_log("[NETIF] g_netif is NULL!\r\n");
+        }
+    }
+#endif
+    return false;
 }

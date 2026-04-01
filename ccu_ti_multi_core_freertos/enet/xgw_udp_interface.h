@@ -129,6 +129,15 @@ int xgw_udp_set_pc_ip(const uint8_t* ip_addr);
 int xgw_udp_get_pc_ip(uint8_t* ip_addr);
 
 /**
+ * @brief Send raw UDP packet (for testing/debugging)
+ *
+ * @param data Raw data to send
+ * @param len Length of data
+ * @return bytes sent on success, -1 on error
+ */
+int xgw_udp_send_raw(const uint8_t* data, uint16_t len);
+
+/**
  * @brief Process received motor command packet
  *
  * @param data Packet data

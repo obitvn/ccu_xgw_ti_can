@@ -111,6 +111,12 @@ extern "C" {
 void main_loop(void * a0);
 int enet_lwip_example(void *args);
 
+/**
+ * @brief Check if Ethernet link is up
+ * @return true if link is up, false otherwise
+ */
+bool enet_is_link_up(void);
+
 /* ========================================================================== */
 /*                            Global Variables                                */
 /* ========================================================================== */

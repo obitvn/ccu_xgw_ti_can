@@ -13,6 +13,7 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 #include <kernel/dpl/DebugP.h>
 #include <kernel/dpl/ClockP.h>
 #include "ti_drivers_config.h"
@@ -222,13 +223,30 @@ static void udp_tx_task(void *args)
     DebugP_log("[Core0] UDP TX priority: %u (ENET priority: %u)\r\n",
                UDP_TX_TASK_PRI, ENET_LWIP_TASK_PRI);
 
-    /* [FIX B024] Wait for network to stabilize before sending UDP
-     * ERR_RTE can occur if we try to send immediately after netif up
-     * Give ARP/routing time to settle
+    /* [FIX B024] Wait for Ethernet link to be up before sending UDP
+     * ERR_BUF (-4) occurs if we try to send before link is up
+     * Must check both netif_is_up() AND netif_is_link_up()
      */
-    DebugP_log("[Core0] UDP TX: Waiting 3 seconds for network to stabilize...\r\n");
-    vTaskDelay(pdMS_TO_TICKS(3000));
-    DebugP_log("[Core0] UDP TX: Starting transmission\r\n");
+    DebugP_log("[Core0] UDP TX: Waiting for Ethernet link to come up...\r\n");
+
+    uint32_t wait_count = 0;
+    const uint32_t MAX_WAIT_SECONDS = 10;  /* Timeout after 10 seconds */
+
+    while (!enet_is_link_up() && wait_count < MAX_WAIT_SECONDS * 1000) {
+        vTaskDelay(pdMS_TO_TICKS(100));  /* Check every 100ms */
+        wait_count += 100;
+
+        /* Log every 1 second */
+        if (wait_count % 1000 == 0) {
+            DebugP_log("[Core0] UDP TX: Still waiting for link... (%lu sec)\r\n", wait_count / 1000);
+        }
+    }
+
+    if (enet_is_link_up()) {
+        DebugP_log("[Core0] UDP TX: Link is UP! Starting transmission...\r\n");
+    } else {
+        DebugP_log("[Core0] UDP TX: WARNING - Timeout waiting for link, starting anyway...\r\n");
+    }
 
     /* [TIMING DEBUG] Measure actual loop rate using hardware timer (more reliable than FreeRTOS tick) */
     uint32_t loop_count = 0;
@@ -294,10 +312,10 @@ static void udp_tx_task(void *args)
 
         /* [DEBUG] Log motor read statistics every 5000 cycles - no logging in success path */
         if (motor_read_count >= 5000) {
-            DebugP_log("[Core0] Motor stats: total=%u, ok=%u (%.1f%%), last=%d\r\n",
+            DebugP_log("[Core0] Motor stats: total=%u, ok=%u (%.1f%%), last=%d, link=%d\r\n",
                        motor_read_count, motor_success_count,
                        motor_read_count > 0 ? (float)motor_success_count * 100.0f / motor_read_count : 0.0f,
-                       count);
+                       count, enet_is_link_up());
             motor_read_count = 0;
         }
 
@@ -310,10 +328,10 @@ static void udp_tx_task(void *args)
             g_imu_has_valid_data = true;
         }
 
-        /* Always send IMU data (new or cached) every cycle */
-        if (g_imu_has_valid_data) {
-            xgw_udp_send_imu_state((xgw_imu_state_t*)&g_cached_imu_state);
-        }
+        // /* Always send IMU data (new or cached) every cycle */
+        // if (g_imu_has_valid_data) {
+        //     xgw_udp_send_imu_state((xgw_imu_state_t*)&g_cached_imu_state);
+        // }
 
         /* Log errors only (no blocking in normal path) */
         if (count < 0) {
@@ -344,6 +362,55 @@ static void udp_tx_task(void *args)
 }
 
 /**
+ * @brief Test pbuf allocation with progressively larger packet sizes
+ *
+ * This test sends packets with increasing size to find the maximum
+ * safe packet size before memory exhaustion or crashes occur.
+ */
+static void test_pbuf_size_progressive(void)
+{
+    /* Test sizes: 64, 128, 256, 384, 492 (full motor state), 512, 768, 1024 */
+    static const uint16_t test_sizes[] = {64, 128, 256, 384, 492, 512, 768, 1024};
+    static const uint8_t num_tests = 8;
+    static uint8_t current_test = 0;
+
+    /* Only run one test cycle */
+    static bool test_complete = false;
+    if (test_complete) {
+        return;
+    }
+
+    /* Test each size with 5 attempts */
+    for (uint8_t attempt = 0; attempt < 5; attempt++) {
+        uint16_t test_size = test_sizes[current_test];
+
+        /* Create dummy data */
+        uint8_t test_data[1024];
+        memset(test_data, 0xAA, test_size);
+
+        /* Try to allocate and send */
+        extern int xgw_udp_send_raw(const uint8_t* data, uint16_t len);
+        int32_t result = xgw_udp_send_raw(test_data, test_size);
+
+        if (result > 0) {
+            DebugP_log("[TEST] Size %u: OK (attempt %d)\r\n", test_size, attempt + 1);
+        } else {
+            DebugP_log("[TEST] Size %u: FAILED at attempt %d\r\n", test_size, attempt + 1);
+            break;  /* Stop this size test on first failure */
+        }
+
+        /* Small delay between sends */
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+
+    current_test++;
+    if (current_test >= num_tests) {
+        test_complete = true;
+        DebugP_log("[TEST] All size tests completed!\r\n");
+    }
+}
+
+/**
  * @brief Build and send UDP packet with motor states
  */
 static void build_and_send_udp_packet(void)
@@ -358,6 +425,15 @@ static void build_and_send_udp_packet(void)
     static uint32_t call_count = 0;
     call_count++;
 
+    /* [TEST] Run progressive size test for first 100 calls */
+    if (call_count <= 100) {
+        test_pbuf_size_progressive();
+    }
+
+    /* [TEMP DISABLE] Normal motor state sending - disabled during testing */
+    return;
+
+#if 0  /* Disabled for testing */
     /* Convert IPC format to xGW protocol format */
     xgw_motor_state_t xgw_states[GATEWAY_NUM_MOTORS];
 
@@ -407,6 +483,7 @@ static void build_and_send_udp_packet(void)
             error_count = 0;
         }
     }
+#endif
 }
 
 /*==============================================================================

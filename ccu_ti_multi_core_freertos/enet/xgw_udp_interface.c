@@ -455,6 +455,49 @@ int xgw_udp_get_pc_ip(uint8_t* ip_addr)
     return 0;
 }
 
+int xgw_udp_send_raw(const uint8_t* data, uint16_t len)
+{
+    if (!g_udp_state.started || data == NULL || len == 0) {
+        return -1;
+    }
+
+    if (g_udp_tx_pcb == NULL) {
+        return -1;
+    }
+
+    /* Limit max size */
+    if (len > XGW_UDP_MAX_PACKET_SIZE) {
+        len = XGW_UDP_MAX_PACKET_SIZE;
+    }
+
+    /* Allocate pbuf for packet */
+    struct pbuf* p = pbuf_alloc(PBUF_TRANSPORT, len, PBUF_RAM);
+
+    if (p == NULL) {
+        g_udp_state.tx_errors++;
+        return -1;
+    }
+
+    /* Copy data */
+    memcpy(p->payload, data, len);
+
+    /* Send packet */
+    LOCK_TCPIP_CORE();
+    err_t err = udp_sendto(g_udp_tx_pcb, p, &g_pc_ip_addr, XGW_UDP_TX_PORT);
+    UNLOCK_TCPIP_CORE();
+
+    /* Free pbuf */
+    pbuf_free(p);
+
+    if (err != ERR_OK) {
+        g_udp_state.tx_errors++;
+        return -1;
+    }
+
+    g_udp_state.tx_count++;
+    return len;
+}
+
 /*==============================================================================
  * PACKET PROCESSING
  *============================================================================*/
