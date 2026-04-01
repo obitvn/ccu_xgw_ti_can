@@ -14,6 +14,7 @@
 
 #include <stdlib.h>
 #include <kernel/dpl/DebugP.h>
+#include <kernel/dpl/ClockP.h>
 #include "ti_drivers_config.h"
 #include "ti_drivers_open_close.h"
 #include "ti_board_open_close.h"
@@ -53,8 +54,8 @@ volatile uint32_t dbg_imu_frame_count __attribute__((section(".bss.user_shared_m
  *============================================================================*/
 
 #define MAIN_TASK_PRI         (configMAX_PRIORITIES - 1)
-#define ENET_LWIP_TASK_PRI    (configMAX_PRIORITIES - 2)
-#define UDP_TX_TASK_PRI       (configMAX_PRIORITIES - 3)
+#define ENET_LWIP_TASK_PRI    (configMAX_PRIORITIES - 3)  /* Lowered to allow UDP TX to run at 1000Hz */
+#define UDP_TX_TASK_PRI       (configMAX_PRIORITIES - 2)  /* Raised - CRITICAL for 1000Hz timing */
 #define UDP_RX_TASK_PRI       (configMAX_PRIORITIES - 3)
 #define IPC_TASK_PRI          (configMAX_PRIORITIES - 2)
 
@@ -64,9 +65,15 @@ volatile uint32_t dbg_imu_frame_count __attribute__((section(".bss.user_shared_m
 #define UDP_RX_TASK_SIZE      (2048U/sizeof(configSTACK_DEPTH_TYPE))
 #define IPC_TASK_SIZE         (1024U/sizeof(configSTACK_DEPTH_TYPE))
 
-#define UDP_TX_PERIOD_MS      2   /* 500 Hz (2ms period) - reduced from 1kHz to balance CPU load */
+#define UDP_TX_PERIOD_MS      1   /* 1000 Hz (1ms period) */
 #define UDP_RX_PORT           61904  /* Motor commands from PC */
 #define UDP_TX_PORT           53489  /* Motor states to PC */
+
+/* [DEBUG] Enable simple UDP TX task with random data for FreeRTOS tick rate testing
+ * Set to 1 to test FreeRTOS timing without dependency on Core1/IMU data
+ * Set to 0 to use normal UDP TX task with motor states and IMU data
+ */
+#define DEBUG_SIMPLE_UDP_TX_TASK    0  /* Set to 0 to use optimized normal UDP TX task */
 
 /*==============================================================================
  * TYPE DEFINITIONS
@@ -109,6 +116,13 @@ static motor_state_ipc_t g_motor_states[GATEWAY_NUM_MOTORS];
 /* Motor command buffer for shared memory */
 static motor_cmd_ipc_t g_motor_commands[GATEWAY_NUM_MOTORS];
 
+/* Cached IMU state - resend last known data at 1000Hz even if Core1 updates slower
+ * This ensures PC always receives IMU data at configured UDP rate (1000Hz)
+ * regardless of YIS320 hardware output rate (typically 100Hz)
+ */
+static imu_state_ipc_t g_cached_imu_state = {0};
+static volatile bool g_imu_has_valid_data = false;
+
 /* IPC callback counter - for statistics
  * BUG FIX B009: Using volatile with critical section for atomic access.
  * On ARM Cortex-R5F, the ++ operator is NOT atomic. Concurrent access from
@@ -125,6 +139,9 @@ static void freertos_main(void *args);
 static void enet_lwip_task_wrapper(void *args);
 static void lwip_init_callback(void *arg);
 static void udp_tx_task(void *args);
+#if DEBUG_SIMPLE_UDP_TX_TASK
+static void simple_udp_tx_task(void *args);
+#endif
 static void ipc_process_task(void *args);
 static void ipc_notify_callback_fxn(uint32_t remoteCoreId, uint16_t localClientId,
                                       uint32_t msgValue, int32_t crcStatus, void *args);
@@ -191,8 +208,8 @@ static void ipc_notify_callback_fxn(uint32_t remoteCoreId, uint16_t localClientI
 /**
  * @brief UDP TX task
  *
- * Sends motor states to PC at 500Hz (2ms period)
- * Core1 runs at 1000Hz, but UDP TX at 500Hz to reduce CPU load
+ * Sends motor states + IMU data to PC at 1000Hz (1ms period)
+ * Core1 runs at 1000Hz, UDP TX also at 1000Hz for maximum bandwidth
  * while maintaining real-time performance
  */
 static void udp_tx_task(void *args)
@@ -201,23 +218,29 @@ static void udp_tx_task(void *args)
     TickType_t last_wake_time = xTaskGetTickCount();
     const TickType_t period = pdMS_TO_TICKS(UDP_TX_PERIOD_MS);
 
-    DebugP_log("[Core0] UDP TX task started (500Hz)\r\n");
+    /* [DEBUG] Log timing config to verify tick rate calculation */
+    DebugP_log("[Core0] UDP TX: configTICK_RATE_HZ=%d, pdMS_TO_TICKS(1)=%u ticks\r\n",
+               configTICK_RATE_HZ, (unsigned int)period);
+    DebugP_log("[Core0] UDP TX task started (period=%u ticks, 1000Hz)\r\n", (unsigned int)period);
+    DebugP_log("[Core0] UDP TX priority: %u (ENET priority: %u)\r\n",
+               UDP_TX_TASK_PRI, ENET_LWIP_TASK_PRI);
+
+    /* [TIMING DEBUG] Measure actual loop rate using hardware timer (more reliable than FreeRTOS tick) */
+    uint32_t loop_count = 0;
+    uint64_t last_loop_time_us = ClockP_getTimeUsec();
 
     while (1) {
+        /* [PERFORMANCE FIX B023] Remove blocking DebugP_log() calls from 1000Hz loop
+         * DebugP_log() uses UART @ 115200 baud which is ~14 bytes/ms - SLOW and BLOCKING!
+         * With 9 DebugP_log() calls per loop, serial output becomes the bottleneck.
+         * Solution: Only log on startup, use counters for runtime monitoring.
+         */
+
         /* Read motor states from shared memory */
         int32_t count = gateway_read_motor_states(g_motor_states);
 
-        /* BUG FIX B014: Validate return value before accessing buffer
-         * gateway_read_motor_states() returns:
-         * - -1: error (NULL pointer)
-         *  - 0: no new data available
-         *  - GATEWAY_NUM_MOTORS: success (all 23 motor states read)
-         *
-         * Only proceed if ALL motor states were successfully read.
-         * Accessing partial or uninitialized data can cause:
-         * - Invalid UDP packets with garbage data
-         * - Division by zero if position/velocity fields are uninitialized
-         * - Corrupted data sent to PC
+        /* [PERFORMANCE] Only send motor states if new data available
+         * This reduces UDP TX frequency when Core1 is not updating
          */
         if (count == GATEWAY_NUM_MOTORS) {
             /* All motor states successfully read - build and send UDP packet */
@@ -225,23 +248,42 @@ static void udp_tx_task(void *args)
             gStats.udp_tx_count++;
         }
 
-        /* [IMU] Also read and send IMU state if available */
+        /* [IMU] Always send IMU state at 1000Hz - cache and resend if no new data */
         imu_state_ipc_t imu_state;
-        if (gateway_read_imu_state(&imu_state) == 0) {
-            /* IMU data available - send via UDP */
-            xgw_udp_send_imu_state((xgw_imu_state_t*)&imu_state);
-            gStats.udp_tx_count++;
+        int read_result = gateway_read_imu_state(&imu_state);
+        if (read_result == 0) {
+            /* New IMU data available - update cache */
+            g_cached_imu_state = imu_state;
+            g_imu_has_valid_data = true;
         }
 
+        /* Always send IMU data (new or cached) every cycle */
+        if (g_imu_has_valid_data) {
+            xgw_udp_send_imu_state((xgw_imu_state_t*)&g_cached_imu_state);
+        }
+
+        /* Log errors only (no blocking in normal path) */
         if (count < 0) {
-            /* Error condition - log but don't crash */
             static uint32_t error_count = 0;
-            if (++error_count >= 1000) {  /* Log every 1000th error to avoid spam */
-                DebugP_log("[Core0] ERROR: gateway_read_motor_states failed (returned %d)\r\n", (int)count);
+            if (++error_count >= 1000) {
+                DebugP_log("[Core0] ERROR: gateway_read_motor_states failed\r\n");
                 error_count = 0;
             }
         }
-        /* If count == 0, silently skip (no new data from Core1 yet) */
+
+        /* [TIMING] Measure actual loop rate every 5 seconds */
+        loop_count++;
+        uint64_t current_time_us = ClockP_getTimeUsec();
+        uint64_t elapsed_us = current_time_us - last_loop_time_us;
+
+        if (elapsed_us >= 5000000ULL) {
+            float actual_rate = (float)loop_count / ((float)elapsed_us / 1000000.0f);
+            float avg_period_us = (float)elapsed_us / (float)loop_count;
+            DebugP_log("[Core0] UDP TX: %.1f Hz, %.2f us (target: 1000 Hz)\r\n",
+                       actual_rate, avg_period_us);
+            loop_count = 0;
+            last_loop_time_us = current_time_us;
+        }
 
         /* Wait for next cycle */
         vTaskDelayUntil(&last_wake_time, period);
@@ -296,6 +338,91 @@ static void build_and_send_udp_packet(void)
         }
     }
 }
+
+#if DEBUG_SIMPLE_UDP_TX_TASK
+/**
+ * @brief Simple UDP TX task for FreeRTOS tick rate testing
+ *
+ * Generates random IMU-like data and sends via UDP at 1000Hz.
+ * This task isolates FreeRTOS timing from Core1/IMU dependencies.
+ *
+ * Purpose: Test if configTICK_RATE_HZ=1000 is working correctly.
+ * Expected: [Core0] Simple UDP TX: Actual rate=1000.0 Hz
+ */
+static void simple_udp_tx_task(void *args)
+{
+    (void)args;
+    TickType_t last_wake_time = xTaskGetTickCount();
+    const TickType_t period = pdMS_TO_TICKS(UDP_TX_PERIOD_MS);
+
+    DebugP_log("[Core0] Simple UDP TX: configTICK_RATE_HZ=%d, pdMS_TO_TICKS(1)=%u ticks\r\n",
+               configTICK_RATE_HZ, (unsigned int)period);
+    DebugP_log("[Core0] Simple UDP TX task started (period=%u ticks, 1000Hz)\r\n", (unsigned int)period);
+
+    /* Simple random data counter */
+    static uint32_t data_counter = 0;
+    uint32_t loop_count = 0;
+    uint64_t last_loop_time_us = ClockP_getTimeUsec();
+
+    while (1) {
+        /* Generate random-like IMU data */
+        xgw_imu_state_t imu_data;
+        imu_data.imu_id = 0;
+        imu_data.reserved = 0;
+        imu_data.temp_cdeg = (int16_t)(2500 + (data_counter % 1000));  /* 25-35°C */
+
+        /* Random-like gyro values [rad/s] */
+        imu_data.gyro[0] = ((float)((data_counter * 7) % 1000) / 1000.0f) * 0.1f;
+        imu_data.gyro[1] = ((float)((data_counter * 11) % 1000) / 1000.0f) * 0.1f;
+        imu_data.gyro[2] = ((float)((data_counter * 13) % 1000) / 1000.0f) * 0.1f;
+
+        /* Random-like quaternion [w, x, y, z] */
+        imu_data.quat[0] = 1.0f;  /* w */
+        imu_data.quat[1] = 0.0f;  /* x */
+        imu_data.quat[2] = 0.0f;  /* y */
+        imu_data.quat[3] = 0.0f;  /* z */
+
+        /* Random-like euler angles [rad] */
+        imu_data.euler[0] = ((float)((data_counter * 17) % 1000) / 1000.0f) * 0.01f;  /* roll */
+        imu_data.euler[1] = ((float)((data_counter * 19) % 1000) / 1000.0f) * 0.01f;  /* pitch */
+        imu_data.euler[2] = ((float)((data_counter * 23) % 1000) / 1000.0f) * 0.01f;  /* yaw */
+
+        /* Magnetic field (zero for simplicity) */
+        imu_data.mag_val[0] = 0.0f;
+        imu_data.mag_val[1] = 0.0f;
+        imu_data.mag_val[2] = 0.0f;
+        imu_data.mag_norm[0] = 0.0f;
+        imu_data.mag_norm[1] = 0.0f;
+        imu_data.mag_norm[2] = 0.0f;
+
+        data_counter++;
+
+        /* Send via UDP */
+        if (xgw_udp_is_initialized()) {
+            xgw_udp_send_imu_state(&imu_data);
+        }
+
+        /* Measure actual loop rate every 5 seconds */
+        loop_count++;
+        uint64_t current_time_us = ClockP_getTimeUsec();
+        uint64_t elapsed_us = current_time_us - last_loop_time_us;
+
+        if (elapsed_us >= 5000000ULL) {  /* 5 seconds */
+            float actual_rate = (float)loop_count / ((float)elapsed_us / 1000000.0f);
+            float avg_period_us = (float)elapsed_us / (float)loop_count;
+            DebugP_log("[Core0] Simple UDP TX: Actual rate=%.1f Hz, avg_period=%.2f us (target: 1000 Hz, 1000 us)\r\n",
+                       actual_rate, avg_period_us);
+            DebugP_log("[Core0] Simple UDP TX: loop_count=%u in %llu us\r\n", loop_count,
+                       (unsigned long long)elapsed_us);
+            loop_count = 0;
+            last_loop_time_us = current_time_us;
+        }
+
+        /* Wait for next cycle */
+        vTaskDelayUntil(&last_wake_time, period);
+    }
+}
+#endif /* DEBUG_SIMPLE_UDP_TX_TASK */
 
 /*==============================================================================
  * UDP RX CALLBACK WRAPPER
@@ -546,6 +673,20 @@ static void freertos_main(void *args)
 
     /* Create UDP TX task (1000Hz) */
     DebugP_log("[DEBUG-004] Creating UDP TX task...\r\n");
+#if DEBUG_SIMPLE_UDP_TX_TASK
+    /* [DEBUG] Using simple UDP TX task for FreeRTOS tick rate testing */
+    gUdpTxTask = xTaskCreateStatic(
+        simple_udp_tx_task,
+        "SimpleUdpTx",
+        UDP_TX_TASK_SIZE,
+        NULL,
+        UDP_TX_TASK_PRI,
+        gUdpTxTaskStack,
+        &gUdpTxTaskObj
+    );
+    DebugP_log("[DEBUG-004a] Simple UDP TX task created (random data test)\r\n");
+#else
+    /* Normal UDP TX task with motor states and IMU data */
     gUdpTxTask = xTaskCreateStatic(
         udp_tx_task,
         "UdpTx",
@@ -555,6 +696,7 @@ static void freertos_main(void *args)
         gUdpTxTaskStack,
         &gUdpTxTaskObj
     );
+#endif
     DebugP_log("[DEBUG-005] UDP TX task created, ptr=%p\r\n", (void*)gUdpTxTask);
     configASSERT(gUdpTxTask != NULL);
 

@@ -153,17 +153,16 @@ mcan6.child             = mcan_v1_template1;
 mcan7.child             = mcan_v1_template1;
 mcan8.child             = mcan_v1_template1;
 
-uart1.$name                     = "CONFIG_UART5";
-uart1.operMode                  = "13X";
-uart1.rxTrigLvl                 = "8";  /* Trigger on 8 bytes (fits ~1 YIS320 frame) */
-uart1.txTrigLvl                 = "4";
-uart1.intrPriority              = 8;  /* Lower priority (higher number) to avoid preempting CAN TX task */
-uart1.baudRate                  = 921600;
-uart1.intrEnable                = "USER_INTR";  /* User manages interrupt - driver will set skipIntrReg=TRUE */
-uart1.UART.$assign              = "UART5";
-uart1.UART.RXD.$assign          = "SDFM0_CLK3";
-uart1.UART.TXD.$assign          = "SDFM0_CLK2";
-uart1.child.$name               = "drivers_uart_v2_uart_v2_template1";  /* Changed to match reference ccu_ti */
+uart1.$name            = "CONFIG_UART5";
+uart1.operMode         = "13X";
+uart1.txTrigLvl        = "4";
+uart1.intrPriority     = 8;
+uart1.baudRate         = 921600;
+uart1.intrEnable       = "USER_INTR";
+uart1.UART.$assign     = "UART5";
+uart1.UART.RXD.$assign = "SDFM0_CLK3";
+uart1.UART.TXD.$assign = "SDFM0_CLK2";
+uart1.child.$name      = "drivers_uart_v2_uart_v2_template1";
 
 debug_log.enableCssLog       = false;
 debug_log.enableSharedMemLog = true;

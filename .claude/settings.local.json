@@ -78,7 +78,12 @@
       "Bash(gmake all:*)",
       "Bash(gmake -k)",
       "Bash(gmake clean:*)",
-      "Bash(gmake)"
+      "Bash(gmake)",
+      "Bash(find C:/ti/mcu_plus_sdk_am263px_11_01_00_19/source/kernel -name *.c -type f)",
+      "Bash(find D:VinDynamicsProjectCCU_TI_RS485_CAN2.Firmwaredraftccu_ti -name *port* -type f)",
+      "Bash(find C:/ti/mcu_plus_sdk_am263px_11_01_00_19/source/kernel/dpl -name *.c -o -name *.h)",
+      "Bash(grep -r \"ClockP_Config\\\\|usecPerTick.*=\" C:/ti/mcu_plus_sdk_am263px_11_01_00_19/source/kernel --include=*.c --include=*.h)",
+      "Bash(find D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/draft/ccu_ti -name ti_dpl_config.c -o -name *dpl_config*)"
     ]
   }
 }

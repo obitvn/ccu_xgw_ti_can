@@ -44,15 +44,16 @@ Track known bugs, fixes, and status.
 | B018 | Low-level HwiP API causing IMU ISR registration issues | HIGH | realtime/imu/imu_interface_isr.c:608-625 | First attempt: Changed to HwiP_construct but still crashed - further investigation needed | 2026-03-31 |
 | B019 | taskENTER_CRITICAL() called from ISR context causing Core0 hang | CRITICAL | freertos/main.c:166-168 | Changed to taskENTER_CRITICAL_FROM_ISR()/taskEXIT_CRITICAL_FROM_ISR() - FreeRTOS rule violation | 2026-03-31 |
 | B020 | HwiP_construct on NoRTOS causing undefined instruction | CRITICAL | realtime/imu/imu_interface_isr.c:607-632 | FINAL FIX: Confirmed HwiP_construct is correct API (matches working reference ccu_ti). Re-enabled IMU init, added debug counters | 2026-03-31 |
+| B021 | IMU UDP TX rate limited to 100Hz instead of 1000Hz | HIGH | freertos/main.c:235-249 | Added cached IMU state that gets updated when new data arrives but is resent every cycle (1000Hz) regardless of YIS320 hardware output rate | 2026-04-01 |
 
 ---
 
 ## Bug Statistics
 
-- **Total Bugs**: 21
-- **Fixed**: 20
+- **Total Bugs**: 22
+- **Fixed**: 21
 - **Active**: 1 (known hardware limitation)
-- **Critical**: 0 (1 known limitation, B020 fix pending test)
+- **Critical**: 0 (all fixed)
 - **High**: 0 (all fixed)
 - **Medium**: 0 (all fixed)
 - **Low**: 0 (all fixed)

@@ -126,6 +126,101 @@ Track development progress, fixes, and verification status across sessions.
 
 ---
 
+## 2026-04-01 - IMU UDP TX Rate Fix (100Hz → 1000Hz)
+
+### Issues Found
+- PC only receives IMU data at 100Hz instead of expected 1000Hz
+- Root cause: `gateway_read_imu_state()` returns -1 when `imu_ready_flag == 0`, then clears the flag
+- When Core1 only updates at 100Hz (YIS320 hardware rate), Core0 only sends at 100Hz
+- User requirement: Resend cached IMU data to maintain 1000Hz UDP rate regardless of YIS320 hardware output rate
+
+### Fixes Applied
+- [B021] IMU UDP TX rate limited to 100Hz due to flag-based data availability check
+  - File changed: ccu_ti_multi_core_freertos/main.c
+  - Lines 112-117: Added cached IMU state variables
+    - `g_cached_imu_state` - stores last valid IMU data
+    - `g_imu_has_valid_data` - flag indicating cache has valid data
+  - Lines 235-249: Changed UDP TX task logic
+    - Always read new IMU data when available (update cache)
+    - Always send IMU data (new or cached) every cycle (1000Hz)
+    - This ensures PC receives IMU at configured UDP rate regardless of YIS320 rate
+  - Reason: YIS320 may output at 100Hz, but we resend cached data to achieve 1000Hz on PC
+  - Verify: Flash and check PC IMU rate - should be ~1000Hz instead of 100Hz
+  - Code snippet:
+    ```c
+    /* [IMU] Always send IMU state at 1000Hz - cache and resend if no new data */
+    imu_state_ipc_t imu_state;
+    if (gateway_read_imu_state(&imu_state) == 0) {
+        /* New IMU data available - update cache */
+        g_cached_imu_state = imu_state;
+        g_imu_has_valid_data = true;
+    }
+
+    /* Always send IMU data (new or cached) every cycle */
+    if (g_imu_has_valid_data) {
+        xgw_udp_send_imu_state((xgw_imu_state_t*)&g_cached_imu_state);
+    }
+    ```
+
+### Verification Status
+- [x] Both cores build without warnings
+- [x] System image generated successfully
+- [ ] Flash firmware and verify PC receives IMU at 1000Hz
+- [ ] Verify IMU data is valid (not garbage) when cached
+- [ ] Check timestamp on PC - should show ~1ms intervals (1000Hz)
+
+---
+
+## 2026-04-01 - FreeRTOS Tick Rate Fix (ROOT CAUSE of 100Hz UDP TX)
+
+### Issues Found
+- UDP TX task still running at 100Hz despite cache mechanism
+- Log output: `[Core0] UDP TX: Actual rate=100.0 Hz, avg_period=10000.00 us`
+- Root cause: Missing `FreeRTOSConfig.h` → FreeRTOS using default tick rate
+- Comparison with ccu_ti (working 1000Hz) revealed missing configuration file
+
+### Fixes Applied
+- [B022] Missing FreeRTOSConfig.h causing 100Hz tick rate (ROOT CAUSE!)
+  - File created: ccu_ti_multi_core_freertos/FreeRTOSConfig.h
+  - Key configuration:
+    ```c
+    #define configTICK_RATE_HZ 1000  /* 1000 Hz - 1ms per tick */
+    #define configMAX_PRIORITIES 7
+    #define configTOTAL_HEAP_SIZE (80 * 1024)
+    #define configSUPPORT_STATIC_ALLOCATION 1
+    ```
+  - Verified hardware timer config matches: gClockConfig.usecPerTick = 1000us (ti_dpl_config.c)
+  - Reference: draft/ccu_ti/FreeRTOSConfig.h (working reference)
+  - Task priorities adjusted:
+    - ENET_LWIP_TASK_PRI: configMAX_PRIORITIES - 3 (was -2)
+    - UDP_TX_TASK_PRI: configMAX_PRIORITIES - 2 (was -3, higher priority now)
+  - Reason: Without configTICK_RATE_HZ=1000, FreeRTOS used default (likely 100Hz = 10ms/tick)
+    - pdMS_TO_TICKS(1) with 100Hz tick rate = 0 ticks (rounds down)
+    - vTaskDelay(1) with 100Hz tick rate = delays 10ms instead of 1ms
+  - Verify: Flash and check UART log for:
+    - `[Core0] UDP TX: Actual rate=1000.0 Hz, avg_period=1000.00 us`
+    - No warning from ClockP_init() about tick rate mismatch
+    - PC receives IMU at ~1000Hz
+
+### Technical Notes
+- FreeRTOS tick rate determines pdMS_TO_TICKS() conversion accuracy
+- Hardware timer (RTI0) runs at 25MHz with usecPerTick=1000 → 1000Hz tick rate
+- ClockP_freertos_r5.c validates configTICK_RATE_HZ matches ClockP tick rate at init
+- Cache mechanism (B021) still required for 1000Hz UDP when YIS320 outputs at 100Hz
+
+### Build Status
+- Core0 (FreeRTOS): 0 warnings
+- Core1 (NoRTOS): 0 warnings
+- System image: ipc_spinlock_sharedmem_system.mcelf generated (3.1MB)
+
+### Test Plan
+1. Flash ipc_spinlock_sharedmem_system.mcelf to hardware
+2. Monitor UART output for tick rate warning (should NOT appear)
+3. Check UDP TX rate log - should show 1000Hz
+4. Verify PC receives IMU at ~1000Hz using ccu_ti_diag_syslog.py
+
+---
+
 ## Template for Future Sessions
 
 ```markdown
