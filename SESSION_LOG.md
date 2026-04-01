@@ -260,6 +260,42 @@ Track development progress, fixes, and verification status across sessions.
 
 ---
 
+## 2026-04-01 - Motor States UDP TX Failure Investigation
+
+### Issues Found
+- Motor states UDP send consistently returns -1 (IMU sends OK)
+- IMU packet (100 bytes) works, Motor states packet (492 bytes) fails
+- Simulation generates data correctly, but UDP send fails
+
+### Diagnostic Changes
+- Added detailed error logging to `xgw_udp_send_motor_states()`:
+  - Log pbuf_alloc result (first 3 calls)
+  - Log target IP address and port (first call)
+  - Check for NULL TX PCB
+  - Log udp_sendto error code (first 3 failures)
+
+### File Changed
+- `ccu_ti_multi_core_freertos/enet/xgw_udp_interface.c`
+  - Lines 215-226: Added pbuf_alloc success log
+  - Lines 226-237: Added TX PCB NULL check and target IP log
+  - Lines 243-271: Added udp_sendto error code log
+
+### Build Status
+- Core0 (FreeRTOS): 0 warnings
+- Core1 (NoRTOS): 0 warnings
+- System image: ipc_spinlock_sharedmem_system.mcelf generated
+
+### Test Plan
+1. Flash firmware and monitor UART output
+2. Look for diagnostic logs:
+   - `[xGW UDP] Motor: pbuf_alloc OK, len=492, pbuf=...`
+   - `[xGW UDP] Motor: Target IP=..., port=53489`
+   - `[xGW UDP] Motor: udp_sendto FAILED! err=..., len=492`
+3. Identify the exact error code from udp_sendto()
+4. Compare with lwIP error codes (ERR_OK=0, ERR_IF=-11, etc.)
+
+---
+
 ## Template for Future Sessions
 
 ```markdown

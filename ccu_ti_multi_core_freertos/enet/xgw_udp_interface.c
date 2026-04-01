@@ -208,6 +208,25 @@ int xgw_udp_send_motor_states(const xgw_motor_state_t* states, uint8_t count)
         return -1;
     }
 
+    if (g_udp_tx_pcb == NULL) {
+        static uint32_t null_pcb_log_count = 0;
+        if (null_pcb_log_count < 3) {
+            DebugP_log("[xGW UDP] Motor: TX PCB is NULL!\r\n");
+            null_pcb_log_count++;
+        }
+        return -1;
+    }
+
+    /* Debug: Log target IP and port (first time only) */
+    static bool target_logged = false;
+    if (!target_logged) {
+        uint32_t ip_val = ip4_addr_get_u32(&g_pc_ip_addr);
+        DebugP_log("[xGW UDP] Motor: Target IP=%lu.%lu.%lu.%lu, port=%u\r\n",
+                   ip_val & 0xFF, (ip_val >> 8) & 0xFF, (ip_val >> 16) & 0xFF, (ip_val >> 24) & 0xFF,
+                   XGW_UDP_TX_PORT);
+        target_logged = true;
+    }
+
     if (count > XGW_MAX_MOTORS) {
         count = XGW_MAX_MOTORS;
     }
@@ -218,9 +237,16 @@ int xgw_udp_send_motor_states(const xgw_motor_state_t* states, uint8_t count)
     struct pbuf* p = pbuf_alloc(PBUF_TRANSPORT, total_len, PBUF_RAM);
 
     if (p == NULL) {
-        DebugP_log("[xGW UDP] ERROR: Failed to allocate pbuf!\r\n");
+        DebugP_log("[xGW UDP] Motor: pbuf_alloc FAILED! size=%u\r\n", total_len);
         g_udp_state.tx_errors++;
         return -1;
+    }
+
+    /* Debug: Log pbuf allocation success (first 3 times only) */
+    static uint32_t alloc_log_count = 0;
+    if (alloc_log_count < 3) {
+        DebugP_log("[xGW UDP] Motor: pbuf_alloc OK, len=%u, pbuf=%p\r\n", total_len, p);
+        alloc_log_count++;
     }
 
     /* Build packet */
@@ -252,13 +278,19 @@ int xgw_udp_send_motor_states(const xgw_motor_state_t* states, uint8_t count)
     GPIO_pinWriteLow(baseAddr, DEBUG_GPIO_UDP_TX_PIN);
     */
 
-    if (err == ERR_OK) {
-        g_udp_state.tx_count++;
-        return total_len;
-    } else {
+    /* Debug: Log error details (first 3 times only) */
+    static uint32_t send_err_log_count = 0;
+    if (err != ERR_OK) {
         g_udp_state.tx_errors++;
+        if (send_err_log_count < 3) {
+            DebugP_log("[xGW UDP] Motor: udp_sendto FAILED! err=%d, len=%u\r\n", err, total_len);
+            send_err_log_count++;
+        }
         return -1;
     }
+
+    g_udp_state.tx_count++;
+    return total_len;
 }
 
 int xgw_udp_send_imu_state(const xgw_imu_state_t* imu_state)
@@ -301,13 +333,19 @@ int xgw_udp_send_imu_state(const xgw_imu_state_t* imu_state)
     /* Free pbuf */
     pbuf_free(p);
 
-    if (err == ERR_OK) {
-        g_udp_state.tx_count++;
-        return total_len;
-    } else {
+    /* Debug: Log IMU send errors (first 3 times) */
+    static uint32_t imu_err_log_count = 0;
+    if (err != ERR_OK) {
         g_udp_state.tx_errors++;
+        if (imu_err_log_count < 3) {
+            DebugP_log("[xGW UDP] IMU: udp_sendto FAILED! err=%d, len=%u\r\n", err, total_len);
+            imu_err_log_count++;
+        }
         return -1;
     }
+
+    g_udp_state.tx_count++;
+    return total_len;
 }
 
 int xgw_udp_send_diagnostics(const xgw_diag_t* diag)

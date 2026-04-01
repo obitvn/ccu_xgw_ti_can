@@ -18,6 +18,7 @@ Track known bugs, fixes, and status.
 | ID | Description | Severity | Location | Status | Date Found |
 |----|-------------|----------|----------|--------|------------|
 | B001 | Ethernet may not work after core swap (hardware constraint) | CRITICAL | MASTER_SWAP_PLAN.md | KNOWN ISSUE | 2026-03-31 |
+| B024 | Motor states UDP send fails (sent=-1) - IMU (100B) works, Motor (492B) fails | HIGH | freertos/enet/xgw_udp_interface.c:244 | UNDER INVESTIGATION - Added diagnostic logs | 2026-04-01 |
 
 ---
 
@@ -45,16 +46,18 @@ Track known bugs, fixes, and status.
 | B019 | taskENTER_CRITICAL() called from ISR context causing Core0 hang | CRITICAL | freertos/main.c:166-168 | Changed to taskENTER_CRITICAL_FROM_ISR()/taskEXIT_CRITICAL_FROM_ISR() - FreeRTOS rule violation | 2026-03-31 |
 | B020 | HwiP_construct on NoRTOS causing undefined instruction | CRITICAL | realtime/imu/imu_interface_isr.c:607-632 | FINAL FIX: Confirmed HwiP_construct is correct API (matches working reference ccu_ti). Re-enabled IMU init, added debug counters | 2026-03-31 |
 | B021 | IMU UDP TX rate limited to 100Hz instead of 1000Hz | HIGH | freertos/main.c:235-249 | Added cached IMU state that gets updated when new data arrives but is resent every cycle (1000Hz) regardless of YIS320 hardware output rate | 2026-04-01 |
+| B022 | Missing FreeRTOSConfig.h causing 100Hz tick rate (ROOT CAUSE!) | CRITICAL | freertos/FreeRTOSConfig.h (NEW FILE) | Created FreeRTOSConfig.h with configTICK_RATE_HZ=1000. Without this, FreeRTOS used default (likely 100Hz), breaking pdMS_TO_TICKS(1) and vTaskDelay(1) | 2026-04-01 |
+| B023 | DebugP_log() blocking in 1000Hz loop causing rate limit | HIGH | freertos/main.c:232-317 | Removed all DebugP_log() calls from 1000Hz UDP TX loop. UART @ 115200 baud (~14 bytes/ms) is blocking. Only periodic stats logging remains | 2026-04-01 |
 
 ---
 
 ## Bug Statistics
 
-- **Total Bugs**: 22
+- **Total Bugs**: 24
 - **Fixed**: 21
-- **Active**: 1 (known hardware limitation)
+- **Active**: 2 (1 known hardware limitation, 1 under investigation)
 - **Critical**: 0 (all fixed)
-- **High**: 0 (all fixed)
+- **High**: 1 (B024 - under investigation)
 - **Medium**: 0 (all fixed)
 - **Low**: 0 (all fixed)
 
