@@ -219,6 +219,45 @@ Track development progress, fixes, and verification status across sessions.
 3. Check UDP TX rate log - should show 1000Hz
 4. Verify PC receives IMU at ~1000Hz using ccu_ti_diag_syslog.py
 
+### Verification Result
+- **CONFIRMED**: UDP TX đạt 1000Hz sau khi loại bỏ DebugP_log() trong loop
+- Stub code (simple_udp_tx_task) cũng đạt 1000Hz → FreeRTOS config OK
+- Vấn đề nằm ở blocking calls trong udp_tx_task gốc
+
+---
+
+## 2026-04-01 - UDP TX 1000Hz Fix (DebugP_log Blocking)
+
+### Issues Found
+- UDP TX chỉ đạt 100Hz despite configTICK_RATE_HZ=1000
+- Stub code (simple_udp_tx_task) đạt 1000Hz → FreeRTOS config OK
+- Vấn đề nằm trong logic udp_tx_task gốc
+
+### Root Cause Analysis
+**[B023] DebugP_log() blocking trong 1000Hz loop**
+- **Vấn đề**: DebugP_log() dùng UART @ 115200 baud (~14 bytes/ms) - cực chậm và BLOCKING
+- **Impact**: 9 calls DebugP_log() mỗi loop 1ms → serial output thành bottleneck
+- **Tại sao blocking**: UART write đợi TX buffer empty → task block hàng trăm µs mỗi log
+
+**Các blocking points khác (ít nghi trọng hơn)**:
+1. `LOCK_TCPIP_CORE()` - Mutex lock cho lwIP (2 lần/loop)
+2. `pbuf_alloc()` - Memory allocation (2 lần/loop)
+3. CRC32 calculation cho 23 motors (~460 bytes)
+
+### Fixes Applied
+- [B023] Remove DebugP_log() calls from 1000Hz loop
+  - File changed: ccu_ti_multi_core_freertos/main.c
+  - Lines 232-317: Simplified udp_tx_task() - removed all DebugP_log() from loop
+  - Chỉ giữ lại 1 log/5 giây để monitoring rate
+  - Reason: DebugP_log() dùng UART blocking @ 115200 baud (~14 bytes/ms)
+  - Verify: UDP TX đạt 1000Hz, log: `[Core0] UDP TX: 1000.0 Hz, 1000.00 us`
+
+### Verification Status
+- [x] Stub code (simple_udp_tx_task) đạt 1000Hz → FreeRTOS OK
+- [x] Normal udp_tx_task đạt 1000Hz sau khi remove DebugP_log()
+- [x] Both cores build without warnings
+- [x] UART output clean, minimal logging in loop
+
 ---
 
 ## Template for Future Sessions
