@@ -108,20 +108,6 @@ void imu_uart_deinit(void);
 void imu_uart_process_rx_data(void);
 
 /*==============================================================================
- * STUB CALLBACKS (for syscfg compatibility, not used in USER_INTR mode)
- *============================================================================*/
-
-/**
- * @brief Stub RX callback (not used in USER_INTR mode)
- */
-void imu_uart_read_callback(UART_Handle handle, UART_Transaction *trans);
-
-/**
- * @brief Stub TX callback (not used in USER_INTR mode)
- */
-void imu_uart_write_callback(UART_Handle handle, UART_Transaction *trans);
-
-/*==============================================================================
  * YIS320 PROTOCOL PLATFORM FUNCTIONS
  *============================================================================*/
 

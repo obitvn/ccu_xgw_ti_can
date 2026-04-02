@@ -132,21 +132,6 @@ void imu_uart_isr_log_stats(void);
  *
  * @return true if notification was sent, false otherwise
  */
-bool imu_uart_process_ipc_notification(void);
-
-/*==============================================================================
- * STUB CALLBACKS (for syscfg compatibility)
- *============================================================================*/
-
-/**
- * @brief Stub RX callback (not used in ISR mode)
- */
-void imu_uart_read_callback(UART_Handle handle, UART_Transaction *trans);
-
-/**
- * @brief Stub TX callback (not used in ISR mode)
- */
-void imu_uart_write_callback(UART_Handle handle, UART_Transaction *trans);
 
 #ifdef __cplusplus
 }

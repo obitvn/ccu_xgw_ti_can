@@ -258,29 +258,3 @@ void imu_uart_isr_log_stats(void)
                imu_uart_rx_available(),
                g_imu_uart.rx_overflow);
 }
-
-/**
- * @brief Process pending IMU IPC notification (stub - can be implemented later)
- *
- * For basic IMU operation, this function returns false (no IPC notification).
- * Can be extended to send IMU data to Core0 via shared memory.
- */
-bool imu_uart_process_ipc_notification(void)
-{
-    /* Stub - no IPC notification needed for basic IMU data logging */
-    return false;
-}
-
-/*==============================================================================
- * STUB CALLBACKS (for syscfg compatibility)
- *============================================================================*/
-
-void imu_uart_read_callback(UART_Handle handle, UART_Transaction *trans)
-{
-    /* Not used in ISR mode */
-}
-
-void imu_uart_write_callback(UART_Handle handle, UART_Transaction *trans)
-{
-    /* Not used in ISR mode */
-}

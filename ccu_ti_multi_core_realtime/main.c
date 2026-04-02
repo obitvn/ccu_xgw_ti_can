@@ -835,18 +835,6 @@ static void main_loop(void)
             }
         }
 
-        /* BUG B010 FIX: Process IMU IPC notification in task context */
-        /* Check if IMU data is ready and notify Core0 (safe from ISR deadlock) */
-        if (imu_uart_process_ipc_notification()) {
-            /* IMU data notification sent to Core0 */
-        }
-
-        /* BUG B010 FIX: Process IMU IPC notification in task context */
-        /* Check if IMU data is ready and notify Core0 (safe from ISR deadlock) */
-        if (imu_uart_process_ipc_notification()) {
-            /* IMU data notification sent to Core0 */
-        }
-
         /* === 1000Hz Processing End === */
 
         /* Check for IPC events (non-blocking) */
