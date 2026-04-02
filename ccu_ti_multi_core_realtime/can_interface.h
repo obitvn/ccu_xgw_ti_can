@@ -46,15 +46,6 @@ typedef struct {
     uint8_t  rx_error_count;
 } can_bus_stats_t;
 
-typedef struct {
-    uint32_t bus_off_count;
-    uint32_t recovery_success_count;
-    uint32_t recovery_fail_count;
-    uint32_t consecutive_failures;
-    uint32_t last_recovery_ticks;
-    bool     recovery_in_progress;
-} can_recovery_stats_t;
-
 /* ==========================================================================
  * PUBLIC API
  * ========================================================================== */
@@ -71,10 +62,6 @@ int32_t CAN_StartRxInterrupts(void);
 bool CAN_IsBusOff(uint8_t bus_id);
 int32_t CAN_RecoverFromBusOff(uint8_t bus_id);
 int32_t CAN_GetErrorCounters(uint8_t bus_id, uint8_t* tx_err, uint8_t* rx_err);
-int32_t CAN_GetRecoveryStats(uint8_t bus_id, can_recovery_stats_t* stats);
-int32_t CAN_StartAutoRecoveryTask(void);
-int32_t CAN_StopAutoRecoveryTask(void);
-bool CAN_IsAutoRecoveryRunning(void);
 
 #ifdef __cplusplus
 }

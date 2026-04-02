@@ -785,29 +785,3 @@ int32_t CAN_RecoverFromBusOff(uint8_t bus_id)
 
     return 0;
 }
-
-/* Simplified auto-recovery for NoRTOS */
-int32_t CAN_StartAutoRecoveryTask(void)
-{
-    /* Auto-recovery task not available in NoRTOS */
-    /* Bus-off recovery will be handled manually */
-    DebugP_log("[CAN] Auto-recovery task: NoRTOS mode (manual recovery)\r\n");
-    return 0;
-}
-
-int32_t CAN_StopAutoRecoveryTask(void)
-{
-    return 0;
-}
-
-bool CAN_IsAutoRecoveryRunning(void)
-{
-    return false;
-}
-
-int32_t CAN_GetRecoveryStats(uint8_t bus_id, can_recovery_stats_t* stats)
-{
-    (void)bus_id;
-    (void)stats;
-    return -1;
-}
