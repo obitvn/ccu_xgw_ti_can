@@ -91,18 +91,7 @@ static const uint32_t g_mcan_base_addr[NUM_CAN_BUSES] = {
     CONFIG_MCAN7_BASE_ADDR,
 };
 
-// MCAN SOC RCM peripheral IDs for clock enable
-// Note: IDs are not sequential due to other peripherals in between
-static const uint32_t g_mcan_rcm_id[NUM_CAN_BUSES] = {
-    SOC_RcmPeripheralId_MCAN0,  // 0
-    SOC_RcmPeripheralId_MCAN1,  // 1
-    SOC_RcmPeripheralId_MCAN2,  // 2
-    SOC_RcmPeripheralId_MCAN3,  // 3
-    SOC_RcmPeripheralId_MCAN4,  // 30 (after MCSPI7)
-    SOC_RcmPeripheralId_MCAN5,  // 31
-    SOC_RcmPeripheralId_MCAN6,  // 32
-    SOC_RcmPeripheralId_MCAN7,  // 33
-};
+/* [B033] Removed g_mcan_rcm_id array - manual clock enable removed to match reference implementation */
 
 /* ==========================================================================
  *                      Global Variables
@@ -285,26 +274,11 @@ static int32_t init_single_mcan(uint8_t bus_id)
     int32_t ret;
 
     DebugP_log("[CAN] Initializing CAN%d (base: 0x%08X)...\r\n", bus_id, baseAddr);
+
+    /* [B033] FIX: Removed manual clock enable code - rely on Drivers_open() like reference implementation
+     * Reference: draft/ccu_ti/can_interface.c does NOT call SOC_moduleClockEnable() */
+
     DebugP_log("[CAN] CAN%d: About to set SW_INIT mode...\r\n", bus_id);
-
-    // Enable MCAN peripheral clock
-    // MCAN4-7 are in different clock domains and need explicit enable
-    uint32_t rcmId = g_mcan_rcm_id[bus_id];
-    DebugP_log("[CAN] CAN%d: Enabling clock (rcmId=%d)...\r\n", bus_id, rcmId);
-    ret = SOC_moduleClockEnable(rcmId, 1);
-    if (ret != SystemP_SUCCESS) {
-        DebugP_log("[CAN] ERROR: Failed to enable clock for CAN%d (rcmId=%d)\r\n", bus_id, rcmId);
-        return ret;
-    }
-    DebugP_log("[CAN] CAN%d: Clock enabled successfully\r\n", bus_id);
-
-    // Small delay after clock enable to ensure peripheral is ready
-    volatile uint32_t delay = 1000;
-    while (delay--) {
-        __asm__("nop");
-    }
-
-    DebugP_log("[CAN] CAN%d: About to call MCAN_setOpMode(SW_INIT)...\r\n", bus_id);
     // Set to Software Initialization mode
     MCAN_setOpMode(baseAddr, MCAN_OPERATION_MODE_SW_INIT);
     DebugP_log("[CAN] CAN%d: MCAN_setOpMode returned, about to wait for mode switch...\r\n", bus_id);

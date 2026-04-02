@@ -302,37 +302,63 @@ static void ipc_notify_callback_fxn(uint32_t remoteCoreId, uint16_t localClientI
  * @brief CAN RX callback
  *
  * Called from CAN RX ISR when frame is received
+ *
+ * [B028-B032] Fixed: Correct byte order, bit masks, and scaling conversions
+ * Reference: draft/ccu_ti/ccu_xgw_gateway.c:2182-2195
  */
 static void process_can_rx(uint8_t bus_id, const can_frame_t *frame)
 {
     /* Parse motor response from CAN frame */
     if (frame->dlc >= 8) {
-        /* Extract motor ID from CAN ID (Robstride protocol) */
-        uint8_t motor_id = (frame->can_id >> 8) & 0x7F;
+        /* Extract motor ID from CAN ID (Robstride protocol: bits 8-15) */
+        uint8_t motor_id = (frame->can_id >> 8) & 0xFF;
 
         /* Find motor index using lookup table */
         uint8_t motor_idx = motor_get_index(motor_id, bus_id);
 
         if (motor_idx < GATEWAY_NUM_MOTORS) {
+            /* Get motor config for scaling */
+            const motor_config_t *config = motor_get_config(motor_idx);
+            if (config == NULL) {
+                return;  /* Invalid motor config */
+            }
+
             /* Parse motor state from CAN data */
             motor_state_ipc_t *state = &g_motor_states[motor_idx];
 
             state->motor_id = motor_id;
             state->can_bus = bus_id;
-            state->pattern = (frame->can_id >> 6) & 0x03;
-            state->error_code = (frame->can_id >> 2) & 0x0F;
 
-            /* Extract data bytes */
-            uint16_t pos_raw = (frame->data[1] << 8) | frame->data[0];
-            uint16_t vel_raw = (frame->data[3] << 8) | frame->data[2];
-            int16_t torque_raw = (frame->data[5] << 8) | frame->data[4];
-            int16_t temp_raw = (frame->data[7] << 8) | frame->data[6];
+            /* [B032] FIX: Extract pattern and error from correct bit positions
+             * CAN ID format: [Comm_Type(31:24)] [Pattern(23:22)] [Error(21:16)] [Motor_ID(15:8)]
+             * Pattern: bits 22-23 (mask 0xC00000 >> 22)
+             * Error: bits 16-21 (mask 0x3F0000 >> 16) */
+            state->pattern = (int8_t)((frame->can_id >> 22) & 0x03);
+            state->error_code = (uint8_t)((frame->can_id >> 16) & 0x3F);
 
-            /* Convert to physical units */
-            state->position = pos_raw;  /* 0.01 rad */
-            state->velocity = (int16_t)vel_raw;  /* 0.01 rad/s */
-            state->torque = torque_raw;  /* 0.01 Nm */
-            state->temperature = (int16_t)(temp_raw / 10);  /* 0.1 °C */
+            /* [B028] FIX: Parse data payload with correct byte order (MSB first - big-endian)
+             * Robstride protocol: [Pos_H, Pos_L, Vel_H, Vel_L, Torque_H, Torque_L, Temp_H, Temp_L]
+             * Reference: draft/ccu_ti/ccu_xgw_gateway.c:2186-2189 */
+            uint16_t pos_raw = (frame->data[0] << 8) | frame->data[1];
+            uint16_t vel_raw = (frame->data[2] << 8) | frame->data[3];
+            uint16_t torque_raw = (frame->data[4] << 8) | frame->data[5];
+            uint16_t temp_raw = (frame->data[6] << 8) | frame->data[7];
+
+            /* [B031] FIX: Convert to physical units using uint16_to_float
+             * Reference: draft/ccu_ti/ccu_xgw_gateway.c:2192-2195
+             * Apply direction multiplier for position and velocity */
+            float pos_float = uint16_to_float(pos_raw, config->limits.p_min, config->limits.p_max, 16) * config->direction;
+            float vel_float = uint16_to_float(vel_raw, config->limits.v_min, config->limits.v_max, 16) * config->direction;
+            float torque_float = uint16_to_float(torque_raw, config->limits.t_min, config->limits.t_max, 16);
+
+            /* [B030] FIX: Use float division for temperature */
+            float temp_float = temp_raw / 10.0f;
+
+            /* Convert to IPC units (0.01 rad, 0.01 rad/s, 0.01 Nm, 0.1 °C) */
+            state->position = (int16_t)(pos_float * 100.0f);
+            state->velocity = (int16_t)(vel_float * 100.0f);
+            state->torque = (int16_t)(torque_float * 100.0f);
+            state->temperature = (int16_t)temp_float;
 
             /* Write motor state to shared memory */
             gateway_write_motor_states(state, 1);
@@ -397,9 +423,18 @@ static void process_motor_commands(void)
  * @brief Transmit CAN frames for all motors
  *
  * Called from 1000Hz loop to send commands to all 23 motors
+ *
+ * [STUB S002] Check emergency stop flag before transmitting
  */
 static void transmit_can_frames(void)
 {
+    /* [STUB S002] Check emergency stop flag - skip CAN TX if emergency stop is active */
+    if (gateway_check_emergency_stop()) {
+        /* Emergency stop active - do not send motor commands */
+        /* Motors will naturally stop due to lack of commands */
+        return;
+    }
+
     /* Group motors by CAN bus for batch transmission */
     can_frame_t* can_frames_ptr[NUM_CAN_BUSES];
     uint16_t frame_count[NUM_CAN_BUSES] = {0};

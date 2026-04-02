@@ -532,6 +532,14 @@ bool gateway_check_heartbeat(void);
 int gateway_check_emergency_stop(void);
 
 /**
+ * @brief Set emergency stop flag (trigger emergency stop)
+ *
+ * Sets the shared emergency_stop_flag to notify both cores.
+ * Called when emergency stop condition is detected.
+ */
+void gateway_set_emergency_stop(void);
+
+/**
  * @brief Clear emergency stop flag
  *
  * Should be called after handling the emergency stop condition

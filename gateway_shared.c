@@ -340,9 +340,10 @@ void gateway_core1_ipc_callback(uint16_t clientId, uint16_t msg)
             break;
 
         case MSG_EMERGENCY_STOP:
-            /* Emergency stop - disable all CAN buses */
-            /* TODO: Implement emergency stop handler */
-            gGatewaySharedMem.stats.error_count++;
+            /* Emergency stop - disable all CAN buses
+             * [STUB S002] - Implemented emergency stop handler */
+            DebugP_log("[Core1] *** EMERGENCY STOP received from Core0 ***\r\n");
+            gateway_set_emergency_stop();
             break;
 
         default:
@@ -554,6 +555,53 @@ void gateway_core0_emergency_stop_handler(void)
     /* TODO: Add callback registration mechanism if needed */
 
     DebugP_log("[Core0] Emergency stop handling complete\r\n");
+}
+
+/**
+ * @brief Set emergency stop flag (shared function for both cores)
+ *
+ * Sets the shared memory emergency_stop_flag to notify both cores.
+ * Can be called from either core when emergency stop condition is detected.
+ *
+ * [STUB S002] - Implemented emergency stop handler
+ */
+void gateway_set_emergency_stop(void)
+{
+    /* Set shared memory emergency flag (visible to both cores) */
+    gateway_memory_barrier();
+    gGatewaySharedMem.emergency_stop_flag = 1;
+    gateway_memory_barrier();
+
+    /* Update error statistics */
+    gGatewaySharedMem.stats.error_count++;
+
+    DebugP_log("[Gateway] Emergency stop flag set\r\n");
+}
+
+/**
+ * @brief Check emergency stop flag
+ *
+ * @return 1 if emergency stop is active, 0 otherwise
+ */
+int gateway_check_emergency_stop(void)
+{
+    gateway_memory_barrier();
+    return (gGatewaySharedMem.emergency_stop_flag != 0) ? 1 : 0;
+}
+
+/**
+ * @brief Clear emergency stop flag
+ *
+ * Should be called after handling the emergency stop condition
+ * to resume normal operation.
+ */
+void gateway_clear_emergency_stop(void)
+{
+    gateway_memory_barrier();
+    gGatewaySharedMem.emergency_stop_flag = 0;
+    gateway_memory_barrier();
+
+    DebugP_log("[Gateway] Emergency stop flag cleared\r\n");
 }
 
 #if GATEWAY_USE_PINGPONG_BUFFER
