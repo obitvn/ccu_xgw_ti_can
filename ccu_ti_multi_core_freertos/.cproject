@@ -186,6 +186,7 @@
                                     <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/lwip/lwip-stack/contrib"/>
                                     <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/lwip/lwip-config/am263px/enet"/>
                                     <listOptionValue value="${MCU_PLUS_SDK_PATH}/source/networking/enet/core/examples/lwip/enet_lwip_cpsw/extPhyMgmt"/>
+                                    <listOptionValue value="&quot;${ProjDirPath}&quot;"/>
                                     <listOptionValue value="&quot;${ProjDirPath}/enet&quot;"/>
                                     <listOptionValue value="&quot;${ProjDirPath}/common&quot;"/>
                                 </option>

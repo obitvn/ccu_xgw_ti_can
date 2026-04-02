@@ -169,7 +169,11 @@ extern "C"
 /* MEMP_NUM_PBUF: the number of memp struct pbufs. If the application
    sends a lot of data out of ROM (or other static memory), this
    should be set high. */
-#define MEMP_NUM_PBUF           16
+/* [FIX B028] Increased from 16 to 128 - match SDK ENET working config
+ * Problem: 16 pbuf structs insufficient, causes pbuf_alloc FAILED after few sends
+ * Each udp_sendto() can chain multiple pbufs for headers
+ * Reference: draft/mcu_plus_sdk_am263px_11_01_00_19/source/networking/lwip/lwip-config/am263px/enet/lwipopts.h:167 */
+#define MEMP_NUM_PBUF           128
 /* MEMP_NUM_RAW_PCB: the number of UDP protocol control blocks. One
    per active RAW "connection". */
 #define MEMP_NUM_RAW_PCB        2
@@ -197,9 +201,12 @@ extern "C"
 #define MEMP_NUM_NETCONN        2
 /* MEMP_NUM_TCPIP_MSG_*: the number of struct tcpip_msg, which is used
    for sequential API communication and incoming packets. Used in
-   src/api/tcpip.c. OPTIMIZED: 16 → 8 */
-#define MEMP_NUM_TCPIP_MSG_API   8
-#define MEMP_NUM_TCPIP_MSG_INPKT 8
+   src/api/tcpip.c.
+   [FIX B029] Match SDK config: 128 (not 8, not 32)
+   SDK reference: mcu_plus_sdk_am263px_11_01_00_19/source/networking/lwip/lwip-config/am263px/enet/lwipopts.h:196-197
+   Critical for 1000Hz operation - tcpip thread message queues */
+#define MEMP_NUM_TCPIP_MSG_API   128
+#define MEMP_NUM_TCPIP_MSG_INPKT 128
 
 /* Debug checks - will impact throughput if enabled */
 #define MEMP_OVERFLOW_CHECK      (0)
@@ -326,9 +333,9 @@ extern "C"
 
 /* ---------- Statistics options ---------- */
 
-/* OPTIMIZED: Disabled statistics to save ~20-30KB memory */
-#define LWIP_STATS              0
-#define LWIP_STATS_DISPLAY      0
+/* [DEBUG B029] Enable stats for pbuf debugging */
+#define LWIP_STATS              1
+#define LWIP_STATS_DISPLAY      1
 
 #if LWIP_STATS
 #define LINK_STATS              1

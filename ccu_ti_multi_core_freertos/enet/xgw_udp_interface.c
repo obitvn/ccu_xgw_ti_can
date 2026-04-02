@@ -20,6 +20,7 @@
 #include "task.h"
 #include "lwip/api.h"
 #include "lwip/udp.h"
+#include "lwip/tcpip.h"
 #include "lwip/mem.h"
 #include "lwip/sys.h"
 #include <string.h>
@@ -59,6 +60,12 @@ typedef struct {
 /* UDP interface state */
 static xgw_udp_state_t g_udp_state = {0};
 
+/* [DEBUG B029] Pbuf tracking counters - visible for main.c stats */
+volatile uint32_t g_pbuf_alloc_count = 0;
+volatile uint32_t g_pbuf_free_count = 0;
+volatile uint32_t g_pbuf_alloc_fail_count = 0;
+volatile uint32_t g_udp_sendto_count = 0;
+
 /* UDP PCBs */
 static struct udp_pcb* g_udp_rx_pcb = NULL;
 static struct udp_pcb* g_udp_tx_pcb = NULL;
@@ -70,7 +77,11 @@ static xgw_udp_rx_callback_t g_rx_callback = NULL;
 static TaskHandle_t g_udp_task_handle = NULL;
 
 /* PC IP address (default: broadcast - can be changed at runtime) */
-static ip_addr_t g_pc_ip_addr = IPADDR4_INIT(0xFFFFFFFF);
+/* [FIX B029] Default PC IP address - use unicast instead of broadcast
+ * Broadcast (255.255.255.255) can cause pbuf reference counting issues
+ * Default: 192.168.1.3 (same as ccu_ti reference)
+ * User can override via xgw_udp_set_pc_ip() */
+static ip_addr_t g_pc_ip_addr = IPADDR4_INIT_BYTES(192, 168, 1, 3);
 static bool g_pc_ip_configured = false;  /* Track if IP was explicitly set */
 
 /*==============================================================================
@@ -237,15 +248,19 @@ int xgw_udp_send_motor_states(const xgw_motor_state_t* states, uint8_t count)
     struct pbuf* p = pbuf_alloc(PBUF_TRANSPORT, total_len, PBUF_RAM);
 
     if (p == NULL) {
-        DebugP_log("[xGW UDP] Motor: pbuf_alloc FAILED! size=%u\r\n", total_len);
+        g_pbuf_alloc_fail_count++;
+        DebugP_log("[xGW UDP] Motor: pbuf_alloc FAILED! size=%u, alloc_cnt=%u, free_cnt=%u, fail_cnt=%u\r\n",
+                   total_len, g_pbuf_alloc_count, g_pbuf_free_count, g_pbuf_alloc_fail_count);
         g_udp_state.tx_errors++;
         return -1;
     }
 
-    /* Debug: Log pbuf allocation success (first 3 times only) */
+    g_pbuf_alloc_count++;
+
+    /* Debug: Log pbuf allocation success (first 5 times only) */
     static uint32_t alloc_log_count = 0;
-    if (alloc_log_count < 3) {
-        DebugP_log("[xGW UDP] Motor: pbuf_alloc OK, len=%u, pbuf=%p\r\n", total_len, p);
+    if (alloc_log_count < 5) {
+        DebugP_log("[xGW UDP] Motor: pbuf_alloc OK, len=%u, pbuf=%p, alloc_cnt=%u\r\n", total_len, p, g_pbuf_alloc_count);
         alloc_log_count++;
     }
 
@@ -270,8 +285,27 @@ int xgw_udp_send_motor_states(const xgw_motor_state_t* states, uint8_t count)
     err_t err = udp_sendto(g_udp_tx_pcb, p, &g_pc_ip_addr, XGW_UDP_TX_PORT);
     UNLOCK_TCPIP_CORE();
 
+    g_udp_sendto_count++;
+
+    /* [DEBUG] Log udp_sendto return value and ref count (first 10 times) */
+    static uint32_t sendto_motor_log_count = 0;
+    if (sendto_motor_log_count < 10) {
+        DebugP_log("[xGW UDP] Motor: udp_sendto err=%d, p->ref=%u (before free), sendto_cnt=%u\r\n",
+                   err, p->ref, g_udp_sendto_count);
+        sendto_motor_log_count++;
+    }
+
+    /* [DEBUG] Log pbuf ref count before free (first 5 times) */
+    static uint32_t pbuf_motor_dbg_count = 0;
+    if (pbuf_motor_dbg_count < 5) {
+        DebugP_log("[xGW UDP] Motor: pbuf_free called, ref=%u, p=%p, alloc_cnt=%u, free_cnt=%u\r\n",
+                   p->ref, p, g_pbuf_alloc_count, g_pbuf_free_count);
+        pbuf_motor_dbg_count++;
+    }
+
     /* Free pbuf */
     pbuf_free(p);
+    g_pbuf_free_count++;
 
     /* [QA TRACE T020] GPIO PA4 LOW on UDP TX exit */
     /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
@@ -299,15 +333,20 @@ int xgw_udp_send_imu_state(const xgw_imu_state_t* imu_state)
         return -1;
     }
 
-    /* Allocate pbuf for packet */
-    uint16_t payload_len = sizeof(xgw_imu_state_t);
+    /* [TEST] Increase IMU packet size from 100 to 1024 bytes to test pbuf exhaustion */
+    uint16_t payload_len = 900;  /* Instead of sizeof(xgw_imu_state_t) = 68 */
     uint16_t total_len = sizeof(xgw_header_t) + payload_len;
     struct pbuf* p = pbuf_alloc(PBUF_TRANSPORT, total_len, PBUF_RAM);
 
     if (p == NULL) {
+        g_pbuf_alloc_fail_count++;
+        DebugP_log("[xGW UDP] IMU: pbuf_alloc FAILED! size=%u, alloc_cnt=%u, free_cnt=%u, fail_cnt=%u\r\n",
+                   total_len, g_pbuf_alloc_count, g_pbuf_free_count, g_pbuf_alloc_fail_count);
         g_udp_state.tx_errors++;
         return -1;
     }
+
+    g_pbuf_alloc_count++;
 
     /* Build packet */
     uint8_t* data = (uint8_t*)p->payload;
@@ -319,8 +358,14 @@ int xgw_udp_send_imu_state(const xgw_imu_state_t* imu_state)
     /* Set timestamp */
     header->timestamp_ns = ClockP_getTimeUsec() * 1000ULL;
 
-    /* Copy IMU state */
-    memcpy(data + sizeof(xgw_header_t), imu_state, payload_len);
+    /* Copy IMU state (first 68 bytes) */
+    memcpy(data + sizeof(xgw_header_t), imu_state, sizeof(xgw_imu_state_t));
+
+    /* [TEST] Fill remaining payload with test pattern (0xAA) */
+    if (payload_len > sizeof(xgw_imu_state_t)) {
+        memset(data + sizeof(xgw_header_t) + sizeof(xgw_imu_state_t),
+               0xAA, payload_len - sizeof(xgw_imu_state_t));
+    }
 
     /* Calculate CRC */
     header->crc32 = xgw_crc32_calculate(header, data + sizeof(xgw_header_t), payload_len);
@@ -330,8 +375,19 @@ int xgw_udp_send_imu_state(const xgw_imu_state_t* imu_state)
     err_t err = udp_sendto(g_udp_tx_pcb, p, &g_pc_ip_addr, XGW_UDP_TX_PORT);
     UNLOCK_TCPIP_CORE();
 
+    g_udp_sendto_count++;
+
+    /* [DEBUG] Log IMU udp_sendto (first 5 times) */
+    static uint32_t imu_sendto_log_count = 0;
+    if (imu_sendto_log_count < 5) {
+        DebugP_log("[xGW UDP] IMU: udp_sendto err=%d, p->ref=%u, alloc_cnt=%u\r\n",
+                   err, p->ref, g_pbuf_alloc_count);
+        imu_sendto_log_count++;
+    }
+
     /* Free pbuf */
     pbuf_free(p);
+    g_pbuf_free_count++;
 
     /* Debug: Log IMU send errors (first 3 times) */
     static uint32_t imu_err_log_count = 0;

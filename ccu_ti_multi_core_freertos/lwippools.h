@@ -18,7 +18,13 @@
 #if MEM_USE_POOLS
 LWIP_MALLOC_MEMPOOL_START
 LWIP_MALLOC_MEMPOOL(100, 128)
-LWIP_MALLOC_MEMPOOL(48, 1568)
+/* [FIX B029] Increased 1568-byte pool from 48 to 128 blocks
+ * Root cause: alloc_cnt stopped at exactly 48 - pool exhausted!
+ * At 1000Hz with 2 packets per cycle, need more data buffers
+ * Each packet (~500-600 bytes with headers) uses 1 block
+ * 48 blocks ≈ 48 packets = 24ms @ 1000Hz (both IMU + motor)
+ * 128 blocks ≈ 128 packets = 64ms @ 1000Hz (sustained) */
+LWIP_MALLOC_MEMPOOL(128, 1568)
 LWIP_MALLOC_MEMPOOL(4, 4096)
 LWIP_MALLOC_MEMPOOL_END
 #endif /* MEM_USE_POOLS */

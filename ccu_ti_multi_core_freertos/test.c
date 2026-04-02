@@ -161,9 +161,16 @@ static void test_init(void *arg)
     /* Start xGW UDP interface */
     DebugP_log("[Core0] Starting xGW UDP interface...\r\n");
 
-    /* Set PC IP address for UDP TX - Use broadcast to avoid routing issues */
-    uint8_t pc_ip[4] = {255, 255, 255, 255};  /* Broadcast */
-    xgw_udp_set_pc_ip(pc_ip);
+    /* [FIX B030] Set PC IP address for UDP TX - Use UNICAST, not broadcast!
+     * Broadcast (255.255.255.255) causes pbuf reference counting leak in lwIP
+     * When udp_sendto() uses broadcast, pbuf->ref becomes 2+ and ethernet driver
+     * may not properly free pbuf after transmit, causing memory pool exhaustion
+     * Solution: Use unicast PC IP (192.168.1.3) - default already set correctly
+     *
+     * Commented out - default in xgw_udp_interface.c is already correct (192.168.1.3)
+     * Only uncomment if you need to change PC IP address */
+    /* uint8_t pc_ip[4] = {192, 168, 1, 3};  */  /* Unicast - PC IP */
+    /* xgw_udp_set_pc_ip(pc_ip); */  /* Optional: override default if needed */
 
     int32_t status = xgw_udp_start();
     if (status != 0) {

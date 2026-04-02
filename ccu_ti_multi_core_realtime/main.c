@@ -13,6 +13,7 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 #include <kernel/dpl/DebugP.h>
 #include <kernel/dpl/HwiP.h>
 #include <kernel/dpl/ClockP.h>
@@ -415,28 +416,35 @@ static void transmit_can_frames(void)
         if (config != NULL && config->can_bus < NUM_CAN_BUSES) {
             can_frame_t *frame = &g_frame_buffers[config->can_bus][frame_count[config->can_bus]++];
 
-            /* Build CAN ID (Robstride protocol) */
+            /* [FIX B027] Build CAN ID (Robstride protocol) - scale torque correctly */
+            /* Reference: draft/ccu_ti/ccu_xgw_gateway.c:2108-2113 */
+            uint16_t torque_scaled = float_to_uint(cmd->torque * config->direction,
+                                                   config->limits.t_min, config->limits.t_max, 16);
             frame->can_id = (COMM_TYPE_MOTION_CONTROL << 24) |
-                           ((uint32_t)(cmd->torque & 0xFFFF) << 8) |
+                           ((uint32_t)torque_scaled << 8) |
                            config->motor_id;
             frame->flags = 0x01;  /* Extended ID */
-
-            /* Build CAN data */
             frame->dlc = 8;
 
-            uint16_t pos_int = (uint16_t)(cmd->position & 0xFFFF);
-            uint16_t vel_int = (uint16_t)(cmd->velocity & 0xFFFF);
-            uint16_t kp_int = (uint16_t)(cmd->kp & 0xFFFF);
-            uint16_t kd_int = (uint16_t)(cmd->kd & 0xFFFF);
+            /* [FIX B027] Build CAN data payload - SCALE values correctly using float_to_uint
+             * Reference: draft/ccu_ti/ccu_xgw_gateway.c:2117-2123
+             * Data format: [Pos_H, Pos_L, Vel_H, Vel_L, Kp_H, Kp_L, Kd_H, Kd_L] */
+            uint16_t pos_scaled = float_to_uint(cmd->position * config->direction,
+                                                config->limits.p_min, config->limits.p_max, 16);
+            uint16_t vel_scaled = float_to_uint(cmd->velocity * config->direction,
+                                                config->limits.v_min, config->limits.v_max, 16);
+            uint16_t kp_scaled = float_to_uint(cmd->kp, config->limits.kp_min, config->limits.kp_max, 16);
+            uint16_t kd_scaled = float_to_uint(cmd->kd, config->limits.kd_min, config->limits.kd_max, 16);
 
-            frame->data[0] = pos_int & 0xFF;
-            frame->data[1] = (pos_int >> 8) & 0xFF;
-            frame->data[2] = vel_int & 0xFF;
-            frame->data[3] = (vel_int >> 8) & 0xFF;
-            frame->data[4] = kp_int & 0xFF;
-            frame->data[5] = (kp_int >> 8) & 0xFF;
-            frame->data[6] = kd_int & 0xFF;
-            frame->data[7] = (kd_int >> 8) & 0xFF;
+            /* Byte order: MSB first (Big Endian for each 16-bit value) */
+            frame->data[0] = (pos_scaled >> 8) & 0xFF;
+            frame->data[1] = pos_scaled & 0xFF;
+            frame->data[2] = (vel_scaled >> 8) & 0xFF;
+            frame->data[3] = vel_scaled & 0xFF;
+            frame->data[4] = (kp_scaled >> 8) & 0xFF;
+            frame->data[5] = kp_scaled & 0xFF;
+            frame->data[6] = (kd_scaled >> 8) & 0xFF;
+            frame->data[7] = kd_scaled & 0xFF;
 
             can_frames_ptr[config->can_bus] = g_frame_buffers[config->can_bus];
         }
@@ -519,6 +527,24 @@ static int32_t core1_init(void)
     /* Initialize motor mapping */
     motor_mapping_init_core1();
     DebugP_log("[Core1] Motor mapping initialized\r\n");
+
+    /* [FIX B027] Initialize motor commands with default MIT values (idle state)
+     * Reference: draft/ccu_ti/ccu_xgw_gateway.c:1301-1313
+     * This ensures CAN frames are sent with proper default values, not all zeros
+     * Default: p=0, v=0, kp=0, kd=2.0, t=0 (safe idle values)
+     * IMPORTANT: Must be AFTER motor_mapping_init_core1() to get valid motor configs */
+    DebugP_log("[Core1] Initializing motor commands with default MIT values...\r\n");
+    for (uint8_t i = 0; i < GATEWAY_NUM_MOTORS; i++) {
+        /* Set default MIT command values */
+        g_motor_commands_working[i].position = 0.0f;
+        g_motor_commands_working[i].velocity = 0.0f;
+        g_motor_commands_working[i].kp = 0.0f;
+        g_motor_commands_working[i].kd = 2.0f;  /* Default kd=2.0 for stability */
+        g_motor_commands_working[i].torque = 0.0f;
+    }
+    /* Also init buffer with same defaults */
+    memcpy(g_motor_commands_buffer, g_motor_commands_working, sizeof(g_motor_commands_buffer));
+    DebugP_log("[Core1] Motor commands initialized: p=0, v=0, kp=0, kd=2.0, t=0 (idle state)\r\n");
 
     /* Initialize CAN buses */
     CAN_Init();

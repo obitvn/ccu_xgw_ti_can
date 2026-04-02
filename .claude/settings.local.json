@@ -85,7 +85,12 @@
       "Bash(grep -r \"ClockP_Config\\\\|usecPerTick.*=\" C:/ti/mcu_plus_sdk_am263px_11_01_00_19/source/kernel --include=*.c --include=*.h)",
       "Bash(find D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/draft/ccu_ti -name ti_dpl_config.c -o -name *dpl_config*)",
       "Bash(python -m py_compile /d/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/ccu_ti_diag_syslog.py)",
-      "Bash(python -m py_compile ../../../ccu_ti_diag_syslog.py)"
+      "Bash(python -m py_compile ../../../ccu_ti_diag_syslog.py)",
+      "mcp__zread__read_file",
+      "Bash(cloc:*)",
+      "Bash(/c/ti/sysconfig_1.26.0/sysconfig_cli.bat --compiler ccs --output Debug/syscfg example.syscfg)",
+      "Bash(gmake -j1)",
+      "Bash(pdftotext D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/draft/spruj55d.pdf -)"
     ]
   }
 }

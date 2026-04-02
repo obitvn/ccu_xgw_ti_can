@@ -155,6 +155,16 @@ int xgw_udp_process_motor_cmd(const uint8_t* data, uint16_t length);
  */
 int xgw_udp_process_motor_set(const uint8_t* data, uint16_t length);
 
+/*==============================================================================
+ * DEBUG STATISTICS (visible for main.c)
+ *============================================================================*/
+
+/* [DEBUG B029] Pbuf tracking counters - exported for stats display */
+extern volatile uint32_t g_pbuf_alloc_count;
+extern volatile uint32_t g_pbuf_free_count;
+extern volatile uint32_t g_pbuf_alloc_fail_count;
+extern volatile uint32_t g_udp_sendto_count;
+
 #ifdef __cplusplus
 }
 #endif

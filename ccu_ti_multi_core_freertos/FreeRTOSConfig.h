@@ -28,7 +28,7 @@
 #define configUSE_IDLE_HOOK                     0
 #define configUSE_TICK_HOOK                     0
 #define configCPU_CLOCK_HZ                      SystemP_CPU_CLOCK_FREQ_HZ               /* CPU frequency from SDK */
-#define configMAX_PRIORITIES                    7
+#define configMAX_PRIORITIES                    32
 #define configMINIMAL_STACK_SIZE                256
 #define configTOTAL_HEAP_SIZE                   (80 * 1024)                            /* 80KB heap */
 #define configMAX_TASK_NAME_LEN                 16

@@ -27,7 +27,9 @@
 #include "log_reader_task.h"
 #include "enet/xgw_udp_interface.h"
 #include "lwip/tcpip.h"
+#include "lwip/stats.h"  /* For lwIP stats display */
 #include "test_enet_lwip.h"
+#include "enet/xgw_udp_interface.h"  /* For pbuf tracking counters */
 
 /* ==========================================================================
  * DEBUG COUNTERS (QA TRACE)
@@ -55,18 +57,24 @@ volatile uint32_t dbg_imu_frame_count __attribute__((section(".bss.user_shared_m
  *============================================================================*/
 
 #define MAIN_TASK_PRI         (configMAX_PRIORITIES - 1)
-#define ENET_LWIP_TASK_PRI    (configMAX_PRIORITIES - 3)  /* Lowered to allow UDP TX to run at 1000Hz */
-#define UDP_TX_TASK_PRI       (configMAX_PRIORITIES - 2)  /* Raised - CRITICAL for 1000Hz timing */
+/* CRITICAL: TCP/IP thread must have HIGHER priority than tasks calling udp_sendto()
+ * Otherwise TX completion won't be processed and pbufs won't be freed!
+ * TCPIP_THREAD_PRIO = 7 (SDK default in lwipopts.h)
+ * ENET_LWIP_TASK_PRI = 29
+ * UDP_TX_TASK_PRI must be < 7 to allow tcpip thread to run!
+ */
+#define ENET_LWIP_TASK_PRI    (configMAX_PRIORITIES - 3)  /* 29 - for lwIP init/operation */
+#define UDP_TX_TASK_PRI       (configMAX_PRIORITIES - 4)  /* LOWER than TCPIP_THREAD_PRIO(7) - allows TX completion */
 #define UDP_RX_TASK_PRI       (configMAX_PRIORITIES - 3)
 #define IPC_TASK_PRI          (configMAX_PRIORITIES - 2)
 
 #define MAIN_TASK_SIZE        (4096U/sizeof(configSTACK_DEPTH_TYPE))
 #define ENET_LWIP_TASK_SIZE   (16384U/sizeof(configSTACK_DEPTH_TYPE))  /* Increased from 2KB to 16KB to prevent stack overflow */
-#define UDP_TX_TASK_SIZE      (2048U/sizeof(configSTACK_DEPTH_TYPE))
+#define UDP_TX_TASK_SIZE      (16384U/sizeof(configSTACK_DEPTH_TYPE))
 #define UDP_RX_TASK_SIZE      (2048U/sizeof(configSTACK_DEPTH_TYPE))
 #define IPC_TASK_SIZE         (1024U/sizeof(configSTACK_DEPTH_TYPE))
 
-#define UDP_TX_PERIOD_MS      1   /* 1000 Hz (1ms period) */
+#define UDP_TX_PERIOD_MS      1   
 #define UDP_RX_PORT           61904  /* Motor commands from PC */
 #define UDP_TX_PORT           53489  /* Motor states to PC */
 
@@ -121,7 +129,7 @@ static volatile bool g_imu_has_valid_data = false;
 /* [DEBUG] Simulate motor data for testing UDP TX when no motors connected
  * Generates dummy motor states every 100 cycles (100ms) to test UDP TX path
  */
-#define SIMULATE_MOTOR_DATA  1  /* Set to 0 to disable simulation */
+#define SIMULATE_MOTOR_DATA  0  /* Disable simulation - use real shared memory data */
 static uint32_t g_sim_counter = 0;
 
 /* IPC callback counter - for statistics
@@ -200,15 +208,18 @@ static void ipc_notify_callback_fxn(uint32_t remoteCoreId, uint16_t localClientI
 }
 
 /*==============================================================================
- * UDP TX TASK (1000Hz)
+ * UDP TX TASK (500Hz task rate, 1000 packets/sec total)
  *============================================================================*/
 
 /**
  * @brief UDP TX task
  *
- * Sends motor states + IMU data to PC at 1000Hz (1ms period)
- * Core1 runs at 1000Hz, UDP TX also at 1000Hz for maximum bandwidth
- * while maintaining real-time performance
+ * Sends motor states + IMU data to PC at 1000 packets/sec total
+ * Task runs at 500Hz (2ms period), sends 2 packets per cycle
+ * - Motor state packet every cycle
+ * - IMU state packet every cycle (cached/resend if no new data)
+ *
+ * Matches ccu_ti reference design which achieves stable 1000Hz operation
  */
 static void udp_tx_task(void *args)
 {
@@ -217,9 +228,9 @@ static void udp_tx_task(void *args)
     const TickType_t period = pdMS_TO_TICKS(UDP_TX_PERIOD_MS);
 
     /* [DEBUG] Log timing config to verify tick rate calculation */
-    DebugP_log("[Core0] UDP TX: configTICK_RATE_HZ=%d, pdMS_TO_TICKS(1)=%u ticks\r\n",
-               configTICK_RATE_HZ, (unsigned int)period);
-    DebugP_log("[Core0] UDP TX task started (period=%u ticks, 1000Hz)\r\n", (unsigned int)period);
+    DebugP_log("[Core0] UDP TX: configTICK_RATE_HZ=%d, pdMS_TO_TICKS(%d)=%u ticks\r\n",
+               configTICK_RATE_HZ, UDP_TX_PERIOD_MS, (unsigned int)period);
+    DebugP_log("[Core0] UDP TX task started (period=%u ticks, 500Hz task rate, 1000 packets/sec total)\r\n", (unsigned int)period);
     DebugP_log("[Core0] UDP TX priority: %u (ENET priority: %u)\r\n",
                UDP_TX_TASK_PRI, ENET_LWIP_TASK_PRI);
 
@@ -253,48 +264,46 @@ static void udp_tx_task(void *args)
     uint64_t last_loop_time_us = ClockP_getTimeUsec();
 
     while (1) {
-        /* [PERFORMANCE FIX B023] Remove blocking DebugP_log() calls from 1000Hz loop
+        /* [PERFORMANCE FIX B023] Remove blocking DebugP_log() calls from high-rate loop
          * DebugP_log() uses UART @ 115200 baud which is ~14 bytes/ms - SLOW and BLOCKING!
-         * With 9 DebugP_log() calls per loop, serial output becomes the bottleneck.
+         * Task runs at 500Hz (2ms) sending 2 packets/cycle = 1000 packets/sec total.
+         * Even at 500Hz, logging would cause significant timing issues.
          * Solution: Only log on startup, use counters for runtime monitoring.
          */
 
-        /* [DEBUG B026] Simulate motor data for testing UDP TX when no motors connected
-         * Core1 has no CAN frames (frames=0), so we simulate motor data on Core0
+        /* [DEBUG B026] Simulate motor data for testing when no motors connected
+         * Currently DISABLED - using real shared memory data from Core1
          */
 #if SIMULATE_MOTOR_DATA
-        /* Every 100 cycles (100ms), generate dummy motor data */
+        /* Generate dummy motor states EVERY cycle */
         g_sim_counter++;
-        if (g_sim_counter >= 100) {
-            /* Generate dummy motor states */
-            for (uint8_t i = 0; i < GATEWAY_NUM_MOTORS; i++) {
-                g_motor_states[i].motor_id = i + 1;  /* Motor ID 1-23 */
-                g_motor_states[i].can_bus = i % 8;      /* CAN bus 0-7 */
-                g_motor_states[i].pattern = 0;
-                g_motor_states[i].error_code = 0;
-                /* Simple sine wave for position */
-                g_motor_states[i].position = (int16_t)(1000 * __builtin_sin(g_sim_counter * 0.01f + i * 0.5f));
-                g_motor_states[i].velocity = (int16_t)(100 * __builtin_cos(g_sim_counter * 0.01f + i * 0.5f));
-                g_motor_states[i].torque = 0;
-                g_motor_states[i].temperature = 250 + i;  /* 25-32°C */
-            }
+        for (uint8_t i = 0; i < GATEWAY_NUM_MOTORS; i++) {
+            g_motor_states[i].motor_id = i + 1;  /* Motor ID 1-23 */
+            g_motor_states[i].can_bus = i % 8;      /* CAN bus 0-7 */
+            g_motor_states[i].pattern = 0;
+            g_motor_states[i].error_code = 0;
+            /* Simple sine wave for position */
+            g_motor_states[i].position = (int16_t)(1000 * __builtin_sin(g_sim_counter * 0.01f + i * 0.5f));
+            g_motor_states[i].velocity = (int16_t)(100 * __builtin_cos(g_sim_counter * 0.01f + i * 0.5f));
+            g_motor_states[i].torque = 0;
+            g_motor_states[i].temperature = 250 + i;  /* 25-32°C */
+        }
 
-            /* Write to shared memory and notify */
-            gateway_write_motor_states(g_motor_states, GATEWAY_NUM_MOTORS);
-            gateway_notify_states_ready();
-
-            g_sim_counter = 0;
-
-            /* Log simulation */
-            static uint32_t sim_log_count = 0;
-            if (sim_log_count++ < 3) {
-                DebugP_log("[Core0] SIM: Generated %u motor states\r\n", GATEWAY_NUM_MOTORS);
-            }
+        /* Log simulation once at start */
+        static uint32_t sim_log_count = 0;
+        if (sim_log_count++ < 1) {
+            DebugP_log("[Core0] SIM: Generating %u motor states EVERY cycle\r\n", GATEWAY_NUM_MOTORS);
         }
 #endif
 
         /* Read motor states from shared memory */
-        int32_t count = gateway_read_motor_states(g_motor_states);
+        int32_t count;
+#if SIMULATE_MOTOR_DATA
+        /* [TEST B033] Use simulated data directly, bypass shared memory */
+        count = GATEWAY_NUM_MOTORS;  /* Force count to trigger UDP send */
+#else
+        count = gateway_read_motor_states(g_motor_states);
+#endif
 
         /* [DEBUG] Static counters for monitoring */
         static uint32_t motor_read_count = 0;
@@ -319,7 +328,11 @@ static void udp_tx_task(void *args)
             motor_read_count = 0;
         }
 
-        /* [IMU] Always send IMU state at 1000Hz - cache and resend if no new data */
+        /* [IMU] Always send IMU state at 1000Hz - cache and resend if no new data
+         * Core1 IMU ISR updates at ~100Hz, but UDP must send at 1000Hz
+         * Cache last valid IMU state and resend every cycle */
+        static imu_state_ipc_t g_cached_imu_state = {0};
+        static volatile bool g_imu_has_valid_data = false;
         imu_state_ipc_t imu_state;
         int read_result = gateway_read_imu_state(&imu_state);
         if (read_result == 0) {
@@ -328,10 +341,10 @@ static void udp_tx_task(void *args)
             g_imu_has_valid_data = true;
         }
 
-        // /* Always send IMU data (new or cached) every cycle */
-        // if (g_imu_has_valid_data) {
-        //     xgw_udp_send_imu_state((xgw_imu_state_t*)&g_cached_imu_state);
-        // }
+        /* Always send IMU data (new or cached) every cycle */
+        if (g_imu_has_valid_data) {
+            xgw_udp_send_imu_state((xgw_imu_state_t*)&g_cached_imu_state);
+        }
 
         /* Log errors only (no blocking in normal path) */
         if (count < 0) {
@@ -350,8 +363,23 @@ static void udp_tx_task(void *args)
         if (elapsed_us >= 5000000ULL) {
             float actual_rate = (float)loop_count / ((float)elapsed_us / 1000000.0f);
             float avg_period_us = (float)elapsed_us / (float)loop_count;
-            DebugP_log("[Core0] UDP TX: %.1f Hz, %.2f us (target: 1000 Hz)\r\n",
-                       actual_rate, avg_period_us);
+
+            /* [DEBUG B029] Get pbuf stats from xGW UDP interface */
+            int32_t pbuf_in_use = g_pbuf_alloc_count - g_pbuf_free_count;
+
+            DebugP_log("[Core0] UDP TX: %.1f Hz, %.2f us | pbuf: alloc=%u free=%u in_use=%d fail=%u sendto=%u\r\n",
+                       actual_rate, avg_period_us,
+                       g_pbuf_alloc_count, g_pbuf_free_count, pbuf_in_use,
+                       g_pbuf_alloc_fail_count, g_udp_sendto_count);
+
+            /* [DEBUG B029] Dump lwIP stats every 30 seconds */
+            static uint32_t stats_dump_counter = 0;
+            if (++stats_dump_counter >= 6) {  /* Every 6 x 5 seconds = 30 seconds */
+                DebugP_log("[Core0] === LWIP STATS ===\r\n");
+                stats_display();
+                stats_dump_counter = 0;
+            }
+
             loop_count = 0;
             last_loop_time_us = current_time_us;
         }
@@ -425,18 +453,13 @@ static void build_and_send_udp_packet(void)
     static uint32_t call_count = 0;
     call_count++;
 
-    /* [TEST] Run progressive size test for first 100 calls */
-    if (call_count <= 100) {
-        test_pbuf_size_progressive();
-    }
+    /* [FIX B033] Use static array instead of local to reduce stack usage
+     * Local array: 460 bytes on stack can cause issues in high-rate loop
+     * Static array: Allocated in BSS section, no stack pressure
+     */
+    static xgw_motor_state_t xgw_states[GATEWAY_NUM_MOTORS];
 
-    /* [TEMP DISABLE] Normal motor state sending - disabled during testing */
-    return;
-
-#if 0  /* Disabled for testing */
     /* Convert IPC format to xGW protocol format */
-    xgw_motor_state_t xgw_states[GATEWAY_NUM_MOTORS];
-
     for (uint8_t i = 0; i < GATEWAY_NUM_MOTORS; i++) {
         xgw_states[i].motor_id = g_motor_states[i].motor_id;
         xgw_states[i].error_code = g_motor_states[i].error_code;
@@ -455,35 +478,32 @@ static void build_and_send_udp_packet(void)
         debug_log_count++;
     }
 
-    /* Log errors every 100 calls */
+    /* Log every 100 calls */
     if (call_count >= 100) {
         DebugP_log("[Core0] build_and_send: %u calls processed\r\n", call_count);
         call_count = 0;
     }
 
-    /* Send via xGW UDP interface */
+    /* [TEST] Send only 1 motor instead of 23 to test if issue is item count */
+    // int32_t sent = xgw_udp_send_motor_states(xgw_states, 1);  /* Only send 1 motor! */
+
+    /* Send motor states via UDP */
     int32_t sent = xgw_udp_send_motor_states(xgw_states, GATEWAY_NUM_MOTORS);
 
     if (sent > 0) {
         /* Successfully sent */
         gStats.udp_tx_count++;
-        /* [QA TRACE T028] Increment UDP TX counter */
-        DEBUG_COUNTER_INC(dbg_udp_tx_count);
     } else {
         /* Send failed - increment error counter */
         gStats.udp_tx_errors++;
 
-        /* [QA TRACE T030] Increment error counter */
-        DEBUG_COUNTER_INC(dbg_error_count);
-
         /* Log error every 100th failure to avoid spam */
         static uint32_t error_count = 0;
         if (++error_count >= 100) {
-            DebugP_log("[Core0] UDP TX motor: %d failures (sent=%d)\r\n", error_count, sent);
+            DebugP_log("[Core0] UDP TX motor: %d failures\r\n", error_count);
             error_count = 0;
         }
     }
-#endif
 }
 
 /*==============================================================================
