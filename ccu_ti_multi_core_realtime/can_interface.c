@@ -63,10 +63,6 @@ static inline void GPIO_pinToggle(uint32_t baseAddr, uint32_t pin)
  *                      Constants and Definitions
  * ========================================================================== */
 
-// Debug GPIO pins for tracing execution (use existing STB GPIOs as indicators)
-#define DEBUG_GPIO_TRACE_BASE     CONFIG_GPIO_STB_MCAN0_BASE_ADDR
-#define DEBUG_GPIO_TRACE_PIN      CONFIG_GPIO_STB_MCAN0_PIN
-
 // MCAN interrupt numbers (from syscfg generated config)
 static const uint32_t g_mcan_intr_num[NUM_CAN_BUSES] = {
     CONFIG_MCAN0_INTR,
@@ -174,12 +170,6 @@ static void init_can_stb_gpios(void)
  */
 static void can_rx_isr(void *arg)
 {
-    // [QA TRACE T021] GPIO PA2 toggle on ISR entry
-    /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
-    uint32_t debug_gpio_base = (uint32_t)AddrTranslateP_getLocalAddr(CSL_GPIO3_U_BASE);
-    GPIO_pinToggle(debug_gpio_base, 42U);  // PA2 = CAN RX indicator
-    */
-
     uint32_t bus_id = (uint32_t)arg;
     uint32_t baseAddr = g_mcan_base_addr[bus_id];
     uint32_t intrStatus;
@@ -250,11 +240,6 @@ static void can_rx_isr(void *arg)
             g_rx_callback(bus_id, &frame);
         }
     }
-
-    // [QA TRACE T021] GPIO PA2 toggle on ISR exit
-    /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
-    GPIO_pinToggle(debug_gpio_base, 42U);  // PA2 = CAN RX indicator
-    */
 }
 
 /**

@@ -60,16 +60,6 @@ volatile uint32_t dbg_imu_frame_count __attribute__((section(".bss.user_shared_m
 #define LOOP_FREQUENCY_HZ         1000        /* 1000 Hz */
 #define LOOP_PERIOD_US           (1000000 / LOOP_FREQUENCY_HZ)  /* 1000 us */
 
-/* Debug GPIO pins for Core1 instrumentation */
-#define DEBUG_GPIO_CORE1_HEARTBEAT_BASE_ADDR  (CSL_GPIO3_U_BASE)
-#define DEBUG_GPIO_CORE1_HEARTBEAT_PIN        (40U)  /* GPIO3 PA0 = Core1 Heartbeat */
-#define DEBUG_GPIO_TIMER_ISR_BASE_ADDR        (CSL_GPIO3_U_BASE)
-#define DEBUG_GPIO_TIMER_ISR_PIN              (41U)  /* GPIO3 PA1 = Timer ISR indicator */
-#define DEBUG_GPIO_CAN_RX_ISR_BASE_ADDR       (CSL_GPIO3_U_BASE)
-#define DEBUG_GPIO_CAN_RX_ISR_PIN             (42U)  /* GPIO3 PA2 = CAN RX ISR indicator */
-#define DEBUG_GPIO_IMU_UART_ISR_BASE_ADDR     (CSL_GPIO3_U_BASE)
-#define DEBUG_GPIO_IMU_UART_ISR_PIN           (43U)  /* GPIO3 PA3 = IMU UART ISR indicator */
-
 /*==============================================================================
  * GLOBAL VARIABLES
  *============================================================================*/
@@ -149,62 +139,6 @@ static void process_motor_commands(void);
 static void transmit_can_frames(void);
 
 /* Debug GPIO helper functions */
-static void debug_gpio_init_core1(void);
-static inline void debug_gpio_toggle(uint32_t baseAddr, uint32_t pin);
-
-/*==============================================================================
- * DEBUG GPIO HELPER FUNCTIONS
- *============================================================================*/
-
-/**
- * @brief Initialize debug GPIO pins for Core1 instrumentation
- *
- * [QA TRACE] Configure GPIO PA0 (heartbeat) and PA1 (timer ISR) as outputs
- * MUST be called before any trace points
- */
-static void debug_gpio_init_core1(void)
-{
-    uint32_t baseAddr;
-
-    /* Configure PA0 as output (heartbeat) */
-    baseAddr = (uint32_t)AddrTranslateP_getLocalAddr(DEBUG_GPIO_CORE1_HEARTBEAT_BASE_ADDR);
-    GPIO_setDirMode(baseAddr, DEBUG_GPIO_CORE1_HEARTBEAT_PIN, GPIO_DIRECTION_OUTPUT);
-    GPIO_pinWriteLow(baseAddr, DEBUG_GPIO_CORE1_HEARTBEAT_PIN);
-
-    /* Configure PA1 as output (timer ISR indicator) [QA TRACE T016] */
-    baseAddr = (uint32_t)AddrTranslateP_getLocalAddr(DEBUG_GPIO_TIMER_ISR_BASE_ADDR);
-    GPIO_setDirMode(baseAddr, DEBUG_GPIO_TIMER_ISR_PIN, GPIO_DIRECTION_OUTPUT);
-    GPIO_pinWriteLow(baseAddr, DEBUG_GPIO_TIMER_ISR_PIN);
-
-    /* Configure PA2 as output (CAN RX ISR indicator) [QA TRACE T021] */
-    baseAddr = (uint32_t)AddrTranslateP_getLocalAddr(DEBUG_GPIO_CAN_RX_ISR_BASE_ADDR);
-    GPIO_setDirMode(baseAddr, DEBUG_GPIO_CAN_RX_ISR_PIN, GPIO_DIRECTION_OUTPUT);
-    GPIO_pinWriteLow(baseAddr, DEBUG_GPIO_CAN_RX_ISR_PIN);
-
-    /* Configure PA3 as output (IMU UART ISR indicator) [QA TRACE T022] */
-    baseAddr = (uint32_t)AddrTranslateP_getLocalAddr(DEBUG_GPIO_IMU_UART_ISR_BASE_ADDR);
-    GPIO_setDirMode(baseAddr, DEBUG_GPIO_IMU_UART_ISR_PIN, GPIO_DIRECTION_OUTPUT);
-    GPIO_pinWriteLow(baseAddr, DEBUG_GPIO_IMU_UART_ISR_PIN);
-}
-
-/**
- * @brief Toggle GPIO pin (fast, no malloc, no OS call)
- *
- * [QA TRACE] Safe for bare-metal and ISR context
- * Minimal overhead (~50ns per toggle)
- *
- * Uses TI SDK GPIO API: GPIO_pinRead, GPIO_pinWriteHigh, GPIO_pinWriteLow
- */
-static inline void debug_gpio_toggle(uint32_t baseAddr, uint32_t pin)
-{
-    /* Toggle using TI SDK GPIO API */
-    if (GPIO_pinRead(baseAddr, pin)) {
-        GPIO_pinWriteLow(baseAddr, pin);
-    } else {
-        GPIO_pinWriteHigh(baseAddr, pin);
-    }
-}
-
 /*==============================================================================
  * TIMER ISR (1000Hz)
  *============================================================================*/
@@ -219,10 +153,6 @@ static inline void debug_gpio_toggle(uint32_t baseAddr, uint32_t pin)
 void timerISR(void *args)
 {
     (void)args;
-
-    /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
-    debug_gpio_toggle(DEBUG_GPIO_TIMER_ISR_BASE_ADDR, DEBUG_GPIO_TIMER_ISR_PIN);
-    */
 
     /* Set flag for main loop processing */
     g_timer_expired = true;
@@ -242,10 +172,6 @@ void timerISR(void *args)
      * While g_heartbeat_count is currently unused, barrier prevents potential issues
      * if it's used in future for debugging or monitoring. */
     __asm volatile("dmb" ::: "memory");
-
-    /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
-    debug_gpio_toggle(DEBUG_GPIO_TIMER_ISR_BASE_ADDR, DEBUG_GPIO_TIMER_ISR_PIN);
-    */
 }
 
 /*==============================================================================
@@ -508,11 +434,6 @@ static int32_t init_1000hz_timer(void)
      * It sets up the timer hardware and registers the ISR */
     TimerP_init();
 
-    /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
-    uint32_t debug_gpio_base = (uint32_t)AddrTranslateP_getLocalAddr(DEBUG_GPIO_CORE1_HEARTBEAT_BASE_ADDR);
-    debug_gpio_toggle(debug_gpio_base, DEBUG_GPIO_CORE1_HEARTBEAT_PIN);
-    */
-
     /* Start the timer - this enables the interrupt */
     TimerP_start(gTimerBaseAddr[CONFIG_TIMER0]);
 
@@ -535,11 +456,6 @@ static int32_t core1_init(void)
 
     /* Open drivers */
     Drivers_open();
-
-    /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
-    uint32_t debug_gpio_base = (uint32_t)AddrTranslateP_getLocalAddr(DEBUG_GPIO_CORE1_HEARTBEAT_BASE_ADDR);
-    debug_gpio_toggle(debug_gpio_base, DEBUG_GPIO_CORE1_HEARTBEAT_PIN);
-    */
 
     status = Board_driversOpen();
     DebugP_assert(status == SystemP_SUCCESS);
@@ -841,12 +757,6 @@ static void main_loop(void)
  */
 int main(void)
 {
-    /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
-    debug_gpio_init_core1();
-    uint32_t debug_gpio_base = (uint32_t)AddrTranslateP_getLocalAddr(DEBUG_GPIO_CORE1_HEARTBEAT_BASE_ADDR);
-    debug_gpio_toggle(debug_gpio_base, DEBUG_GPIO_CORE1_HEARTBEAT_PIN);
-    */
-
     /* Initialize SOC and Board */
     System_init();
 
