@@ -60,15 +60,15 @@ volatile uint32_t dbg_imu_frame_count __attribute__((section(".bss.user_shared_m
 #define LOOP_FREQUENCY_HZ         1000        /* 1000 Hz */
 #define LOOP_PERIOD_US           (1000000 / LOOP_FREQUENCY_HZ)  /* 1000 us */
 
-/* [QA TRACE] Debug GPIO pins for Core1 instrumentation */
+/* Debug GPIO pins for Core1 instrumentation */
 #define DEBUG_GPIO_CORE1_HEARTBEAT_BASE_ADDR  (CSL_GPIO3_U_BASE)
 #define DEBUG_GPIO_CORE1_HEARTBEAT_PIN        (40U)  /* GPIO3 PA0 = Core1 Heartbeat */
 #define DEBUG_GPIO_TIMER_ISR_BASE_ADDR        (CSL_GPIO3_U_BASE)
-#define DEBUG_GPIO_TIMER_ISR_PIN              (41U)  /* GPIO3 PA1 = Timer ISR indicator [QA TRACE T016] */
+#define DEBUG_GPIO_TIMER_ISR_PIN              (41U)  /* GPIO3 PA1 = Timer ISR indicator */
 #define DEBUG_GPIO_CAN_RX_ISR_BASE_ADDR       (CSL_GPIO3_U_BASE)
-#define DEBUG_GPIO_CAN_RX_ISR_PIN             (42U)  /* GPIO3 PA2 = CAN RX ISR indicator [QA TRACE T021] */
+#define DEBUG_GPIO_CAN_RX_ISR_PIN             (42U)  /* GPIO3 PA2 = CAN RX ISR indicator */
 #define DEBUG_GPIO_IMU_UART_ISR_BASE_ADDR     (CSL_GPIO3_U_BASE)
-#define DEBUG_GPIO_IMU_UART_ISR_PIN           (43U)  /* GPIO3 PA3 = IMU UART ISR indicator [QA TRACE T022] */
+#define DEBUG_GPIO_IMU_UART_ISR_PIN           (43U)  /* GPIO3 PA3 = IMU UART ISR indicator */
 
 /*==============================================================================
  * GLOBAL VARIABLES
@@ -148,7 +148,7 @@ static void process_can_rx(uint8_t bus_id, const can_frame_t *frame);
 static void process_motor_commands(void);
 static void transmit_can_frames(void);
 
-/* [QA TRACE] Debug GPIO helper functions */
+/* Debug GPIO helper functions */
 static void debug_gpio_init_core1(void);
 static inline void debug_gpio_toggle(uint32_t baseAddr, uint32_t pin);
 
@@ -215,13 +215,11 @@ static inline void debug_gpio_toggle(uint32_t baseAddr, uint32_t pin)
  * Triggers every 1ms to process motor commands and transmit CAN frames
  * NOTE: Function name must match SysConfig timerCallback setting
  * NOTE: Must be non-static for syscfg to find it
- * [QA TRACE T016] GPIO PA1 toggle on ISR entry/exit for timing measurement
  */
 void timerISR(void *args)
 {
     (void)args;
 
-    /* [QA TRACE T016] GPIO PA1 toggle on ISR entry */
     /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
     debug_gpio_toggle(DEBUG_GPIO_TIMER_ISR_BASE_ADDR, DEBUG_GPIO_TIMER_ISR_PIN);
     */
@@ -245,7 +243,6 @@ void timerISR(void *args)
      * if it's used in future for debugging or monitoring. */
     __asm volatile("dmb" ::: "memory");
 
-    /* [QA TRACE T016] GPIO PA1 toggle on ISR exit */
     /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
     debug_gpio_toggle(DEBUG_GPIO_TIMER_ISR_BASE_ADDR, DEBUG_GPIO_TIMER_ISR_PIN);
     */
@@ -273,10 +270,7 @@ static void ipc_notify_callback_fxn(uint32_t remoteCoreId, uint16_t localClientI
     DebugP_log("[Core1] IPC CALLBACK: remoteCore=%u, clientId=%u, msgValue=0x%X\r\n",
                remoteCoreId, localClientId, msgValue);
 
-    /* [QA TRACE T018] Increment shared counter (atomic for single-core variable) */
     g_ipc_event_count++;
-
-    /* [QA TRACE T023] Increment IPC send counter (Core0→Core1) */
     DEBUG_COUNTER_INC(dbg_ipc_send_count);
 
     /* Call gateway shared memory callback - handles the actual IPC message */
@@ -514,7 +508,6 @@ static int32_t init_1000hz_timer(void)
      * It sets up the timer hardware and registers the ISR */
     TimerP_init();
 
-    /* [QA TRACE T010] 1000Hz timer initialization done - GPIO PA0 toggle */
     /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
     uint32_t debug_gpio_base = (uint32_t)AddrTranslateP_getLocalAddr(DEBUG_GPIO_CORE1_HEARTBEAT_BASE_ADDR);
     debug_gpio_toggle(debug_gpio_base, DEBUG_GPIO_CORE1_HEARTBEAT_PIN);
@@ -543,7 +536,6 @@ static int32_t core1_init(void)
     /* Open drivers */
     Drivers_open();
 
-    /* [QA TRACE T009] Drivers_open() call done - GPIO PA0 toggle */
     /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
     uint32_t debug_gpio_base = (uint32_t)AddrTranslateP_getLocalAddr(DEBUG_GPIO_CORE1_HEARTBEAT_BASE_ADDR);
     debug_gpio_toggle(debug_gpio_base, DEBUG_GPIO_CORE1_HEARTBEAT_PIN);
@@ -592,7 +584,6 @@ static int32_t core1_init(void)
     /* Register IPC callback - BOTH cores must use the SAME client ID */
     DebugP_log("[Core1] Registering IPC callback with client ID=%u\r\n", GATEWAY_IPC_CLIENT_ID);
 
-    /* [QA TRACE T015] IPC register entry - increment shared counter */
     extern volatile uint32_t dbg_ipc_register_count;
     __asm__ volatile(
         "ldr r0, =dbg_ipc_register_count\n\t"
@@ -609,7 +600,6 @@ static int32_t core1_init(void)
         DebugP_log("[Core1] ERROR: IpcNotify_registerClient failed! status=%d\r\n", status);
     } else {
         DebugP_log("[Core1] IPC callback registered successfully\r\n");
-        /* [QA TRACE T015] IPC register done - increment shared counter again */
         __asm__ volatile(
             "ldr r0, =dbg_ipc_register_count\n\t"
             "ldr r1, [r0]\n\t"
@@ -851,31 +841,16 @@ static void main_loop(void)
  */
 int main(void)
 {
-    /* [QA TRACE T006] Initialize debug GPIO first */
     /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
     debug_gpio_init_core1();
     uint32_t debug_gpio_base = (uint32_t)AddrTranslateP_getLocalAddr(DEBUG_GPIO_CORE1_HEARTBEAT_BASE_ADDR);
-    */
-
-    /* [QA TRACE T006] main() entry - GPIO PA0 toggle */
-    /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
     debug_gpio_toggle(debug_gpio_base, DEBUG_GPIO_CORE1_HEARTBEAT_PIN);
     */
 
     /* Initialize SOC and Board */
     System_init();
 
-    /* [QA TRACE T007] System_init() call done - GPIO PA0 toggle */
-    /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
-    debug_gpio_toggle(debug_gpio_base, DEBUG_GPIO_CORE1_HEARTBEAT_PIN);
-    */
-
     Board_init();
-
-    /* [QA TRACE T008] Board_init() call done - GPIO PA0 toggle */
-    /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
-    debug_gpio_toggle(debug_gpio_base, DEBUG_GPIO_CORE1_HEARTBEAT_PIN);
-    */
 
     /* Initialize Core 1 */
     int32_t status = core1_init();

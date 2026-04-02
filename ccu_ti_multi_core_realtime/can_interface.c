@@ -220,7 +220,6 @@ static void can_rx_isr(void *arg)
         g_can_stats[bus_id].rx_count++;
         __asm volatile("dmb" ::: "memory");  /* Ensure visibility to main loop */
 
-        /* [QA TRACE T025] Increment CAN RX counter */
         DEBUG_COUNTER_INC(dbg_can_rx_count);
 
         // Call user callback if registered
@@ -555,7 +554,6 @@ int32_t CAN_Transmit(uint8_t bus_id, const can_frame_t *frame)
         g_can_stats[bus_id].tx_count++;
         HwiP_restore(irq_state);
 
-        /* [QA TRACE T026] Increment CAN TX counter */
         DEBUG_COUNTER_INC(dbg_can_tx_count);
         g_tx_buffer_index[bus_id] = (buf_idx + 1) % 32;
         return 0;
