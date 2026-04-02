@@ -1,7 +1,7 @@
 ******************************************************************************
             TI ARM Clang Linker PC v4.0.4                      
 ******************************************************************************
->> Linked Thu Apr  2 19:24:53 2026
+>> Linked Thu Apr  2 22:13:24 2026
 
 OUTPUT FILE NAME:   <ccu_ti_multi_core_freertos.out>
 ENTRY POINT SYMBOL: "_vectors"  address: 00000000
