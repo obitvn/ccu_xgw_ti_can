@@ -427,43 +427,12 @@ static void transmit_can_frames(void)
                     frame->data[0] = 1;
                 }
 
-                /* [FIX B035] When disable command is received, reset ALL motors to default MIT commands
-                 * Reference: draft/ccu_ti/ccu_xgw_gateway.c:677-695
-                 * This ensures all motors return to safe idle state when any motor is disabled */
-                if (cmd->mode == 0) {  /* XGW_MOTOR_MODE_DISABLE */
-                    // DebugP_log("[Core1] Motor disable: resetting ALL %d motors to default (p=0, v=0, kp=0, kd=2.0, t=0)\r\n",
-                    //            GATEWAY_NUM_MOTORS);
-
-                    /* Reset ALL motors to default command */
-                    for (uint8_t j = 0; j < GATEWAY_NUM_MOTORS; j++) {
-                        g_motor_commands_working[j].mode = MOTOR_MODE_MIT_CONTROL;  /* 255 = MIT cyclic */
-                        g_motor_commands_working[j].position = 0;
-                        g_motor_commands_working[j].velocity = 0;
-                        g_motor_commands_working[j].torque = 0;
-                        g_motor_commands_working[j].kp = 0;
-                        g_motor_commands_working[j].kd = 2.0f;  /* Default kd for stability */
-                    }
-
-                    /* Also reset buffer to prevent stale commands */
-                    for (uint8_t j = 0; j < GATEWAY_NUM_MOTORS; j++) {
-                        g_motor_commands_buffer[j].mode = MOTOR_MODE_MIT_CONTROL;  /* 255 = MIT cyclic */
-                        g_motor_commands_buffer[j].position = 0;
-                        g_motor_commands_buffer[j].velocity = 0;
-                        g_motor_commands_buffer[j].torque = 0;
-                        g_motor_commands_buffer[j].kp = 0;
-                        g_motor_commands_buffer[j].kd = 2.0f;
-                    }
-                } else {
-                    /* Clear only this motor's command after sending (enable/zero commands)
-                     * [FIX] Set mode=255 (MIT cyclic) instead of 0 (disable)
-                     * After enable/zero, motor should receive MIT motion control with default values */
-                    cmd->mode = MOTOR_MODE_MIT_CONTROL;  /* 255 = MIT cyclic */
-                    cmd->position = 0;
-                    cmd->velocity = 0;
-                    cmd->torque = 0;
-                    cmd->kp = 0;
-                    cmd->kd = 2.0f;  /* Default kd for stability */
-                }
+                /* [FIX B037] One-time commands (enable/disable/zero) are sent once, then mode reset to MIT
+                 * IMPORTANT: Do NOT reset working buffer during loop! This breaks other motors' CAN frames.
+                 * Reset happens AFTER all frames are built and transmitted (see line 535-557).
+                 * Reference: draft/ccu_ti/ccu_xgw_gateway.c:1764-1793 */
+                /* Mark this motor for reset after transmission (disable needs special handling) */
+                /* Actual reset deferred until after CAN TX to avoid race condition */
             } else {
                 /* Motion control command (cyclic) */
                 /* [FIX B027] Build CAN ID (Robstride protocol) - scale torque correctly */
@@ -512,6 +481,52 @@ static void transmit_can_frames(void)
             if (sent > 0) {
                 total_sent += sent;
                 gateway_update_stat(1, 0);  /* Update CAN TX counter */
+            }
+        }
+    }
+
+    /* [FIX B037] Post-transmission cleanup: Reset motors that received one-time commands
+     * Problem: If we reset working buffer during frame building loop, subsequent motors
+     *          would see wrong mode values and send incorrect CAN frames.
+     * Solution: Reset AFTER all frames are built and transmitted.
+     * Reference: draft/ccu_ti/ccu_xgw_gateway.c:1764-1793 */
+    for (uint8_t i = 0; i < GATEWAY_NUM_MOTORS; i++) {
+        motor_cmd_ipc_t *cmd = &g_motor_commands_working[i];
+
+        /* Check if this motor sent a one-time command (enable/disable/zero)
+         * Modes 0-4 are one-time commands, mode 255 is MIT cyclic */
+        if (cmd->mode <= 4) {
+            if (cmd->mode == MOTOR_MODE_DISABLE) {
+                /* Disable: Reset ALL motors to safe idle state
+                 * Reference: draft/ccu_ti/ccu_xgw_gateway.c:677-695 */
+                for (uint8_t j = 0; j < GATEWAY_NUM_MOTORS; j++) {
+                    g_motor_commands_working[j].mode = MOTOR_MODE_MIT_CONTROL;
+                    g_motor_commands_working[j].position = 0;
+                    g_motor_commands_working[j].velocity = 0;
+                    g_motor_commands_working[j].torque = 0;
+                    g_motor_commands_working[j].kp = 0;
+                    g_motor_commands_working[j].kd = 2.0f;
+                }
+                /* Also reset buffer to prevent stale commands */
+                for (uint8_t j = 0; j < GATEWAY_NUM_MOTORS; j++) {
+                    g_motor_commands_buffer[j].mode = MOTOR_MODE_MIT_CONTROL;
+                    g_motor_commands_buffer[j].position = 0;
+                    g_motor_commands_buffer[j].velocity = 0;
+                    g_motor_commands_buffer[j].torque = 0;
+                    g_motor_commands_buffer[j].kp = 0;
+                    g_motor_commands_buffer[j].kd = 2.0f;
+                }
+                /* Only need to reset once - break after first disable found */
+                break;
+            } else {
+                /* Enable/Zero: Reset only this motor to MIT mode
+                 * After enable/zero, motor should receive MIT motion control */
+                cmd->mode = MOTOR_MODE_MIT_CONTROL;
+                cmd->position = 0;
+                cmd->velocity = 0;
+                cmd->torque = 0;
+                cmd->kp = 0;
+                cmd->kd = 2.0f;
             }
         }
     }
