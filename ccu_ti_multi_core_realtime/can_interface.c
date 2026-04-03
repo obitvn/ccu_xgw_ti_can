@@ -614,6 +614,20 @@ int32_t CAN_TransmitBatch(uint8_t bus_id, const can_frame_t *frames, uint16_t co
     uint32_t irq_state = HwiP_disable();
     g_can_stats[bus_id].tx_count += success_count;
     HwiP_restore(irq_state);
+
+    /* [FIX B036] Update debug counter for CAN TX (was missing in batch function) */
+    __asm__ volatile(
+        "ldr r0, =dbg_can_tx_count\n\t"
+        "ldr r1, [r0]\n\t"
+        "add r1, r1, %0\n\t"
+        "dmb\n\t"
+        "str r1, [r0]\n\t"
+        "dmb"
+        :
+        : "r" (success_count)
+        : "r0", "r1", "memory"
+    );
+
     g_tx_buffer_index[bus_id] = buf_idx;
 
     return success_count;

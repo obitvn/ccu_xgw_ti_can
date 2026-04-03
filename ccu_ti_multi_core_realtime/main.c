@@ -44,6 +44,10 @@ volatile uint32_t dbg_imu_uart_isr_count __attribute__((section(".bss.user_share
 volatile uint32_t dbg_imu_rx_byte_count __attribute__((section(".bss.user_shared_mem_debug"))) = 0;
 volatile uint32_t dbg_imu_frame_count __attribute__((section(".bss.user_shared_mem_debug"))) = 0;
 
+/* CAN Debug counters - external references from can_interface.c */
+extern volatile uint32_t dbg_can_tx_count;  /* CAN TX frame counter */
+extern volatile uint32_t dbg_can_rx_count;  /* CAN RX frame counter */
+
 /* Core ID definitions from CSL */
 #ifndef CSL_CORE_ID_R5FSS0_0
 #define CSL_CORE_ID_R5FSS0_0         (0U)
@@ -348,10 +352,23 @@ static void process_motor_commands(void)
  */
 static void transmit_can_frames(void)
 {
+    /* [DEBUG] Static counter for periodic logging */
+    static uint32_t s_can_tx_call_count = 0;
+    static uint32_t s_last_can_tx_log = 0;
+    static uint32_t s_emergency_stop_count = 0;
+
+    s_can_tx_call_count++;
+
     /* [STUB S002] Check emergency stop flag - skip CAN TX if emergency stop is active */
     if (gateway_check_emergency_stop()) {
         /* Emergency stop active - do not send motor commands */
         /* Motors will naturally stop due to lack of commands */
+        s_emergency_stop_count++;
+        /* Log emergency stop once per second (1000 cycles) */
+        if ((s_can_tx_call_count - s_last_can_tx_log) >= 1000) {
+            DebugP_log("[Core1] CAN TX: EMERGENCY STOP ACTIVE (count=%u)\r\n", s_emergency_stop_count);
+            s_last_can_tx_log = s_can_tx_call_count;
+        }
         return;
     }
 
@@ -366,54 +383,111 @@ static void transmit_can_frames(void)
     /* Build CAN frames for each motor */
     for (uint8_t i = 0; i < GATEWAY_NUM_MOTORS; i++) {
         const motor_config_t *config = motor_get_config(i);
-        const motor_cmd_ipc_t *cmd = &g_motor_commands_working[i];
+        motor_cmd_ipc_t *cmd = &g_motor_commands_working[i];  /* [FIX] Non-const to allow clearing */
 
         if (config != NULL && config->can_bus < NUM_CAN_BUSES) {
             can_frame_t *frame = &g_frame_buffers[config->can_bus][frame_count[config->can_bus]++];
 
-            /* [FIX B027] Build CAN ID (Robstride protocol) - scale torque correctly */
-            /* Reference: draft/ccu_ti/ccu_xgw_gateway.c:2108-2113 */
-            uint16_t torque_scaled = float_to_uint(cmd->torque * config->direction,
-                                                   config->limits.t_min, config->limits.t_max, 16);
-            frame->can_id = (COMM_TYPE_MOTION_CONTROL << 24) |
-                           ((uint32_t)torque_scaled << 8) |
-                           config->motor_id;
+            /* [FIX B035] Handle one-time commands (enable/disable/zero) vs cyclic commands (motion)
+             * Problem: MOTOR_SET commands were being sent cyclically at 1000Hz
+             * Solution: Check cmd->mode field to determine command type
+             * - mode != 0: One-time command (enable/disable/zero) → send once, then clear
+             * - mode == 0: Motion command → send cyclically (default behavior)
+             * Reference: draft/ccu_ti/ccu_xgw_gateway.c:1764-1793 */
+            uint8_t comm_type;
+            bool is_one_time_command = false;
+
+            if (cmd->mode == 1) {  /* XGW_MOTOR_MODE_ENABLE */
+                comm_type = COMM_TYPE_MOTOR_ENABLE;
+                is_one_time_command = true;
+            } else if (cmd->mode == 0) {  /* XGW_MOTOR_MODE_DISABLE */
+                comm_type = COMM_TYPE_MOTOR_STOP;
+                is_one_time_command = true;
+            } else if (cmd->mode >= 2 && cmd->mode <= 4) {  /* ZERO modes */
+                comm_type = COMM_TYPE_SET_POS_ZERO;
+                is_one_time_command = true;
+            } else {
+                /* Motion control command (cyclic) */
+                comm_type = COMM_TYPE_MOTION_CONTROL;
+                is_one_time_command = false;
+            }
+
             frame->flags = 0x01;  /* Extended ID */
-            frame->dlc = 8;
 
-            /* [FIX B027] Build CAN data payload - SCALE values correctly using float_to_uint
-             * Reference: draft/ccu_ti/ccu_xgw_gateway.c:2117-2123
-             * Data format: [Pos_H, Pos_L, Vel_H, Vel_L, Kp_H, Kp_L, Kd_H, Kd_L] */
-            uint16_t pos_scaled = float_to_uint(cmd->position * config->direction,
-                                                config->limits.p_min, config->limits.p_max, 16);
-            uint16_t vel_scaled = float_to_uint(cmd->velocity * config->direction,
-                                                config->limits.v_min, config->limits.v_max, 16);
-            uint16_t kp_scaled = float_to_uint(cmd->kp, config->limits.kp_min, config->limits.kp_max, 16);
-            uint16_t kd_scaled = float_to_uint(cmd->kd, config->limits.kd_min, config->limits.kd_max, 16);
+            if (is_one_time_command) {
+                /* One-time command: enable/disable/zero */
+                frame->dlc = 8;
+                frame->can_id = ((uint32_t)comm_type << 24) | config->motor_id;
+                memset(frame->data, 0, sizeof(frame->data));
 
-            /* Byte order: MSB first (Big Endian for each 16-bit value) */
-            frame->data[0] = (pos_scaled >> 8) & 0xFF;
-            frame->data[1] = pos_scaled & 0xFF;
-            frame->data[2] = (vel_scaled >> 8) & 0xFF;
-            frame->data[3] = vel_scaled & 0xFF;
-            frame->data[4] = (kp_scaled >> 8) & 0xFF;
-            frame->data[5] = kp_scaled & 0xFF;
-            frame->data[6] = (kd_scaled >> 8) & 0xFF;
-            frame->data[7] = kd_scaled & 0xFF;
+                /* For mech zero modes, set data[0] = 1 */
+                if (cmd->mode == 2 || cmd->mode == 4) {  /* MECH_ZERO or ZERO_STA_MECH */
+                    frame->data[0] = 1;
+                }
+
+                /* Clear the command after sending to prevent repeated transmission */
+                cmd->mode = 0;  /* Reset to motion mode */
+                cmd->position = 0;
+                cmd->velocity = 0;
+                cmd->torque = 0;
+                cmd->kp = 0;
+                cmd->kd = 2.0f;  /* Default kd for stability */
+            } else {
+                /* Motion control command (cyclic) */
+                /* [FIX B027] Build CAN ID (Robstride protocol) - scale torque correctly */
+                /* Reference: draft/ccu_ti/ccu_xgw_gateway.c:2108-2113 */
+                uint16_t torque_scaled = float_to_uint(cmd->torque * config->direction,
+                                                       config->limits.t_min, config->limits.t_max, 16);
+                frame->can_id = (COMM_TYPE_MOTION_CONTROL << 24) |
+                               ((uint32_t)torque_scaled << 8) |
+                               config->motor_id;
+                frame->dlc = 8;
+
+                /* [FIX B027] Build CAN data payload - SCALE values correctly using float_to_uint
+                 * Reference: draft/ccu_ti/ccu_xgw_gateway.c:2117-2123
+                 * Data format: [Pos_H, Pos_L, Vel_H, Vel_L, Kp_H, Kp_L, Kd_H, Kd_L] */
+                uint16_t pos_scaled = float_to_uint(cmd->position * config->direction,
+                                                    config->limits.p_min, config->limits.p_max, 16);
+                uint16_t vel_scaled = float_to_uint(cmd->velocity * config->direction,
+                                                    config->limits.v_min, config->limits.v_max, 16);
+                uint16_t kp_scaled = float_to_uint(cmd->kp, config->limits.kp_min, config->limits.kp_max, 16);
+                uint16_t kd_scaled = float_to_uint(cmd->kd, config->limits.kd_min, config->limits.kd_max, 16);
+
+                /* Byte order: MSB first (Big Endian for each 16-bit value) */
+                frame->data[0] = (pos_scaled >> 8) & 0xFF;
+                frame->data[1] = pos_scaled & 0xFF;
+                frame->data[2] = (vel_scaled >> 8) & 0xFF;
+                frame->data[3] = vel_scaled & 0xFF;
+                frame->data[4] = (kp_scaled >> 8) & 0xFF;
+                frame->data[5] = kp_scaled & 0xFF;
+                frame->data[6] = (kd_scaled >> 8) & 0xFF;
+                frame->data[7] = kd_scaled & 0xFF;
+            }
 
             can_frames_ptr[config->can_bus] = g_frame_buffers[config->can_bus];
         }
     }
 
     /* Transmit frames on all CAN buses in parallel */
+    uint32_t total_frames = 0;
+    uint32_t total_sent = 0;
+
     for (uint8_t bus = 0; bus < NUM_CAN_BUSES; bus++) {
         if (frame_count[bus] > 0) {
+            total_frames += frame_count[bus];
             int32_t sent = CAN_TransmitBatch(bus, can_frames_ptr[bus], frame_count[bus]);
 
             if (sent > 0) {
+                total_sent += sent;
                 gateway_update_stat(1, 0);  /* Update CAN TX counter */
             }
         }
+    }
+
+    /* [DEBUG] Periodic CAN TX logging (once per second) */
+    if ((s_can_tx_call_count - s_last_can_tx_log) >= 1000) {
+        DebugP_log("[Core1] CAN TX: prepared=%u frames, sent=%u\r\n", total_frames, total_sent);
+        s_last_can_tx_log = s_can_tx_call_count;
     }
 }
 
@@ -688,6 +762,9 @@ static void main_loop(void)
         if ((g_cycle_count - last_heartbeat_log) >= 1000) {
             DebugP_log("[Core1] Heartbeat: cycle=%u, timer_isr=%u, ipc_events=%u, ringbuf_init=%d\r\n",
                        g_cycle_count, g_timer_isr_count, g_ipc_event_count, g_ringbuf_initialized);
+            /* [DEBUG] CAN TX/RX status */
+            DebugP_log("[Core1] CAN: tx_count=%u, rx_count=%u\r\n",
+                       dbg_can_tx_count, dbg_can_rx_count);
             /* [DEBUG] IMU UART ISR status */
             DebugP_log("[Core1] IMU ISR: isr_cnt=%u, bytes=%u, frames=%u\r\n",
                        dbg_imu_uart_isr_count, dbg_imu_rx_byte_count, dbg_imu_frame_count);
