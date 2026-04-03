@@ -431,12 +431,12 @@ static void transmit_can_frames(void)
                  * Reference: draft/ccu_ti/ccu_xgw_gateway.c:677-695
                  * This ensures all motors return to safe idle state when any motor is disabled */
                 if (cmd->mode == 0) {  /* XGW_MOTOR_MODE_DISABLE */
-                    DebugP_log("[Core1] Motor disable: resetting ALL %d motors to default (p=0, v=0, kp=0, kd=2.0, t=0)\r\n",
-                               GATEWAY_NUM_MOTORS);
+                    // DebugP_log("[Core1] Motor disable: resetting ALL %d motors to default (p=0, v=0, kp=0, kd=2.0, t=0)\r\n",
+                    //            GATEWAY_NUM_MOTORS);
 
                     /* Reset ALL motors to default command */
                     for (uint8_t j = 0; j < GATEWAY_NUM_MOTORS; j++) {
-                        g_motor_commands_working[j].mode = 0;
+                        g_motor_commands_working[j].mode = MOTOR_MODE_MIT_CONTROL;  /* 255 = MIT cyclic */
                         g_motor_commands_working[j].position = 0;
                         g_motor_commands_working[j].velocity = 0;
                         g_motor_commands_working[j].torque = 0;
@@ -446,7 +446,7 @@ static void transmit_can_frames(void)
 
                     /* Also reset buffer to prevent stale commands */
                     for (uint8_t j = 0; j < GATEWAY_NUM_MOTORS; j++) {
-                        g_motor_commands_buffer[j].mode = 0;
+                        g_motor_commands_buffer[j].mode = MOTOR_MODE_MIT_CONTROL;  /* 255 = MIT cyclic */
                         g_motor_commands_buffer[j].position = 0;
                         g_motor_commands_buffer[j].velocity = 0;
                         g_motor_commands_buffer[j].torque = 0;
@@ -454,8 +454,10 @@ static void transmit_can_frames(void)
                         g_motor_commands_buffer[j].kd = 2.0f;
                     }
                 } else {
-                    /* Clear only this motor's command after sending (enable/zero commands) */
-                    cmd->mode = 0;
+                    /* Clear only this motor's command after sending (enable/zero commands)
+                     * [FIX] Set mode=255 (MIT cyclic) instead of 0 (disable)
+                     * After enable/zero, motor should receive MIT motion control with default values */
+                    cmd->mode = MOTOR_MODE_MIT_CONTROL;  /* 255 = MIT cyclic */
                     cmd->position = 0;
                     cmd->velocity = 0;
                     cmd->torque = 0;
