@@ -391,23 +391,25 @@ static void transmit_can_frames(void)
             /* [FIX B035] Handle one-time commands (enable/disable/zero) vs cyclic commands (motion)
              * Problem: MOTOR_SET commands were being sent cyclically at 1000Hz
              * Solution: Check cmd->mode field to determine command type
-             * - mode != 0: One-time command (enable/disable/zero) → send once, then clear
-             * - mode == 0: Motion command → send cyclically (default behavior)
+             * - mode 0-4: One-time command (disable/enable/zero) → send once, then clear
+             * - mode 255 (or other): MIT motion control → send cyclically (default behavior)
              * Reference: draft/ccu_ti/ccu_xgw_gateway.c:1764-1793 */
             uint8_t comm_type;
             bool is_one_time_command = false;
 
-            if (cmd->mode == 1) {  /* XGW_MOTOR_MODE_ENABLE */
+            if (cmd->mode == MOTOR_MODE_ENABLE) {  /* 1 */
                 comm_type = COMM_TYPE_MOTOR_ENABLE;
                 is_one_time_command = true;
-            } else if (cmd->mode == 0) {  /* XGW_MOTOR_MODE_DISABLE */
+            } else if (cmd->mode == MOTOR_MODE_DISABLE) {  /* 0 */
                 comm_type = COMM_TYPE_MOTOR_STOP;
                 is_one_time_command = true;
-            } else if (cmd->mode >= 2 && cmd->mode <= 4) {  /* ZERO modes */
+            } else if (cmd->mode == MOTOR_MODE_MECH_ZERO ||
+                       cmd->mode == MOTOR_MODE_ZERO_STA ||
+                       cmd->mode == MOTOR_MODE_ZERO_STA_MECH) {  /* 2, 3, 4 */
                 comm_type = COMM_TYPE_SET_POS_ZERO;
                 is_one_time_command = true;
             } else {
-                /* Motion control command (cyclic) */
+                /* MIT Motion control command (cyclic) - mode=255 or not set */
                 comm_type = COMM_TYPE_MOTION_CONTROL;
                 is_one_time_command = false;
             }
@@ -425,13 +427,41 @@ static void transmit_can_frames(void)
                     frame->data[0] = 1;
                 }
 
-                /* Clear the command after sending to prevent repeated transmission */
-                cmd->mode = 0;  /* Reset to motion mode */
-                cmd->position = 0;
-                cmd->velocity = 0;
-                cmd->torque = 0;
-                cmd->kp = 0;
-                cmd->kd = 2.0f;  /* Default kd for stability */
+                /* [FIX B035] When disable command is received, reset ALL motors to default MIT commands
+                 * Reference: draft/ccu_ti/ccu_xgw_gateway.c:677-695
+                 * This ensures all motors return to safe idle state when any motor is disabled */
+                if (cmd->mode == 0) {  /* XGW_MOTOR_MODE_DISABLE */
+                    DebugP_log("[Core1] Motor disable: resetting ALL %d motors to default (p=0, v=0, kp=0, kd=2.0, t=0)\r\n",
+                               GATEWAY_NUM_MOTORS);
+
+                    /* Reset ALL motors to default command */
+                    for (uint8_t j = 0; j < GATEWAY_NUM_MOTORS; j++) {
+                        g_motor_commands_working[j].mode = 0;
+                        g_motor_commands_working[j].position = 0;
+                        g_motor_commands_working[j].velocity = 0;
+                        g_motor_commands_working[j].torque = 0;
+                        g_motor_commands_working[j].kp = 0;
+                        g_motor_commands_working[j].kd = 2.0f;  /* Default kd for stability */
+                    }
+
+                    /* Also reset buffer to prevent stale commands */
+                    for (uint8_t j = 0; j < GATEWAY_NUM_MOTORS; j++) {
+                        g_motor_commands_buffer[j].mode = 0;
+                        g_motor_commands_buffer[j].position = 0;
+                        g_motor_commands_buffer[j].velocity = 0;
+                        g_motor_commands_buffer[j].torque = 0;
+                        g_motor_commands_buffer[j].kp = 0;
+                        g_motor_commands_buffer[j].kd = 2.0f;
+                    }
+                } else {
+                    /* Clear only this motor's command after sending (enable/zero commands) */
+                    cmd->mode = 0;
+                    cmd->position = 0;
+                    cmd->velocity = 0;
+                    cmd->torque = 0;
+                    cmd->kp = 0;
+                    cmd->kd = 2.0f;  /* Default kd for stability */
+                }
             } else {
                 /* Motion control command (cyclic) */
                 /* [FIX B027] Build CAN ID (Robstride protocol) - scale torque correctly */
@@ -553,15 +583,16 @@ static int32_t core1_init(void)
     DebugP_log("[Core1] Initializing motor commands with default MIT values...\r\n");
     for (uint8_t i = 0; i < GATEWAY_NUM_MOTORS; i++) {
         /* Set default MIT command values */
-        g_motor_commands_working[i].position = 0.0f;
-        g_motor_commands_working[i].velocity = 0.0f;
-        g_motor_commands_working[i].kp = 0.0f;
+        g_motor_commands_working[i].mode = MOTOR_MODE_MIT_CONTROL;  /* 255 = MIT cyclic */
+        g_motor_commands_working[i].position = 0;
+        g_motor_commands_working[i].velocity = 0;
+        g_motor_commands_working[i].kp = 0;
         g_motor_commands_working[i].kd = 2.0f;  /* Default kd=2.0 for stability */
-        g_motor_commands_working[i].torque = 0.0f;
+        g_motor_commands_working[i].torque = 0;
     }
     /* Also init buffer with same defaults */
     memcpy(g_motor_commands_buffer, g_motor_commands_working, sizeof(g_motor_commands_buffer));
-    DebugP_log("[Core1] Motor commands initialized: p=0, v=0, kp=0, kd=2.0, t=0 (idle state)\r\n");
+    DebugP_log("[Core1] Motor commands initialized: mode=MIT(255), p=0, v=0, kp=0, kd=2.0, t=0 (idle state)\r\n");
 
     /* Initialize CAN buses */
     CAN_Init();

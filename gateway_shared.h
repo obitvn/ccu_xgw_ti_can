@@ -155,14 +155,44 @@ typedef struct {
  *============================================================================*/
 
 /**
+ * @brief Motor Command Modes
+ *
+ * These modes match xGW protocol motor_set modes (XGW_MOTOR_MODE_* in xgw_protocol.h)
+ *
+ * Modes 0-4: Motor set commands (ONE-SHOT - sent immediately, NOT stored cyclically)
+ *           After sending, command is cleared/reset
+ *           Mode 0 (disable) triggers reset of ALL motors to default MIT values
+ *
+ * MIT Motion Control: When mode field is not 0-4, treat as MIT motion control (CYCLIC)
+ *                    MIT commands are stored in working buffer and sent at 1000Hz
+ *                    Recommended: Set mode=255 for MIT motion control
+ */
+#define MOTOR_MODE_DISABLE             0   /* Disable motor - one-shot, resets ALL motors to default */
+#define MOTOR_MODE_ENABLE              1   /* Enable motor - one-shot */
+#define MOTOR_MODE_MECH_ZERO           2   /* Mechanical zero - one-shot */
+#define MOTOR_MODE_ZERO_STA            3   /* Zero STA - one-shot */
+#define MOTOR_MODE_ZERO_STA_MECH       4   /* Zero STA+Mech - one-shot */
+
+/* Use mode=255 for MIT motion control (cyclic) to distinguish from motor_set commands */
+#define MOTOR_MODE_MIT_CONTROL         255  /* MIT motion control - cyclic (default) */
+
+/**
  * @brief Motor command for IPC (Ethernet -> CAN)
  *
  * Optimized packed structure for shared memory transfer
+ *
+ * Mode field behavior:
+ * - 0-1: Motion control commands (MIT mode, enable)
+ *        -> Stored in working buffer, sent cyclically at 1000Hz
+ *        -> Mode 0 (disable) triggers reset to default command
+ * - 2-4: Motor set commands (mech zero, zero sta, zero sta+mech)
+ *        -> Sent immediately as one-shot CAN frames
+ *        -> NOT stored in buffer (don't repeat)
  */
 typedef struct __attribute__((packed)) {
     uint8_t  motor_id;      /* Motor ID (1-127) */
     uint8_t  can_bus;       /* CAN bus (0-7) */
-    uint8_t  mode;          /* Mode (0=disable, 1=enable) */
+    uint8_t  mode;          /* Mode: 0=MIT, 1=Enable, 2=MechZero, 3=ZeroSTA, 4=ZeroSTA+Mech */
     uint8_t  reserved;
     uint16_t position;      /* Position (0.01 rad) */
     int16_t  velocity;      /* Velocity (0.01 rad/s) */

@@ -604,7 +604,10 @@ int xgw_udp_process_motor_cmd(const uint8_t* data, uint16_t length)
 
     for (uint8_t i = 0; i < count; i++) {
         ipc_cmds[i].motor_id = cmds[i].motor_id;
-        ipc_cmds[i].mode = cmds[i].mode;
+        /* [FIX] Motor CMD is always MIT motion control (cyclic) - set mode=255
+         * This distinguishes MIT commands from motor_set commands (mode 0-4)
+         * Reference: gateway_shared.h mode definitions */
+        ipc_cmds[i].mode = MOTOR_MODE_MIT_CONTROL;  /* 255 = MIT cyclic */
         ipc_cmds[i].position = (uint16_t)(cmds[i].position * 100);  /* rad -> 0.01 rad */
         ipc_cmds[i].velocity = (int16_t)(cmds[i].velocity * 100);   /* rad/s -> 0.01 rad/s */
         ipc_cmds[i].torque = (int16_t)(cmds[i].torque * 100);      /* Nm -> 0.01 Nm */
