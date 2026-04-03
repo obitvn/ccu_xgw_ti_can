@@ -817,10 +817,24 @@ void gateway_pp_reset_stats(void)
 
 /**
  * @brief Get ring buffer pointer from raw memory
+ *
+ * [FIX] Ring buffer layout in shared memory:
+ * - Gateway_RingBuf_Control_t ctrl (128 bytes, aligned)
+ * - uint8_t data[GATEWAY_RINGBUF_SIZE] (actual data buffer)
+ *
+ * Gateway_RingBuf_t uses flexible array for data, so we need to
+ * manually set the data pointer to skip the control structure.
  */
 static inline Gateway_RingBuf_t* ringbuf_get_ptr(void* mem)
 {
-    return (Gateway_RingBuf_t*)mem;
+    Gateway_RingBuf_t* rb = (Gateway_RingBuf_t*)mem;
+    /* Calculate data buffer pointer: skip control structure */
+    /* NOTE: This modifies the flexible array member pointer */
+    /* In C, we need to use a workaround since flexible arrays can't be assigned */
+
+    /* For now, use raw memory pointer calculation in read/write functions */
+    /* instead of relying on rb->data */
+    return rb;
 }
 
 /**
@@ -935,7 +949,9 @@ int gateway_ringbuf_write(void* ringbuf, const void* data, uint32_t size, uint32
     }
 
     /* Write data to buffer */
-    uint8_t* buf = rb->data;
+    /* [FIX] Calculate data buffer pointer: raw_mem + sizeof(ctrl) */
+    uint8_t* raw_mem = (uint8_t*)rb;
+    uint8_t* buf = raw_mem + sizeof(Gateway_RingBuf_Control_t);
     const uint8_t* src = (const uint8_t*)data;
 
     /* Handle wrap-around */
@@ -989,7 +1005,9 @@ int gateway_ringbuf_read(void* ringbuf, void* buffer, uint32_t size, uint32_t* b
     }
 
     /* Read data from buffer */
-    uint8_t* buf = rb->data;
+    /* [FIX] Calculate data buffer pointer: raw_mem + sizeof(ctrl) */
+    uint8_t* raw_mem = (uint8_t*)rb;
+    uint8_t* buf = raw_mem + sizeof(Gateway_RingBuf_Control_t);
     uint8_t* dst = (uint8_t*)buffer;
 
     /* Handle wrap-around */
@@ -1043,7 +1061,9 @@ int gateway_ringbuf_peek(void* ringbuf, void* buffer, uint32_t size, uint32_t* b
     }
 
     /* Read data without updating index */
-    uint8_t* buf = rb->data;
+    /* [FIX] Calculate data buffer pointer: raw_mem + sizeof(ctrl) */
+    uint8_t* raw_mem = (uint8_t*)rb;
+    uint8_t* buf = raw_mem + sizeof(Gateway_RingBuf_Control_t);
     uint8_t* dst = (uint8_t*)buffer;
 
     /* Handle wrap-around */
