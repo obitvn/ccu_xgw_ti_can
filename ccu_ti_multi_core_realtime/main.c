@@ -48,12 +48,27 @@ volatile uint32_t dbg_imu_frame_count __attribute__((section(".bss.user_shared_m
 extern volatile uint32_t dbg_can_tx_count;  /* CAN TX frame counter */
 extern volatile uint32_t dbg_can_rx_count;  /* CAN RX frame counter */
 
-/* Core ID definitions from CSL */
+/* [FIX B040] Core ID definitions - AM263Px has 4 R5F cores:
+ *
+ * Core ID Mappings:
+ * - CSL_CORE_ID_R5FSS0_0 = 0 (Core0 - R5FSS0-0, FreeRTOS, Ethernet) ← Our IPC target!
+ * - CSL_CORE_ID_R5FSS0_1 = 1 (Core1 - R5FSS0-1, NOT USED)
+ * - CSL_CORE_ID_R5FSS1_0 = 2 (Core2 - R5FSS1-0, NOT USED)
+ * - CSL_CORE_ID_R5FSS1_1 = 3 (Core3 - R5FSS1-1, NoRTOS, CAN) ← THIS IS US!
+ *
+ * This code runs on Core1 (R5FSS1-1, ID=3) and receives IPC from Core0 (R5FSS0-0, ID=0)
+ */
 #ifndef CSL_CORE_ID_R5FSS0_0
-#define CSL_CORE_ID_R5FSS0_0         (0U)
+#define CSL_CORE_ID_R5FSS0_0         (0U)  /* Core0 - R5FSS0-0 (FreeRTOS, Ethernet) */
 #endif
 #ifndef CSL_CORE_ID_R5FSS0_1
-#define CSL_CORE_ID_R5FSS0_1         (1U)
+#define CSL_CORE_ID_R5FSS0_1         (1U)  /* Core1 - R5FSS0-1 (unused) */
+#endif
+#ifndef CSL_CORE_ID_R5FSS1_0
+#define CSL_CORE_ID_R5FSS1_0         (2U)  /* Core2 - R5FSS1-0 (unused) */
+#endif
+#ifndef CSL_CORE_ID_R5FSS1_1
+#define CSL_CORE_ID_R5FSS1_1         (3U)  /* Core3 - R5FSS1-1 (NoRTOS, CAN) - THIS IS US! */
 #endif
 
 /*==============================================================================

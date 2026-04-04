@@ -444,20 +444,37 @@ void gateway_update_stat(uint8_t core_id, uint8_t stat_id)
 
 #include <drivers/ipc_notify.h>
 
-/* Core ID definitions */
+/* [FIX B040] Core ID definitions - AM263Px has 4 R5F cores:
+ *
+ * Core ID Mappings:
+ * - CSL_CORE_ID_R5FSS0_0 = 0 (Core0 - R5FSS0-0, FreeRTOS, Ethernet) ← Our IPC target!
+ * - CSL_CORE_ID_R5FSS0_1 = 1 (Core1 - R5FSS0-1, NOT USED)
+ * - CSL_CORE_ID_R5FSS1_0 = 2 (Core2 - R5FSS1-0, NOT USED)
+ * - CSL_CORE_ID_R5FSS1_1 = 3 (Core3 - R5FSS1-1, NoRTOS, CAN) ← THIS IS US!
+ *
+ * This code runs on Core1 (R5FSS1-1, ID=3) and sends IPC to Core0 (R5FSS0-0, ID=0)
+ */
 #ifndef CSL_CORE_ID_R5FSS0_0
-#define CSL_CORE_ID_R5FSS0_0  (0U)
+#define CSL_CORE_ID_R5FSS0_0  (0U)  /* Core0 - R5FSS0-0 (FreeRTOS, Ethernet) */
 #endif
 #ifndef CSL_CORE_ID_R5FSS0_1
-#define CSL_CORE_ID_R5FSS0_1  (1U)
+#define CSL_CORE_ID_R5FSS0_1  (1U)  /* Core1 - R5FSS0-1 (unused) - NOT OUR TARGET! */
+#endif
+#ifndef CSL_CORE_ID_R5FSS1_0
+#define CSL_CORE_ID_R5FSS1_0  (2U)  /* Core2 - R5FSS1-0 (unused) */
+#endif
+#ifndef CSL_CORE_ID_R5FSS1_1
+#define CSL_CORE_ID_R5FSS1_1  (3U)  /* Core3 - R5FSS1-1 (NoRTOS, CAN) - THIS IS US! */
 #endif
 
 int gateway_notify_commands_ready(void)
 {
 #if GATEWAY_USE_PINGPONG_BUFFER
-    return IpcNotify_sendMsg(CSL_CORE_ID_R5FSS0_1, GATEWAY_IPC_CLIENT_ID, MSG_ETH_DATA_READY, 1);
+    /* [FIX B040] Send to Core0 (R5FSS0-0, ID=0), NOT R5FSS0-1 (ID=1) */
+    return IpcNotify_sendMsg(CSL_CORE_ID_R5FSS0_0, GATEWAY_IPC_CLIENT_ID, MSG_ETH_DATA_READY, 1);
 #else
-    return IpcNotify_sendMsg(CSL_CORE_ID_R5FSS0_1, CLIENT_ID_ETH_TX, MSG_ETH_DATA_READY, 1);
+    /* [FIX B040] Send to Core0 (R5FSS0-0, ID=0), NOT R5FSS0-1 (ID=1) */
+    return IpcNotify_sendMsg(CSL_CORE_ID_R5FSS0_0, CLIENT_ID_ETH_TX, MSG_ETH_DATA_READY, 1);
 #endif
 }
 
@@ -607,7 +624,8 @@ int gateway_read_motor_states_pp(motor_state_ipc_t* states)
     pp->write_done[read_idx] = 0;
     pp->stats.read_count++;
 
-    IpcNotify_sendMsg(CSL_CORE_ID_R5FSS0_1, GATEWAY_IPC_CLIENT_ID, MSG_CAN_DATA_ACK, 1);
+    /* [FIX B040] Send to Core0 (R5FSS0-0, ID=0), NOT R5FSS0-1 (ID=1) */
+    IpcNotify_sendMsg(CSL_CORE_ID_R5FSS0_0, GATEWAY_IPC_CLIENT_ID, MSG_CAN_DATA_ACK, 1);
 
     /* Switch to next buffer */
     pp->read_idx = pp_next_idx(read_idx);
