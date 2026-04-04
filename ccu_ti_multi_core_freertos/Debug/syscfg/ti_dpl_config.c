@@ -62,12 +62,21 @@ ClockP_Config gClockConfig = {
 /* ----------- DebugP ----------- */
 void putchar_(char character)
 {
+    /* Output to memory trace buffer */
+    DebugP_memLogWriterPutChar(character);
     /* Output to UART console */
     DebugP_uartLogWriterPutChar(character);
     /* Shared memory reader is enabled on this core, in this case, logs go straight to
      * to the enabled console (e.g CCS or UART), instead of shared memory
      */
 }
+
+/* DebugP log buffer memory and size
+ * - This log can be viewed via ROV in CCS
+ * - When linux is enabled, this log can also be viewed via linux debugfs
+ */
+char gDebugMemLog[DebugP_MEM_LOG_SIZE] __attribute__ ((section (".bss.debug_mem_trace_buf"), aligned (128)));
+uint32_t gDebugMemLogSize = DebugP_MEM_LOG_SIZE;
 
 /* Shared memory log base address, logs of each CPUs are put one after other in the below region.
  *
@@ -231,6 +240,9 @@ void Dpl_init(void)
     /* Debug log init */
     DebugP_logZoneEnable(DebugP_LOG_ZONE_ERROR);
     DebugP_logZoneEnable(DebugP_LOG_ZONE_WARN);
+    DebugP_logZoneEnable(DebugP_LOG_ZONE_INFO);
+    /* Initialize linux trace log writer */
+    DebugP_memLogWriterInit(CSL_CORE_ID_R5FSS0_0);
     /* Shared memory reader is enabled on this core, in this case, logs go straight to
      * to the enabled console (e.g CCS or UART), instead of shared memory
      */

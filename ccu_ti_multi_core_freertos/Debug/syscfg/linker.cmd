@@ -9,11 +9,11 @@
   * - After vTaskStartScheduler() each task created in FreeRTOS has its own stack
   */
 
- --stack_size=16384
+ --stack_size=8192
 /* This is the heap size for malloc() API in NORTOS and FreeRTOS
 * This is also the heap used by pvPortMalloc in FreeRTOS
 */
- --heap_size=32768
+ --heap_size=200000
 -e_vectors  /* This is the entry of the application, _vector MUST be placed starting address 0x0 */
 
 /* This is the size of stack when R5 is in IRQ mode
