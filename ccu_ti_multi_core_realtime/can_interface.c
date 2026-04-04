@@ -249,8 +249,12 @@ static void can_rx_isr(void *arg)
  * does not auto-generate initialization code. MCAN clocks must be enabled
  * manually via CSL API or the MCAN driver will hang on MCAN_isMemInitDone().
  *
- * FIX: Removed MCAN_isMemInitDone() check - SDK examples don't use it.
- * The MCAN peripheral is ready after Drivers_open() for direct configuration.
+ * [FIX B039] Added MCAN_isMemInitDone() check - ALL SDK examples use it!
+ * Reference: All 7 MCAN examples in SDK wait for memory init before configuration.
+ * - mcan_loopback_interrupt.c:257
+ * - mcan_rx_only_interrupt.c:260
+ * - mcan_tx_only_interrupt.c:234
+ * - etc.
  */
 static int32_t init_single_mcan(uint8_t bus_id)
 {
@@ -261,6 +265,11 @@ static int32_t init_single_mcan(uint8_t bus_id)
 
     /* [B033] FIX: Removed manual clock enable code - rely on Drivers_open() like reference implementation
      * Reference: draft/ccu_ti/can_interface.c does NOT call SOC_moduleClockEnable() */
+
+    /* [FIX B039] Wait for Message RAM initialization - ALL SDK examples do this! */
+    while (FALSE == MCAN_isMemInitDone(baseAddr)) {
+        /* Wait for memory initialization */
+    }
 
     DebugP_log("[CAN] CAN%d: About to set SW_INIT mode...\r\n", bus_id);
     // Set to Software Initialization mode
