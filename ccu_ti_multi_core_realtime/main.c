@@ -436,8 +436,10 @@ static void transmit_can_frames(void)
             } else {
                 /* Motion control command (cyclic) */
                 /* [FIX B027] Build CAN ID (Robstride protocol) - scale torque correctly */
+                /* [FIX B038] Convert IPC uint16 to float before scaling */
                 /* Reference: draft/ccu_ti/ccu_xgw_gateway.c:2108-2113 */
-                uint16_t torque_scaled = float_to_uint(cmd->torque * config->direction,
+                float torque_float = cmd->torque / 100.0f;
+                uint16_t torque_scaled = float_to_uint(torque_float * config->direction,
                                                        config->limits.t_min, config->limits.t_max, 16);
                 frame->can_id = (COMM_TYPE_MOTION_CONTROL << 24) |
                                ((uint32_t)torque_scaled << 8) |
@@ -447,12 +449,24 @@ static void transmit_can_frames(void)
                 /* [FIX B027] Build CAN data payload - SCALE values correctly using float_to_uint
                  * Reference: draft/ccu_ti/ccu_xgw_gateway.c:2117-2123
                  * Data format: [Pos_H, Pos_L, Vel_H, Vel_L, Kp_H, Kp_L, Kd_H, Kd_L] */
-                uint16_t pos_scaled = float_to_uint(cmd->position * config->direction,
+
+                /* [FIX B038] Convert IPC uint16 back to float before CAN scaling
+                 * Problem: motor_cmd_ipc_t stores values as scaled uint16 (×100 from UDP)
+                 * Solution: Convert uint16 back to float, then apply direction, then float_to_uint()
+                 * Example: PC sends pos=1.0 rad → IPC stores 100 → float 1.0 → float_to_uint()
+                 * Reference: draft/ccu_ti/ccu_xgw_gateway.c uses float directly from UDP (no uint16) */
+                float pos_float = cmd->position / 100.0f;
+                float vel_float = cmd->velocity / 100.0f;
+                /* torque_float already defined above for CAN ID */
+                float kp_float = cmd->kp / 100.0f;
+                float kd_float = cmd->kd / 100.0f;
+
+                uint16_t pos_scaled = float_to_uint(pos_float * config->direction,
                                                     config->limits.p_min, config->limits.p_max, 16);
-                uint16_t vel_scaled = float_to_uint(cmd->velocity * config->direction,
+                uint16_t vel_scaled = float_to_uint(vel_float * config->direction,
                                                     config->limits.v_min, config->limits.v_max, 16);
-                uint16_t kp_scaled = float_to_uint(cmd->kp, config->limits.kp_min, config->limits.kp_max, 16);
-                uint16_t kd_scaled = float_to_uint(cmd->kd, config->limits.kd_min, config->limits.kd_max, 16);
+                uint16_t kp_scaled = float_to_uint(kp_float, config->limits.kp_min, config->limits.kp_max, 16);
+                uint16_t kd_scaled = float_to_uint(kd_float, config->limits.kd_min, config->limits.kd_max, 16);
 
                 /* Byte order: MSB first (Big Endian for each 16-bit value) */
                 frame->data[0] = (pos_scaled >> 8) & 0xFF;
