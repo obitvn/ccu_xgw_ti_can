@@ -194,11 +194,11 @@ typedef struct __attribute__((packed)) {
     uint8_t  can_bus;       /* CAN bus (0-7) */
     uint8_t  mode;          /* Mode: 0=MIT, 1=Enable, 2=MechZero, 3=ZeroSTA, 4=ZeroSTA+Mech */
     uint8_t  reserved;
-    uint16_t position;      /* Position (0.01 rad) */
-    int16_t  velocity;      /* Velocity (0.01 rad/s) */
-    int16_t  torque;        /* Torque (0.01 Nm) */
-    uint16_t kp;            /* Kp gain (0.01) */
-    uint16_t kd;            /* Kd gain (0.01) */
+    float    position;      /* Position (rad) - [FIX B038] Changed from uint16 to float */
+    float    velocity;      /* Velocity (rad/s) - [FIX B038] Changed from int16 to float */
+    float    torque;        /* Torque (Nm) - [FIX B038] Changed from int16 to float */
+    float    kp;            /* Kp gain - [FIX B038] Changed from uint16 to float */
+    float    kd;            /* Kd gain - [FIX B038] Changed from uint16 to float */
 } motor_cmd_ipc_t;
 
 /**

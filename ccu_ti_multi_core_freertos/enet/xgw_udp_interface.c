@@ -604,15 +604,17 @@ int xgw_udp_process_motor_cmd(const uint8_t* data, uint16_t length)
 
     for (uint8_t i = 0; i < count; i++) {
         ipc_cmds[i].motor_id = cmds[i].motor_id;
-        /* [FIX] Motor CMD is always MIT motion control (cyclic) - set mode=255
+        /* [FIX B038] Motor CMD is always MIT motion control (cyclic) - set mode=255
          * This distinguishes MIT commands from motor_set commands (mode 0-4)
          * Reference: gateway_shared.h mode definitions */
         ipc_cmds[i].mode = MOTOR_MODE_MIT_CONTROL;  /* 255 = MIT cyclic */
-        ipc_cmds[i].position = (uint16_t)(cmds[i].position * 100);  /* rad -> 0.01 rad */
-        ipc_cmds[i].velocity = (int16_t)(cmds[i].velocity * 100);   /* rad/s -> 0.01 rad/s */
-        ipc_cmds[i].torque = (int16_t)(cmds[i].torque * 100);      /* Nm -> 0.01 Nm */
-        ipc_cmds[i].kp = (uint16_t)(cmds[i].kp * 100);             /* -> 0.01 */
-        ipc_cmds[i].kd = (uint16_t)(cmds[i].kd * 100);             /* -> 0.01 */
+        /* [FIX B038] Use float directly in IPC (no more ×100 scaling)
+         * Matches reference architecture: float directly from UDP to CAN */
+        ipc_cmds[i].position = cmds[i].position;  /* rad (float) */
+        ipc_cmds[i].velocity = cmds[i].velocity;  /* rad/s (float) */
+        ipc_cmds[i].torque = cmds[i].torque;      /* Nm (float) */
+        ipc_cmds[i].kp = cmds[i].kp;              /* Kp (float) */
+        ipc_cmds[i].kd = cmds[i].kd;              /* Kd (float) */
     }
 
     /* Write to shared memory via ring buffer */
