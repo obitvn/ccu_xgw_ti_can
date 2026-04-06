@@ -1,0 +1,15 @@
+# CCS Debug Configuration for Core0 (R5F0)
+# This script runs when debug session starts/stops
+
+# On debug start - reset and halt
+org.eclipse.cdt.debug.gdbjtag.core.useProjBinaryForImage=true
+org.eclipse.cdt.debug.gdbjtag.core.useFileForImage=false
+org.eclipse.cdt.debug.gdbjtag.core.imageFileName=
+org.eclipse.cdt.debug.gdbjtag.core.imageOffset=0
+
+# Reset on connect
+org.eclipse.cdt.debug.gdbjtag.core.resetAndHalt=true
+
+# Do not halt on disconnect - let core run
+org.eclipse.cdt.debug.gdbjtag.core.doHaltOnDisconnect=false
+org.eclipse.cdt.debug.gdbjtag.core.doResetOnDisconnect=false

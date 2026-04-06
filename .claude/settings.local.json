@@ -90,7 +90,20 @@
       "Bash(cloc:*)",
       "Bash(/c/ti/sysconfig_1.26.0/sysconfig_cli.bat --compiler ccs --output Debug/syscfg example.syscfg)",
       "Bash(gmake -j1)",
-      "Bash(pdftotext D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/draft/spruj55d.pdf -)"
+      "Bash(pdftotext D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/draft/spruj55d.pdf -)",
+      "Bash(find . -name *.launch -o -name *debug* -type f)",
+      "Bash(find D:VinDynamicsProjectCCU_TI_RS485_CAN2.Firmwaredraftmcu_plus_sdk_am263px_11_01_00_19 -type f \\\\\\(-name *.ccxml -o -name *.launch -o -name system.xml \\\\\\))",
+      "Bash(find D:VinDynamicsProjectCCU_TI_RS485_CAN2.Firmwaredraftmcu_plus_sdk_am263px_11_01_00_19 -type f -name *.ini)",
+      "Bash(find D:VinDynamicsProjectCCU_TI_RS485_CAN2.Firmwaredraftmcu_plus_sdk_am263px_11_01_00_19 -type f -name *.ccsproject)",
+      "Bash(find D:VinDynamicsProjectCCU_TI_RS485_CAN2.Firmwaredraftmcu_plus_sdk_am263px_11_01_00_19 -type f -name *.ccxml)",
+      "Bash(find D:VinDynamicsProjectCCU_TI_RS485_CAN2.Firmwareccu_ti_mutilcore -name *.ccxml)",
+      "Bash(find \"D:\\\\VinDynamics\\\\Project\\\\CCU_TI_RS485_CAN\\\\2.Firmware\\\\ccu_ti_mutilcore\" -name \"*.cproject\" -exec head -100 {})",
+      "Bash(find C:Userschuti.ti -name *.ccxml)",
+      "Bash(find C:Userschuti.ccs -name *.xml)",
+      "Bash(find C:Userschutiworkspace_v10 -name *.launch)",
+      "Bash(find C:/Users/chuti/.ccs -name *.prefs -path */org.eclipse.cdt.dsf/*)",
+      "Bash(find C:/Users/chuti -name .metadata -path */ccs*)",
+      "Bash(find C:/Users/chuti/AppData/Local/Temp -name vscodedms* -type d)"
     ]
   }
 }

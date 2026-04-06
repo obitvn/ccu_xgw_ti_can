@@ -1,0 +1,88 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Core0 (FreeRTOS - R5F0)",
+            "type": "cortex-debug",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/ccu_ti_multi_core_freertos",
+            "executable": "${workspaceFolder}/ccu_ti_multi_core_freertos/Debug/ccu_ti_multi_core_freertos.out",
+            "device": "AM263Px",
+            "servertype": "jlink",
+            "interface": "swd",
+            "serialNumber": "",
+            "armToolchainPath": "${env:CCS_ROOT}/tools/compiler/ti-cgt-armllvm-4.0.4.LTS/bin",
+            "rtos": "FreeRTOS",
+            "preLaunchTask": "build-freertos",
+            "core": "Cortex_R5_0",
+            "runToMain": true,
+            "preLaunchCommands": [
+                "monitor reset",
+                "monitor halt"
+            ],
+            "postRestartCommands": [
+                "continue"
+            ]
+        },
+        {
+            "name": "Debug Core1 (NoRTOS - R5F3)",
+            "type": "cortex-debug",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/ccu_ti_multi_core_realtime",
+            "executable": "${workspaceFolder}/ccu_ti_multi_core_realtime/Debug/ccu_ti_multi_core_realtime.out",
+            "device": "AM263Px",
+            "servertype": "jlink",
+            "interface": "swd",
+            "serialNumber": "",
+            "armToolchainPath": "${env:CCS_ROOT}/tools/compiler/ti-cgt-armllvm-4.0.4.LTS/bin",
+            "preLaunchTask": "build-realtime",
+            "core": "Cortex_R5_3",
+            "runToMain": true,
+            "preLaunchCommands": [
+                "monitor reset",
+                "monitor halt"
+            ],
+            "postRestartCommands": [
+                "continue"
+            ]
+        },
+        {
+            "name": "Attach to Core0 (R5F0)",
+            "type": "cortex-debug",
+            "request": "attach",
+            "cwd": "${workspaceFolder}/ccu_ti_multi_core_freertos",
+            "executable": "${workspaceFolder}/ccu_ti_multi_core_freertos/Debug/ccu_ti_multi_core_freertos.out",
+            "device": "AM263Px",
+            "servertype": "jlink",
+            "interface": "swd",
+            "serialNumber": "",
+            "armToolchainPath": "${env:CCS_ROOT}/tools/compiler/ti-cgt-armllvm-4.0.4.LTS/bin",
+            "core": "Cortex_R5_0",
+            "attachCommands": [
+                "monitor halt"
+            ],
+            "postRestartCommands": [
+                "continue"
+            ]
+        },
+        {
+            "name": "Attach to Core1 (R5F3)",
+            "type": "cortex-debug",
+            "request": "attach",
+            "cwd": "${workspaceFolder}/ccu_ti_multi_core_realtime",
+            "executable": "${workspaceFolder}/ccu_ti_multi_core_realtime/Debug/ccu_ti_multi_core_realtime.out",
+            "device": "AM263Px",
+            "servertype": "jlink",
+            "interface": "swd",
+            "serialNumber": "",
+            "armToolchainPath": "${env:CCS_ROOT}/tools/compiler/ti-cgt-armllvm-4.0.4.LTS/bin",
+            "core": "Cortex_R5_3",
+            "attachCommands": [
+                "monitor halt"
+            ],
+            "postRestartCommands": [
+                "continue"
+            ]
+        }
+    ]
+}

@@ -1,0 +1,31 @@
+# GDB Init Script for AM263Px Core0 (Cortex_R5_0)
+# This script ensures proper debug session setup and cleanup
+
+# Connect to target
+target extended-remote :3333
+
+# Select Core0
+monitor core 0
+
+# Reset and halt on connection
+monitor reset halt
+
+# Load symbols
+file ${workspaceFolder}/ccu_ti_multi_core_freertos/Debug/ccu_ti_multi_core_freertos.out
+
+# Set breakpoint at main
+break main
+
+# Continue to main
+continue
+
+# On exit, let core continue running (DO NOT reset or halt)
+define quit
+    # Resume execution before detach
+    continue &
+    # Wait a moment for resume to take effect
+    shell sleep 0.1
+    # Detach without halting
+    detach
+    quit
+end

@@ -1,0 +1,66 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build-freertos",
+            "type": "shell",
+            "command": "gmake",
+            "options": {
+                "cwd": "${workspaceFolder}/ccu_ti_multi_core_system/Debug"
+            },
+            "args": ["-j8"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "build-realtime",
+            "type": "shell",
+            "command": "gmake",
+            "options": {
+                "cwd": "${workspaceFolder}/ccu_ti_multi_core_system/Debug"
+            },
+            "args": ["-j8"],
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "clean-all",
+            "type": "shell",
+            "command": "gmake",
+            "options": {
+                "cwd": "${workspaceFolder}/ccu_ti_multi_core_system/Debug"
+            },
+            "args": ["clean"],
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "rebuild-all",
+            "type": "shell",
+            "command": "gmake",
+            "options": {
+                "cwd": "${workspaceFolder}/ccu_ti_multi_core_system/Debug"
+            },
+            "args": ["clean", "all"],
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "flash-core0",
+            "type": "shell",
+            "command": "echo",
+            "args": ["Use CCS to flash Core0 (R5F0) - Load symbol: ccu_ti_multi_core_freertos/Debug/ccu_ti_multi_core_freertos.out"],
+            "problemMatcher": []
+        },
+        {
+            "label": "flash-core1",
+            "type": "shell",
+            "command": "echo",
+            "args": ["Use CCS to flash Core1 (R5F3) - Load symbol: ccu_ti_multi_core_realtime/Debug/ccu_ti_multi_core_realtime.out"],
+            "problemMatcher": []
+        }
+    ]
+}
