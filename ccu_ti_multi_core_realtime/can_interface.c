@@ -34,6 +34,22 @@
 volatile uint32_t dbg_can_rx_count __attribute__((section(".bss.user_shared_mem_debug"))) = 0;
 volatile uint32_t dbg_can_tx_count __attribute__((section(".bss.user_shared_mem_debug"))) = 0;
 
+/* [DEBUG B049] Track RX ISR execution flow */
+volatile uint32_t dbg_can_isr_rx_entry_count __attribute__((section(".bss.user_shared_mem_debug"))) = 0;
+volatile uint32_t dbg_can_isr_fifo_read_count __attribute__((section(".bss.user_shared_mem_debug"))) = 0;
+volatile uint32_t dbg_can_isr_callback_count __attribute__((section(".bss.user_shared_mem_debug"))) = 0;
+
+/* [DEBUG B048] Store first interrupt status per bus in shared memory for JTAG inspection */
+typedef struct {
+    uint32_t intr_status;
+    uint32_t rx_count_at_intr;
+    uint32_t isr_call_count_at_intr;
+    uint8_t  bus_id;
+    uint8_t  captured;
+} first_intr_info_t;
+
+volatile first_intr_info_t g_first_intr_info[NUM_CAN_BUSES] __attribute__((section(".bss.user_shared_mem_debug"))) = {0};
+
 /* ==========================================================================
  *                      HELPER FUNCTIONS
  * ========================================================================== */
@@ -175,8 +191,21 @@ static void can_rx_isr(void *arg)
     uint32_t intrStatus;
     MCAN_RxNewDataStatus newDataStatus;
 
+    /* [DEBUG B046] Track ISR calls - increment BEFORE checking interrupt source */
+    g_can_stats[bus_id].isr_call_count++;
+
     // Get interrupt status
     intrStatus = MCAN_getIntrStatus(baseAddr);
+
+    /* [DEBUG B048] Capture first interrupt info to shared memory (no blocking!) */
+    if (g_first_intr_info[bus_id].captured == 0 && intrStatus != 0) {
+        g_first_intr_info[bus_id].intr_status = intrStatus;
+        g_first_intr_info[bus_id].rx_count_at_intr = g_can_stats[bus_id].rx_count;
+        g_first_intr_info[bus_id].isr_call_count_at_intr = g_can_stats[bus_id].isr_call_count;
+        g_first_intr_info[bus_id].bus_id = bus_id;
+        g_first_intr_info[bus_id].captured = 1;
+        __asm volatile("dmb" ::: "memory");  /* Ensure visibility */
+    }
 
     // Clear interrupt status FIRST
     MCAN_clearIntrStatus(baseAddr, intrStatus);
@@ -193,6 +222,9 @@ static void can_rx_isr(void *arg)
     /* NORMAL RX INTERRUPT HANDLING */
     if (intrStatus & MCAN_INTR_SRC_RX_FIFO0_NEW_MSG)
     {
+        /* [DEBUG B049] Track RX ISR entry */
+        dbg_can_isr_rx_entry_count++;
+
         // Get and clear new data status
         MCAN_getNewDataStatus(baseAddr, &newDataStatus);
         newDataStatus.statusLow = 0x1U;
@@ -200,6 +232,9 @@ static void can_rx_isr(void *arg)
 
         // Read message from FIFO 0
         MCAN_readMsgRam(baseAddr, MCAN_MEM_TYPE_FIFO, 0, MCAN_RX_FIFO_NUM_0, &g_rx_buffer);
+
+        /* [DEBUG B049] Track FIFO read */
+        dbg_can_isr_fifo_read_count++;
 
         // Update statistics
         /* Bug B008 Fix: Atomic increment with memory barrier
@@ -210,7 +245,7 @@ static void can_rx_isr(void *arg)
         g_can_stats[bus_id].rx_count++;
         __asm volatile("dmb" ::: "memory");  /* Ensure visibility to main loop */
 
-        DEBUG_COUNTER_INC(dbg_can_rx_count);
+        /* [SKIP] dbg_can_rx_count - use g_can_stats[bus_id].rx_count instead */
 
         // Call user callback if registered
         if (g_rx_callback != NULL)
@@ -237,6 +272,8 @@ static void can_rx_isr(void *arg)
                 frame.data[i] = g_rx_buffer.data[i];
             }
 
+            /* [DEBUG B049] Track callback execution */
+            dbg_can_isr_callback_count++;
             g_rx_callback(bus_id, &frame);
         }
     }
@@ -374,11 +411,12 @@ static int32_t init_single_mcan(uint8_t bus_id)
     stdFilter.sft = MCAN_STD_FILT_TYPE_RANGE;
     MCAN_addStdMsgIDFilter(baseAddr, 0, &stdFilter);
 
-    // Enable Interrupts
-    MCAN_enableIntr(baseAddr, MCAN_INTR_MASK_ALL, 1);
-    MCAN_enableIntr(baseAddr, MCAN_INTR_SRC_RES_ADDR_ACCESS, 0);
-    MCAN_selectIntrLine(baseAddr, MCAN_INTR_MASK_ALL, MCAN_INTR_LINE_NUM_0);
-    MCAN_enableIntrLine(baseAddr, MCAN_INTR_LINE_NUM_0, 1);
+    // Enable Interrupts - [FIX B048] Match reference implementation pattern
+    // Reference: draft/ccu_ti/can_interface.c:345-352
+    MCAN_enableIntr(baseAddr, MCAN_INTR_MASK_ALL, 1);  // Enable ALL first
+    MCAN_enableIntr(baseAddr, MCAN_INTR_SRC_RES_ADDR_ACCESS, 0);  // Disable this one
+    MCAN_selectIntrLine(baseAddr, MCAN_INTR_MASK_ALL, MCAN_INTR_LINE_NUM_0);  // Select all to line 0
+    MCAN_enableIntrLine(baseAddr, MCAN_INTR_LINE_NUM_0, 1);  // Enable line 0
 
     // Initialize TX buffer
     MCAN_initTxBufElement(&g_tx_buffers[bus_id]);

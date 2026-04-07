@@ -135,7 +135,7 @@ _Static_assert(sizeof(xgw_header_t) == 32, "xgw_header_t must be 32 bytes");
  * [MIGRATED FROM draft/ccu_ti/xgw_protocol.h:95]
  */
 typedef struct __attribute__((packed)) {
-    uint8_t  motor_id;      /* Unique Motor ID */
+    uint8_t  motor_id;      /* Array Index (0-22) - [FIX B066] Changed from hardware ID to index */
     uint8_t  error_code;    /* Hardware Error Code (0 = OK) */
     int8_t   pattern;       /* Current Control Pattern/State */
     uint8_t  reserved;      /* Padding */

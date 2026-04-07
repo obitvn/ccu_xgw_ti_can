@@ -205,16 +205,18 @@ typedef struct __attribute__((packed)) {
  * @brief Motor state for IPC (CAN -> Ethernet)
  *
  * Optimized packed structure for shared memory transfer
+ * [FIX B064] Changed to float to avoid conversion errors
+ * [FIX B066] motor_id is now array index (0-22), not hardware CAN ID
  */
 typedef struct __attribute__((packed)) {
-    uint8_t  motor_id;      /* Motor ID (1-127) */
+    uint8_t  motor_id;      /* Array Index (0-22) - [FIX B066] Changed from hardware ID */
     uint8_t  can_bus;       /* CAN bus (0-7) */
     int8_t   pattern;       /* Control pattern */
     uint8_t  error_code;    /* Error code */
-    uint16_t position;      /* Position (0.01 rad) */
-    int16_t  velocity;      /* Velocity (0.01 rad/s) */
-    int16_t  torque;        /* Torque (0.01 Nm) */
-    int16_t  temperature;   /* Temperature (0.1 °C) */
+    float    position;      /* Position (rad) - [FIX B064] Changed from int16 to float */
+    float    velocity;      /* Velocity (rad/s) - [FIX B064] Changed from int16 to float */
+    float    torque;        /* Torque (Nm) - [FIX B064] Changed from int16 to float */
+    float    temperature;   /* Temperature (°C) - [FIX B064] Changed from int16 to float */
 } motor_state_ipc_t;
 
 /**

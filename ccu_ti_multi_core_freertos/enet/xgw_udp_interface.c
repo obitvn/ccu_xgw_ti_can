@@ -287,6 +287,15 @@ int xgw_udp_send_motor_states(const xgw_motor_state_t* states, uint8_t count)
 
     g_udp_sendto_count++;
 
+    /* [DEBUG B066] Log packet details - first 3 times */
+    static uint32_t packet_log_count = 0;
+    if (packet_log_count < 3) {
+        DebugP_log("[xGW UDP] Motor: SENT count=%u, payload_len=%u, total=%u, motors[0].id=%u, motors[0].pos=%.3f\r\n",
+                   count, payload_len, total_len,
+                   states[0].motor_id, states[0].position);
+        packet_log_count++;
+    }
+
     /* [DEBUG] Log udp_sendto return value and ref count (first 10 times) */
     static uint32_t sendto_motor_log_count = 0;
     if (sendto_motor_log_count < 10) {

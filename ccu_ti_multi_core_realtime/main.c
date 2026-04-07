@@ -119,7 +119,10 @@ static volatile bool g_buffer_ready = false;  /* Flag for buffer swap */
 static volatile bool g_commands_ready = false;
 
 /* Motor state buffer for shared memory */
-static motor_state_ipc_t g_motor_states[GATEWAY_NUM_MOTORS];
+/* [FIX B059] EXPLICITLY initialize to zeros to prevent random/uninitialized data
+ * Static arrays without explicit initializer contain random BSS data
+ * This causes "velocity changing randomly" when motors haven't responded yet */
+static motor_state_ipc_t g_motor_states[GATEWAY_NUM_MOTORS] = {0};
 
 /* Heartbeat counter */
 static volatile uint32_t g_heartbeat_count = 0;
@@ -265,7 +268,9 @@ static void process_can_rx(uint8_t bus_id, const can_frame_t *frame)
             /* Parse motor state from CAN data */
             motor_state_ipc_t *state = &g_motor_states[motor_idx];
 
-            state->motor_id = motor_id;
+            /* [FIX B066] Send array index instead of hardware motor_id
+             * PC uses index (0-22) to lookup motors, not hardware CAN ID */
+            state->motor_id = motor_idx;
             state->can_bus = bus_id;
 
             /* [B032] FIX: Extract pattern and error from correct bit positions
@@ -283,6 +288,18 @@ static void process_can_rx(uint8_t bus_id, const can_frame_t *frame)
             uint16_t torque_raw = (frame->data[4] << 8) | frame->data[5];
             uint16_t temp_raw = (frame->data[6] << 8) | frame->data[7];
 
+            /* [DEBUG B058] Log raw CAN data to verify parsing - FIRST motor ONLY
+             * This helps diagnose if position=65535 is from CAN data or conversion error */
+            static volatile bool raw_can_logged = false;
+            if (!raw_can_logged) {
+                DebugP_log("[Core1] CAN RAW: id=%u, bytes=[%02X %02X %02X %02X %02X %02X %02X %02X], pos_raw=%u, vel_raw=%u\r\n",
+                           state->motor_id,
+                           frame->data[0], frame->data[1], frame->data[2], frame->data[3],
+                           frame->data[4], frame->data[5], frame->data[6], frame->data[7],
+                           pos_raw, vel_raw);
+                raw_can_logged = true;
+            }
+
             /* [B031] FIX: Convert to physical units using uint16_to_float
              * Reference: draft/ccu_ti/ccu_xgw_gateway.c:2192-2195
              * Apply direction multiplier for position and velocity */
@@ -293,17 +310,33 @@ static void process_can_rx(uint8_t bus_id, const can_frame_t *frame)
             /* [B030] FIX: Use float division for temperature */
             float temp_float = temp_raw / 10.0f;
 
-            /* Convert to IPC units (0.01 rad, 0.01 rad/s, 0.01 Nm, 0.1 °C) */
-            state->position = (int16_t)(pos_float * 100.0f);
-            state->velocity = (int16_t)(vel_float * 100.0f);
-            state->torque = (int16_t)(torque_float * 100.0f);
-            state->temperature = (int16_t)temp_float;
+            /* [FIX B064] Store float directly - no unit conversion needed */
+            state->position = pos_float;
+            state->velocity = vel_float;
+            state->torque = torque_float;
+            state->temperature = temp_float;
 
-            /* Write motor state to shared memory */
+            /* [DEBUG B061] Verify conversion - log first time only */
+            static bool conversion_logged = false;
+            if (!conversion_logged) {
+                DebugP_log("[Core1] CONVERT: idx=%u (hw_id=%u), pos=%.3f rad, vel=%.3f rad/s, trq=%.3f Nm, temp=%.1f C\r\n",
+                           state->motor_id, motor_id, state->position, state->velocity, state->torque, state->temperature);
+                conversion_logged = true;
+            }
+
+            /* [FIX B053] Update local buffer only - do NOT write to shared memory here!
+             * Problem: Calling gateway_write_motor_states() here with count=1 causes:
+             * 1. Only motors[0] to be written (for loop only writes first element)
+             * 2. ready_flag=1 set 23 times (once per motor response)
+             * 3. Core0 reads incomplete data (only last motor received)
+             *
+             * Solution: Only update local g_motor_states buffer here.
+             * Main loop will periodically write ALL 23 motors to shared memory. */
+
+            /* [FIXME B053] OLD CODE - REMOVED:
             gateway_write_motor_states(state, 1);
-
-            /* Notify Core 0 that new motor states are available */
             gateway_notify_states_ready();
+            */
         }
     }
 }
@@ -333,24 +366,25 @@ static void process_motor_commands(void)
 
     /* Read motor commands from ring buffer (populated by Core 0) */
     uint32_t bytes_read = 0;
-    DebugP_log("[Core1] Calling gateway_ringbuf_core1_receive...\r\n");
+    /* [FIX B050] Disabled debug logs - blocking in 1000Hz loop causes system hang */
+    /* DebugP_log("[Core1] Calling gateway_ringbuf_core1_receive...\r\n"); */
     int32_t ret = gateway_ringbuf_core1_receive(g_motor_commands_buffer,
                                                  sizeof(g_motor_commands_buffer),
                                                  &bytes_read);
 
-    DebugP_log("[Core1] gateway_ringbuf_core1_receive returned: ret=%d, bytes_read=%u\r\n", ret, bytes_read);
+    /* DebugP_log("[Core1] gateway_ringbuf_core1_receive returned: ret=%d, bytes_read=%u\r\n", ret, bytes_read); */
 
     if (ret == GATEWAY_RINGBUF_OK && bytes_read > 0) {
         uint8_t count = bytes_read / sizeof(motor_cmd_ipc_t);
-        DebugP_log("[Core1] Received %u motor commands, setting g_buffer_ready\r\n", count);
+        /* DebugP_log("[Core1] Received %u motor commands, setting g_buffer_ready\r\n", count); */
         /* BUG B005 FIX: Set flag to indicate new data in buffer */
         g_buffer_ready = true;
     } else if (ret == GATEWAY_RINGBUF_EMPTY) {
-        DebugP_log("[Core1] Ring buffer EMPTY\r\n");
+        /* DebugP_log("[Core1] Ring buffer EMPTY\r\n"); */
     } else if (ret == GATEWAY_RINGBUF_FULL) {
-        DebugP_log("[Core1] Ring buffer FULL (unexpected!)\r\n");
+        /* DebugP_log("[Core1] Ring buffer FULL (unexpected!)\r\n"); */
     } else {
-        DebugP_log("[Core1] Ring buffer error: ret=%d\r\n", ret);
+        /* DebugP_log("[Core1] Ring buffer error: ret=%d\r\n", ret); */
     }
 }
 
@@ -802,7 +836,8 @@ static void main_loop(void)
 
         /* 1. Process motor commands from shared memory */
         if (g_commands_ready) {
-            DebugP_log("[Core1] g_commands_ready=true, calling process_motor_commands\r\n");
+            /* [FIX B050] Disabled debug logs - blocking in 1000Hz loop causes system hang */
+            /* DebugP_log("[Core1] g_commands_ready=true, calling process_motor_commands\r\n"); */
             process_motor_commands();
             g_commands_ready = false;
         }
@@ -811,7 +846,8 @@ static void main_loop(void)
         /* This ensures working buffer contains consistent command data */
         /* Copy is done before clearing flag to prevent race conditions */
         if (g_buffer_ready) {
-            DebugP_log("[Core1] g_buffer_ready=true, copying %d commands\r\n", GATEWAY_NUM_MOTORS);
+            /* [FIX B050] Disabled debug logs - blocking in 1000Hz loop causes system hang */
+            /* DebugP_log("[Core1] g_buffer_ready=true, copying %d commands\r\n", GATEWAY_NUM_MOTORS); */
             /* Copy entire buffer atomically (single array assignment on ARM) */
             for (uint8_t i = 0; i < GATEWAY_NUM_MOTORS; i++) {
                 g_motor_commands_working[i] = g_motor_commands_buffer[i];
@@ -823,6 +859,15 @@ static void main_loop(void)
         /* 2. Transmit CAN frames to all motors */
         transmit_can_frames();
 
+        /* [FIX B053] Write ALL motor states to shared memory after CAN TX
+         * Motors respond asynchronously via RX ISR, which updates local g_motor_states[]
+         * After all motors have responded, write all 23 states to shared memory for Core0
+         *
+         * Strategy: Write states every cycle (1000Hz) after CAN TX
+         * This ensures Core0 always gets the latest complete set of motor states */
+        gateway_write_motor_states(g_motor_states, GATEWAY_NUM_MOTORS);
+        gateway_notify_states_ready();
+
         /* 3. Periodic heartbeat log every 1000 cycles (1 second) */
         if ((g_cycle_count - last_heartbeat_log) >= 1000) {
             DebugP_log("[Core1] Heartbeat: cycle=%u, timer_isr=%u, ipc_events=%u, ringbuf_init=%d\r\n",
@@ -830,6 +875,61 @@ static void main_loop(void)
             /* [DEBUG] CAN TX/RX status */
             DebugP_log("[Core1] CAN: tx_count=%u, rx_count=%u\r\n",
                        dbg_can_tx_count, dbg_can_rx_count);
+            /* [DEBUG B046] Track ISR calls per bus */
+            uint32_t total_isr_calls = 0;
+            for (uint8_t i = 0; i < 8; i++) {
+                can_bus_stats_t stats;
+                CAN_GetStats(i, &stats);
+                total_isr_calls += stats.isr_call_count;
+            }
+            DebugP_log("[Core1] CAN ISR: total_calls=%u\r\n", total_isr_calls);
+
+            /* [DEBUG B048] Print first interrupt info captured by ISR */
+            extern volatile struct {
+                uint32_t intr_status;
+                uint32_t rx_count_at_intr;
+                uint32_t isr_call_count_at_intr;
+                uint8_t  bus_id;
+                uint8_t  captured;
+            } g_first_intr_info[8];
+
+            for (uint8_t i = 0; i < 8; i++) {
+                if (g_first_intr_info[i].captured) {
+                    DebugP_log("[Core1] CAN%d FirstISR: intr=0x%08X, rx_cnt=%u, isr_cnt=%u\r\n",
+                               i,
+                               g_first_intr_info[i].intr_status,
+                               g_first_intr_info[i].rx_count_at_intr,
+                               g_first_intr_info[i].isr_call_count_at_intr);
+                }
+            }
+
+            /* [DEBUG B060] Log which motors have valid data
+             * [FIX B066] Check can_bus != 0xFF (uninitialized value) since motor_id is now array index */
+            static bool motor_states_logged = false;
+            if (!motor_states_logged) {
+                DebugP_log("[Core1] MOTOR_STATES (motors with CAN data):\r\n");
+                uint8_t valid_count = 0;
+                for (uint8_t i = 0; i < GATEWAY_NUM_MOTORS; i++) {
+                    if (g_motor_states[i].can_bus < 8) {  /* Valid CAN bus (0-7) */
+                        DebugP_log("  [%2u] idx=%u, pos=%.3f, vel=%.3f\r\n",
+                                   i, g_motor_states[i].motor_id,
+                                   g_motor_states[i].position,
+                                   g_motor_states[i].velocity);
+                        valid_count++;
+                    }
+                }
+                DebugP_log("[Core1] Total valid motors: %u/%u\r\n", valid_count, GATEWAY_NUM_MOTORS);
+                motor_states_logged = true;
+            }
+
+            /* [DEBUG B049] Print RX ISR execution flow counters */
+            extern volatile uint32_t dbg_can_isr_rx_entry_count;
+            extern volatile uint32_t dbg_can_isr_fifo_read_count;
+            extern volatile uint32_t dbg_can_isr_callback_count;
+            DebugP_log("[Core1] CAN ISR Flow: rx_entry=%u, fifo_read=%u, callback=%u\r\n",
+                       dbg_can_isr_rx_entry_count,
+                       dbg_can_isr_fifo_read_count,
+                       dbg_can_isr_callback_count);
             /* [DEBUG] IMU UART ISR status */
             DebugP_log("[Core1] IMU ISR: isr_cnt=%u, bytes=%u, frames=%u\r\n",
                        dbg_imu_uart_isr_count, dbg_imu_rx_byte_count, dbg_imu_frame_count);

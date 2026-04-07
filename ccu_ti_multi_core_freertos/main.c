@@ -305,15 +305,38 @@ static void udp_tx_task(void *args)
         count = gateway_read_motor_states(g_motor_states);
 #endif
 
-        /* [DEBUG] Static counters for monitoring */
+        /* [DEBUG B051] Log read result occasionally to diagnose */
         static uint32_t motor_read_count = 0;
         static uint32_t motor_success_count = 0;
+        static uint32_t motor_error_count = 0;
         motor_read_count++;
+
+        /* Log when count is not expected (every 100th error to avoid spam) */
+        if (count != GATEWAY_NUM_MOTORS && count > 0) {
+            if (++motor_error_count <= 10 || (motor_error_count % 100 == 0)) {
+                DebugP_log("[Core0] motor_read: count=%d (expected %d), err_cnt=%u\r\n",
+                           count, GATEWAY_NUM_MOTORS, motor_error_count);
+            }
+        }
 
         /* [PERFORMANCE] Only send motor states if new data available
          * This reduces UDP TX frequency when Core1 is not updating
          */
         if (count == GATEWAY_NUM_MOTORS) {
+            /* [DEBUG B057] Log first successful motor read - verify shared memory working
+             * ONLY logs once to verify data flow from Core1 to Core0 */
+            static bool first_motor_read_logged = false;
+            if (!first_motor_read_logged) {
+                DebugP_log("[Core0] Motor READ OK: count=%d, m[0].id=%u, pos=%.3f, vel=%.3f, trq=%.3f, tmp=%.1f\r\n",
+                           count,
+                           g_motor_states[0].motor_id,
+                           g_motor_states[0].position,
+                           g_motor_states[0].velocity,
+                           g_motor_states[0].torque,
+                           g_motor_states[0].temperature);
+                first_motor_read_logged = true;
+            }
+
             /* All motor states successfully read - send UDP packet */
             build_and_send_udp_packet();
             motor_success_count++;
@@ -321,11 +344,14 @@ static void udp_tx_task(void *args)
 
         /* [DEBUG] Log motor read statistics every 5000 cycles - no logging in success path */
         if (motor_read_count >= 5000) {
-            DebugP_log("[Core0] Motor stats: total=%u, ok=%u (%.1f%%), last=%d, link=%d\r\n",
+            DebugP_log("[Core0] Motor stats: total=%u, ok=%u (%.1f%%), err=%u, last=%d, link=%d\r\n",
                        motor_read_count, motor_success_count,
                        motor_read_count > 0 ? (float)motor_success_count * 100.0f / motor_read_count : 0.0f,
-                       count, enet_is_link_up());
+                       motor_error_count, count, enet_is_link_up());
+            /* [FIX B055] Reset ALL counters to avoid overflow and incorrect stats */
             motor_read_count = 0;
+            motor_success_count = 0;
+            motor_error_count = 0;
         }
 
         /* [IMU] Always send IMU state at 1000Hz - cache and resend if no new data
@@ -459,29 +485,48 @@ static void build_and_send_udp_packet(void)
      */
     static xgw_motor_state_t xgw_states[GATEWAY_NUM_MOTORS];
 
-    /* Convert IPC format to xGW protocol format */
+    /* [FIX B064] Convert IPC format to xGW protocol format - direct float copy */
     for (uint8_t i = 0; i < GATEWAY_NUM_MOTORS; i++) {
         xgw_states[i].motor_id = g_motor_states[i].motor_id;
         xgw_states[i].error_code = g_motor_states[i].error_code;
         xgw_states[i].pattern = g_motor_states[i].pattern;
         xgw_states[i].reserved = 0;
-        xgw_states[i].position = g_motor_states[i].position / 100.0f;  /* 0.01 rad -> rad */
-        xgw_states[i].velocity = g_motor_states[i].velocity / 100.0f;  /* 0.01 rad/s -> rad/s */
-        xgw_states[i].torque = g_motor_states[i].torque / 100.0f;      /* 0.01 Nm -> Nm */
-        xgw_states[i].temp = g_motor_states[i].temperature / 10.0f;   /* 0.1 °C -> °C */
+        xgw_states[i].position = g_motor_states[i].position;
+        xgw_states[i].velocity = g_motor_states[i].velocity;
+        xgw_states[i].torque = g_motor_states[i].torque;
+        xgw_states[i].temp = g_motor_states[i].temperature;
     }
 
-    /* [DEBUG] Log first 3 calls */
-    static uint32_t debug_log_count = 0;
-    if (debug_log_count < 3) {
-        DebugP_log("[Core0] build_and_send called: call=%u\r\n", call_count);
-        debug_log_count++;
+    /* [DEBUG B060] Log ALL motor IDs being sent to UDP (first call only)
+     * This helps diagnose why PC only shows 2 motors instead of 23
+     * Print in format: [Core0] MOTOR_IDS: 0:ID0 1:ID1 2:ID2 ... */
+    static bool motor_ids_logged = false;
+    if (!motor_ids_logged) {
+        DebugP_log("[Core0] SENDING MOTOR_IDS:\r\n");
+        for (uint8_t i = 0; i < GATEWAY_NUM_MOTORS; i++) {
+            DebugP_log("  [%2u] id=%u, pos=%.3f, vel=%.3f\r\n",
+                       i, xgw_states[i].motor_id,
+                       xgw_states[i].position,
+                       xgw_states[i].velocity);
+        }
+        motor_ids_logged = true;
     }
 
     /* Log every 100 calls */
+    static uint32_t cycle_count = 0;
     if (call_count >= 100) {
         DebugP_log("[Core0] build_and_send: %u calls processed\r\n", call_count);
         call_count = 0;
+        cycle_count++;
+
+        /* [FORCE LOG] Always log motor data after each 100-call cycle - bypass static variable persistence */
+        DebugP_log("[Core0] MOTOR_DATA cycle#%u: m[0].id=%u, pos=%.3f, vel=%.3f, trq=%.3f, tmp=%.1f\r\n",
+                   cycle_count,
+                   xgw_states[0].motor_id,
+                   g_motor_states[0].position,
+                   g_motor_states[0].velocity,
+                   g_motor_states[0].torque,
+                   g_motor_states[0].temperature);
     }
 
     /* [TEST] Send only 1 motor instead of 23 to test if issue is item count */
@@ -489,6 +534,12 @@ static void build_and_send_udp_packet(void)
 
     /* Send motor states via UDP */
     int32_t sent = xgw_udp_send_motor_states(xgw_states, GATEWAY_NUM_MOTORS);
+
+    /* [FORCE LOG] Always log UDP result in first cycle of each 100-call batch */
+    if (call_count == 0) {
+        DebugP_log("[Core0] UDP send result: sent=%d, count=%u, started=%d\r\n",
+                   sent, GATEWAY_NUM_MOTORS, xgw_udp_is_initialized());
+    }
 
     if (sent > 0) {
         /* Successfully sent */

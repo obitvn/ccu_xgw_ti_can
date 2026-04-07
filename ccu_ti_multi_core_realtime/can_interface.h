@@ -44,6 +44,7 @@ typedef struct {
     bool     is_bus_off;
     uint8_t  tx_error_count;
     uint8_t  rx_error_count;
+    uint32_t isr_call_count;  /* [DEBUG B046] Track total ISR calls */
 } can_bus_stats_t;
 
 /* ==========================================================================

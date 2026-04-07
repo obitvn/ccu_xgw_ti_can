@@ -103,7 +103,8 @@
       "Bash(find C:Userschutiworkspace_v10 -name *.launch)",
       "Bash(find C:/Users/chuti/.ccs -name *.prefs -path */org.eclipse.cdt.dsf/*)",
       "Bash(find C:/Users/chuti -name .metadata -path */ccs*)",
-      "Bash(find C:/Users/chuti/AppData/Local/Temp -name vscodedms* -type d)"
+      "Bash(find C:/Users/chuti/AppData/Local/Temp -name vscodedms* -type d)",
+      "Bash(find D:VinDynamicsProjectCCU_TI_RS485_CAN2.Firmwaredraftmcu_plus_sdk_am263px_11_01_00_19 -name *mcan*rx*interrupt*.c -type f)"
     ]
   }
 }
