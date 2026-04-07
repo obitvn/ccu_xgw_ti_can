@@ -1,7 +1,7 @@
 ******************************************************************************
             TI ARM Clang Linker PC v4.0.4                      
 ******************************************************************************
->> Linked Tue Apr  7 18:14:47 2026
+>> Linked Tue Apr  7 18:21:59 2026
 
 OUTPUT FILE NAME:   <ccu_ti_multi_core_realtime.out>
 ENTRY POINT SYMBOL: "_vectors"  address: 00000000
@@ -18,7 +18,7 @@ MEMORY CONFIGURATION
   MAILBOX_R5F           44000400   000003ce  00000000  000003ce  RWIX
   FLASH                 60180000   00080000  00000000  00080000  RWIX
   OCRAM                 70180000   00080000  0001ade8  00065218  RWIX
-  USER_SHM_MEM          70200000   00008000  00004f74  0000308c  RWIX
+  USER_SHM_MEM          70200000   00008000  00006f74  0000108c  RWIX
   LOG_SHM_MEM           70208000   00004000  00002000  00002000  RWIX
   RTOS_NORTOS_IPC_SHM_M 72000000   00003e80  00000000  00003e80  RWIX
 
@@ -1112,13 +1112,13 @@ section   page    origin      length       input sections
 *          0    70180000    00000000     UNINITIALIZED
 
 .bss.user_shared_mem 
-*          0    70200000    00004ecc     NOLOAD SECTION
-                  70200000    00004ecc     gateway_shared.o (.bss.user_shared_mem)
+*          0    70200000    00006ecc     NOLOAD SECTION
+                  70200000    00006ecc     gateway_shared.o (.bss.user_shared_mem)
 
 .bss.user_shared_mem_debug 
-*          0    70204ecc    000000a8     NOLOAD SECTION
-                  70204ecc    00000094     can_interface.o (.bss.user_shared_mem_debug)
-                  70204f60    00000014     main.o (.bss.user_shared_mem_debug)
+*          0    70206ecc    000000a8     NOLOAD SECTION
+                  70206ecc    00000094     can_interface.o (.bss.user_shared_mem_debug)
+                  70206f60    00000014     main.o (.bss.user_shared_mem_debug)
 
 .bss.log_shared_mem 
 *          0    70208000    00002000     NOLOAD SECTION
@@ -1129,12 +1129,12 @@ MODULE SUMMARY
        Module                                code    ro data   rw data
        ------                                ----    -------   -------
     .\
-       gateway_shared.o                      1596    615       20172  
+       gateway_shared.o                      1596    615       28364  
        main.o                                4730    2930      4568   
        can_interface.o                       3166    1751      1257   
        motor_mapping.o                       1040    1153      1024   
     +--+-------------------------------------+-------+---------+---------+
-       Total:                                10532   6449      27021  
+       Total:                                10532   6449      35213  
                                                                       
     .\imu\
        imu_interface_isr.o                   670     345       292    
@@ -1229,7 +1229,7 @@ MODULE SUMMARY
                                                                       
        Stack:                                0       0         16384  
     +--+-------------------------------------+-------+---------+---------+
-       Grand Total:                          65054   9210      56792  
+       Grand Total:                          65054   9210      64984  
 
 
 GLOBAL SYMBOLS: SORTED ALPHABETICALLY BY Name 
@@ -1569,16 +1569,16 @@ UNDEFED   _system_post_cinit
 00000000  _vectors                             
 70199310  abort                                
 ffffffff  binit                                
-70204edc  dbg_can_isr_callback_count           
-70204ed8  dbg_can_isr_fifo_read_count          
-70204ed4  dbg_can_isr_rx_entry_count           
-70204ecc  dbg_can_rx_count                     
-70204ed0  dbg_can_tx_count                     
-70204f70  dbg_imu_frame_count                  
-70204f6c  dbg_imu_rx_byte_count                
-70204f68  dbg_imu_uart_isr_count               
-70204f64  dbg_ipc_register_count               
-70204f60  dbg_ipc_send_count                   
+70206edc  dbg_can_isr_callback_count           
+70206ed8  dbg_can_isr_fifo_read_count          
+70206ed4  dbg_can_isr_rx_entry_count           
+70206ecc  dbg_can_rx_count                     
+70206ed0  dbg_can_tx_count                     
+70206f70  dbg_imu_frame_count                  
+70206f6c  dbg_imu_rx_byte_count                
+70206f68  dbg_imu_uart_isr_count               
+70206f64  dbg_ipc_register_count               
+70206f60  dbg_ipc_send_count                   
 7018ada1  float_to_uint                        
 7018f6c0  gADPLLJConfigTbl                     
 70199954  gAddrTranslateConfig                 
@@ -1614,7 +1614,7 @@ ffffffff  binit
 70193a90  gUartHandle                          
 70199858  gUartParams                          
 7019129c  gXTALInfo                            
-70204ee0  g_first_intr_info                    
+70206ee0  g_first_intr_info                    
 70192a94  g_motor_lookup                       
 7019268c  g_yis320_private_data                
 7018ebe1  gateway_check_emergency_stop         
@@ -2058,17 +2058,17 @@ address   name
 7019acf0  __UNDEFINED_STACK_START              
 7019adf0  __UNDEFINED_STACK_END                
 70200000  gGatewaySharedMem                    
-70204ecc  dbg_can_rx_count                     
-70204ed0  dbg_can_tx_count                     
-70204ed4  dbg_can_isr_rx_entry_count           
-70204ed8  dbg_can_isr_fifo_read_count          
-70204edc  dbg_can_isr_callback_count           
-70204ee0  g_first_intr_info                    
-70204f60  dbg_ipc_send_count                   
-70204f64  dbg_ipc_register_count               
-70204f68  dbg_imu_uart_isr_count               
-70204f6c  dbg_imu_rx_byte_count                
-70204f70  dbg_imu_frame_count                  
+70206ecc  dbg_can_rx_count                     
+70206ed0  dbg_can_tx_count                     
+70206ed4  dbg_can_isr_rx_entry_count           
+70206ed8  dbg_can_isr_fifo_read_count          
+70206edc  dbg_can_isr_callback_count           
+70206ee0  g_first_intr_info                    
+70206f60  dbg_ipc_send_count                   
+70206f64  dbg_ipc_register_count               
+70206f68  dbg_imu_uart_isr_count               
+70206f6c  dbg_imu_rx_byte_count                
+70206f70  dbg_imu_frame_count                  
 70208000  gDebugShmLog                         
 ffffffff  __TI_pprof_out_hndl                  
 ffffffff  __TI_prof_data_size                  

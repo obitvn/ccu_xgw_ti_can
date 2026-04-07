@@ -1,7 +1,7 @@
 ******************************************************************************
             TI ARM Clang Linker PC v4.0.4                      
 ******************************************************************************
->> Linked Tue Apr  7 18:14:33 2026
+>> Linked Tue Apr  7 18:21:45 2026
 
 OUTPUT FILE NAME:   <ccu_ti_multi_core_freertos.out>
 ENTRY POINT SYMBOL: "_vectors"  address: 00000000
@@ -19,7 +19,7 @@ MEMORY CONFIGURATION
   FLASH                 60100000   00080000  00000000  00080000  RWIX
   SBL                   70000000   00040000  00000000  00040000  RWIX
   OCRAM                 70040000   00140000  000f3878  0004c788  RWIX
-  USER_SHM_MEM          70200000   00008000  00004ee4  0000311c  RWIX
+  USER_SHM_MEM          70200000   00008000  00006ee4  0000111c  RWIX
   LOG_SHM_MEM           70208000   00004000  00002000  00002000  RWIX
   CPPI_DESC             70280000   00040000  00000a00  0003f600  RWIX
   RTOS_NORTOS_IPC_SHM_M 72000000   00003e80  00000000  00003e80  RWIX
@@ -5928,12 +5928,12 @@ section   page    origin      length       input sections
 *          0    70040000    00000000     UNINITIALIZED
 
 .bss.user_shared_mem 
-*          0    70200000    00004ecc     NOLOAD SECTION
-                  70200000    00004ecc     gateway_shared.o (.bss.user_shared_mem)
+*          0    70200000    00006ecc     NOLOAD SECTION
+                  70200000    00006ecc     gateway_shared.o (.bss.user_shared_mem)
 
 .bss.user_shared_mem_debug 
-*          0    70204ecc    00000018     NOLOAD SECTION
-                  70204ecc    00000018     main.o (.bss.user_shared_mem_debug)
+*          0    70206ecc    00000018     NOLOAD SECTION
+                  70206ecc    00000018     main.o (.bss.user_shared_mem_debug)
 
 .bss.log_shared_mem 
 *          0    70208000    00002000     NOLOAD SECTION
@@ -5949,13 +5949,13 @@ MODULE SUMMARY
        ------                                  ----     -------   -------
     .\
        main.o                                  3708     3686      39583  
-       gateway_shared.o                        1716     820       20172  
+       gateway_shared.o                        1716     820       28364  
        test.o                                  1444     976       16552  
        motor_mapping.o                         880      339       1384   
        log_reader_task.o                       158      110       2204   
        freertos_hooks.o                        156      188       0      
     +--+---------------------------------------+--------+---------+---------+
-       Total:                                  8062     6119      79895  
+       Total:                                  8062     6119      88087  
                                                                          
     .\common\
        crc32.o                                 80       1024      0      
@@ -6204,7 +6204,7 @@ MODULE SUMMARY
        Heap:                                   0        0         200000 
        Stack:                                  0        0         8192   
     +--+---------------------------------------+--------+---------+---------+
-       Grand Total:                            328092   69743     613316 
+       Grand Total:                            328092   69743     621508 
 
 
 GLOBAL SYMBOLS: SORTED ALPHABETICALLY BY Name 
@@ -7145,12 +7145,12 @@ ffffffff  binit
 700ee95c  close                                                                  
 700f7921  crc32_core                                                             
 700d0d21  custom_pbuf_free                                                       
-70204ed8  dbg_error_count                                                        
-70204ee0  dbg_imu_frame_count                                                    
-70204ecc  dbg_ipc_recv_count                                                     
-70204edc  dbg_last_error_code                                                    
-70204ed0  dbg_udp_rx_count                                                       
-70204ed4  dbg_udp_tx_count                                                       
+70206ed8  dbg_error_count                                                        
+70206ee0  dbg_imu_frame_count                                                    
+70206ecc  dbg_ipc_recv_count                                                     
+70206edc  dbg_last_error_code                                                    
+70206ed0  dbg_udp_rx_count                                                       
+70206ed4  dbg_udp_tx_count                                                       
 700e7b51  dhcp_coarse_tmr                                                        
 700f3ff1  dhcp_fine_tmr                                                          
 700eb721  dhcp_network_changed_link_up                                           
@@ -9040,12 +9040,12 @@ address   name
 701337a8  __UNDEFINED_STACK_START                                                
 701338a8  __UNDEFINED_STACK_END                                                  
 70200000  gGatewaySharedMem                                                      
-70204ecc  dbg_ipc_recv_count                                                     
-70204ed0  dbg_udp_rx_count                                                       
-70204ed4  dbg_udp_tx_count                                                       
-70204ed8  dbg_error_count                                                        
-70204edc  dbg_last_error_code                                                    
-70204ee0  dbg_imu_frame_count                                                    
+70206ecc  dbg_ipc_recv_count                                                     
+70206ed0  dbg_udp_rx_count                                                       
+70206ed4  dbg_udp_tx_count                                                       
+70206ed8  dbg_error_count                                                        
+70206edc  dbg_last_error_code                                                    
+70206ee0  dbg_imu_frame_count                                                    
 70208000  gDebugShmLog                                                           
 ffffffff  __TI_pprof_out_hndl                                                    
 ffffffff  __TI_prof_data_size                                                    

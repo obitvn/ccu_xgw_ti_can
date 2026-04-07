@@ -48,15 +48,15 @@ extern "C" {
 /* Shared Memory Configuration */
 #define GATEWAY_NUM_MOTORS          23      /* Number of motors in VD1 robot */
 #define GATEWAY_NUM_CAN_BUSES       8
-#define GATEWAY_SHARED_MEM_ADDR     0x701D0000
-#define GATEWAY_SHARED_MEM_SIZE     0x8000      /* 32KB */
+#define GATEWAY_SHARED_MEM_ADDR     0x70200000  /* [FIX B076] Match linker USER_SHM_MEM */
+#define GATEWAY_SHARED_MEM_SIZE     0x8000      /* 32KB - matches USER_SHM_MEM LENGTH */
 
 /* Lock-free Ring Buffer Configuration */
 #define GATEWAY_USE_LOCKFREE_RINGBUF    1   /* Enable lock-free ring buffer */
 
 /* Ring Buffer Sizes (power of 2 for efficient modulo) */
-#define GATEWAY_RINGBUF_0_TO_1_SIZE     (8 * 1024)   /* 8KB: Core0 -> Core1 (power of 2) */
-#define GATEWAY_RINGBUF_1_TO_0_SIZE     (8 * 1024)   /* 8KB: Core1 -> Core0 (power of 2) */
+#define GATEWAY_RINGBUF_0_TO_1_SIZE     (16 * 1024)  /* 16KB: Core0 -> Core1 (power of 2) [FIX B076] Increased from 8KB */
+#define GATEWAY_RINGBUF_1_TO_0_SIZE     (8 * 1024)    /* 8KB: Core1 -> Core0 (power of 2) */
 #define GATEWAY_RINGBUF_MAX_ITEM_SIZE   256          /* Max packet size */
 
 /* Verify power of 2 */
