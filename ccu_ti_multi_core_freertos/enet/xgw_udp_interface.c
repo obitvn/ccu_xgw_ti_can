@@ -655,12 +655,10 @@ int xgw_udp_process_motor_cmd(const uint8_t* data, uint16_t length)
     uint32_t bytes_written = 0;
     uint32_t bytes_to_write = count * sizeof(motor_cmd_ipc_t);
 
-    DebugP_log("[xGW UDP] Sending %d cmds, %u bytes to IPC...\r\n", count, bytes_to_write);
     int ret = gateway_ringbuf_core0_send(ipc_cmds, bytes_to_write, &bytes_written);
 
     if (ret == 0) {
         /* Notify Core 1 */
-        DebugP_log("[xGW UDP] IPC send OK: %u bytes written\r\n", bytes_written);
         gateway_notify_commands_ready();
         g_udp_state.rx_count++;
         return 0;
@@ -713,12 +711,6 @@ int xgw_udp_process_motor_set(const uint8_t* data, uint16_t length)
         return -1;
     }
 
-    /* [DEBUG B071] Log first few motor_set packets */
-    if (motor_set_count <= 10) {
-        DebugP_log("[xGW UDP] Motor SET #%u: count=%d, mode[0]=%u, motor_id[0]=%u\r\n",
-                   motor_set_count, count, sets[0].mode, sets[0].motor_id);
-    }
-
     /* Convert motor set commands to motor commands and send to Core1
      * Motor set commands are used to configure motor mode (disable, enable, etc)
      * The motor_id will be used to look up the CAN bus from motor_config table */
@@ -742,22 +734,9 @@ int xgw_udp_process_motor_set(const uint8_t* data, uint16_t length)
     int ret = gateway_ringbuf_core0_send(ipc_cmds, count * sizeof(motor_cmd_ipc_t), &bytes_written);
 
     if (ret == 0) {
-        /* [DEBUG B071] Log success for first few packets */
-        if (motor_set_count <= 5) {
-            DebugP_log("[xGW UDP] Motor SET #%u: IPC send OK, %u bytes\r\n",
-                       motor_set_count, bytes_written);
-        }
         /* Notify Core 1 */
-        if (motor_set_count <= 5) {
-            DebugP_log("[xGW UDP] Motor SET #%u: About to notify Core1\r\n", motor_set_count);
-        }
         gateway_notify_commands_ready();
-        if (motor_set_count <= 5) {
-            DebugP_log("[xGW UDP] Motor SET #%u: Notify returned\r\n", motor_set_count);
-        }
-        DebugP_log("[xGW UDP] Motor SET #%u: Before rx_count++\r\n", motor_set_count);
         g_udp_state.rx_count++;
-        DebugP_log("[xGW UDP] Motor SET #%u: After rx_count++, returning\r\n", motor_set_count);
         return 0;
     } else {
         DebugP_log("[xGW UDP] ERROR: Motor SET #%u: Failed to write IPC! ret=%d\r\n",
@@ -793,8 +772,6 @@ static void udp_rx_task(void* parameters)
     uint32_t last_stats_time = xTaskGetTickCount();
     uint32_t last_log_time = xTaskGetTickCount();
 
-    DebugP_log("[xGW UDP] RX task started\r\n");
-
     while (g_udp_rx_task_running) {
         /* Wait for notification from callback (timeout 1ms for stats update) */
         ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(1));
@@ -803,13 +780,6 @@ static void udp_rx_task(void* parameters)
         while (xQueueReceive(g_udp_rx_queue, &rx_item, 0) == pdTRUE) {
             packets_processed++;
             g_udp_rx_task_packets++;
-
-            /* [DEBUG B071] Log first few packets for debugging */
-            if (g_udp_rx_task_packets <= 5) {
-                DebugP_log("[xGW UDP] RX task: packet #%u, len=%u, type=%u\r\n",
-                           g_udp_rx_task_packets, rx_item.length,
-                           rx_item.length >= sizeof(xgw_header_t) ? ((xgw_header_t*)rx_item.data)->msg_type : 0xFF);
-            }
 
             /* Check minimum packet size (header only) */
             if (rx_item.length < sizeof(xgw_header_t)) {
@@ -831,33 +801,23 @@ static void udp_rx_task(void* parameters)
                 case XGW_MSG_TYPE_MOTOR_CMD:
                     if (xgw_udp_process_motor_cmd(rx_item.data, rx_item.length) == 0) {
                         g_udp_state.rx_count++;
-                        DEBUG_COUNTER_INC(dbg_udp_rx_count);
                     } else {
                         g_udp_state.parse_errors++;
                     }
                     break;
 
                 case XGW_MSG_TYPE_MOTOR_SET:
-                    DebugP_log("[xGW UDP] Before process_motor_set\r\n");
                     if (xgw_udp_process_motor_set(rx_item.data, rx_item.length) == 0) {
-                        DebugP_log("[xGW UDP] After process_motor_set success\r\n");
                         g_udp_state.rx_count++;
-                        DebugP_log("[xGW UDP] After rx_count++\r\n");
-                        /* [TEMP] Disable DEBUG_COUNTER_INC to test if it causes hang */
-                        /* DEBUG_COUNTER_INC(dbg_udp_rx_count); */
-                        DebugP_log("[xGW UDP] After DEBUG_COUNTER_INC (disabled)\r\n");
                     } else {
-                        DebugP_log("[xGW UDP] After process_motor_set error\r\n");
                         g_udp_state.parse_errors++;
                     }
-                    DebugP_log("[xGW UDP] MOTOR_SET case done\r\n");
                     break;
 
                 default:
                     g_udp_state.parse_errors++;
                     break;
             }
-            DebugP_log("[xGW UDP] Packet processing done, continuing loop\r\n");
         }
 
         /* Periodic stats logging (every 5 seconds) */
@@ -880,7 +840,6 @@ static void udp_rx_task(void* parameters)
         }
     }
 
-    DebugP_log("[xGW UDP] RX task stopped\r\n");
     vTaskDelete(NULL);
 }
 

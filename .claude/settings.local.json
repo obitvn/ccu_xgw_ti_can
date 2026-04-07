@@ -105,7 +105,9 @@
       "Bash(find C:/Users/chuti -name .metadata -path */ccs*)",
       "Bash(find C:/Users/chuti/AppData/Local/Temp -name vscodedms* -type d)",
       "Bash(find D:VinDynamicsProjectCCU_TI_RS485_CAN2.Firmwaredraftmcu_plus_sdk_am263px_11_01_00_19 -name *mcan*rx*interrupt*.c -type f)",
-      "Bash(grep -r DEBUG_COUNTER_INC D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/ccu_ti_mutilcore/ --include=*.h)"
+      "Bash(grep -r DEBUG_COUNTER_INC D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/ccu_ti_mutilcore/ --include=*.h)",
+      "Bash(grep -r \"8192\\\\|0x2000\" D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/ccu_ti_mutilcore/gateway_shared.*)",
+      "Bash(grep -r \"RINGBUF_SIZE\\\\|RINGBUF.*SIZE\" D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/ccu_ti_mutilcore/ --include=*.h --include=*.c)"
     ]
   }
 }
