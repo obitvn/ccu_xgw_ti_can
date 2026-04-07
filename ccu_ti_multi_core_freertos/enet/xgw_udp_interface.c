@@ -755,7 +755,9 @@ int xgw_udp_process_motor_set(const uint8_t* data, uint16_t length)
         if (motor_set_count <= 5) {
             DebugP_log("[xGW UDP] Motor SET #%u: Notify returned\r\n", motor_set_count);
         }
+        DebugP_log("[xGW UDP] Motor SET #%u: Before rx_count++\r\n", motor_set_count);
         g_udp_state.rx_count++;
+        DebugP_log("[xGW UDP] Motor SET #%u: After rx_count++, returning\r\n", motor_set_count);
         return 0;
     } else {
         DebugP_log("[xGW UDP] ERROR: Motor SET #%u: Failed to write IPC! ret=%d\r\n",
@@ -836,18 +838,26 @@ static void udp_rx_task(void* parameters)
                     break;
 
                 case XGW_MSG_TYPE_MOTOR_SET:
+                    DebugP_log("[xGW UDP] Before process_motor_set\r\n");
                     if (xgw_udp_process_motor_set(rx_item.data, rx_item.length) == 0) {
+                        DebugP_log("[xGW UDP] After process_motor_set success\r\n");
                         g_udp_state.rx_count++;
-                        DEBUG_COUNTER_INC(dbg_udp_rx_count);
+                        DebugP_log("[xGW UDP] After rx_count++\r\n");
+                        /* [TEMP] Disable DEBUG_COUNTER_INC to test if it causes hang */
+                        /* DEBUG_COUNTER_INC(dbg_udp_rx_count); */
+                        DebugP_log("[xGW UDP] After DEBUG_COUNTER_INC (disabled)\r\n");
                     } else {
+                        DebugP_log("[xGW UDP] After process_motor_set error\r\n");
                         g_udp_state.parse_errors++;
                     }
+                    DebugP_log("[xGW UDP] MOTOR_SET case done\r\n");
                     break;
 
                 default:
                     g_udp_state.parse_errors++;
                     break;
             }
+            DebugP_log("[xGW UDP] Packet processing done, continuing loop\r\n");
         }
 
         /* Periodic stats logging (every 5 seconds) */

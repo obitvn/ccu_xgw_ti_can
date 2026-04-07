@@ -215,14 +215,16 @@ static void ipc_notify_callback_fxn(uint32_t remoteCoreId, uint16_t localClientI
     (void)args;
 
     /* Debug: Log IPC callback entry */
-    DebugP_log("[Core1] IPC CALLBACK: remoteCore=%u, clientId=%u, msgValue=0x%X\r\n",
+    DebugP_log("[Core1] *** IPC CALLBACK ENTRY ***: remoteCore=%u, clientId=%u, msgValue=0x%X\r\n",
                remoteCoreId, localClientId, msgValue);
 
     g_ipc_event_count++;
-    DEBUG_COUNTER_INC(dbg_ipc_send_count);
+    /* DEBUG_COUNTER_INC(dbg_ipc_send_count); */  /* [TEMP] Disabled to test */
 
     /* Call gateway shared memory callback - handles the actual IPC message */
+    DebugP_log("[Core1] Before gateway_core1_ipc_callback\r\n");
     gateway_core1_ipc_callback(localClientId, (uint16_t)msgValue);
+    DebugP_log("[Core1] After gateway_core1_ipc_callback\r\n");
 
     /* Check for motor commands ready */
     if (remoteCoreId == CSL_CORE_ID_R5FSS0_0 && msgValue == MSG_ETH_DATA_READY) {
@@ -234,6 +236,7 @@ static void ipc_notify_callback_fxn(uint32_t remoteCoreId, uint16_t localClientI
         g_commands_ready = true;
         __asm volatile("dmb" ::: "memory");
     }
+    DebugP_log("[Core1] *** IPC CALLBACK EXIT ***\r\n");
 }
 
 /*==============================================================================
