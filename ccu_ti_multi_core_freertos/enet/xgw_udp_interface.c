@@ -84,12 +84,29 @@ static TaskHandle_t g_udp_task_handle = NULL;
 static ip_addr_t g_pc_ip_addr = IPADDR4_INIT_BYTES(192, 168, 1, 3);
 static bool g_pc_ip_configured = false;  /* Track if IP was explicitly set */
 
+/* [FIX B070] UDP RX Queue and Task
+ * Queue-based processing prevents lwIP thread blocking
+ * Reference: ccu_ti/ccu_xgw_gateway.c */
+static QueueHandle_t g_udp_rx_queue = NULL;
+static TaskHandle_t g_udp_rx_task_handle = NULL;
+static volatile bool g_udp_rx_task_running = false;
+
+/* [DEBUG B071] Debug counters for UDP RX queue processing */
+volatile uint32_t g_udp_rx_callback_count = 0;      /* Packets received in callback */
+volatile uint32_t g_udp_rx_queue_success = 0;       /* Successfully queued */
+volatile uint32_t g_udp_rx_queue_full = 0;          /* Queue full errors */
+volatile uint32_t g_udp_rx_task_wakeups = 0;        /* Task notified */
+volatile uint32_t g_udp_rx_task_packets = 0;        /* Packets processed by task */
+
 /*==============================================================================
  * FORWARD DECLARATIONS
  *============================================================================*/
 
 static void xgw_udp_recv_callback(void* arg, struct udp_pcb* pcb, struct pbuf* p,
                                    const ip_addr_t* addr, u16_t port);
+
+/* [FIX B070] UDP RX Task */
+static void udp_rx_task(void* parameters);
 
 /* [QA TRACE T019, T020] Debug GPIO helper functions */
 static void debug_gpio_init_udp(void);
@@ -134,6 +151,14 @@ int xgw_udp_init(void)
 
     DebugP_log("[xGW UDP] Initializing UDP interface...\r\n");
     DebugP_log("[xGW UDP] RX Port: %d, TX Port: %d\r\n", XGW_UDP_RX_PORT, XGW_UDP_TX_PORT);
+
+    /* [FIX B070] Create UDP RX queue */
+    g_udp_rx_queue = xQueueCreate(XGW_UDP_RX_QUEUE_SIZE, sizeof(xgw_udp_rx_item_t));
+    if (g_udp_rx_queue == NULL) {
+        DebugP_log("[xGW UDP] ERROR: Failed to create RX queue!\r\n");
+        return -1;
+    }
+    DebugP_log("[xGW UDP] RX queue created: size=%d\r\n", XGW_UDP_RX_QUEUE_SIZE);
 
     g_udp_state.initialized = true;
     g_udp_state.sequence = 0;
@@ -649,6 +674,10 @@ int xgw_udp_process_motor_cmd(const uint8_t* data, uint16_t length)
 
 int xgw_udp_process_motor_set(const uint8_t* data, uint16_t length)
 {
+    /* [DEBUG B071] Static counter to log first few motor_set packets */
+    static uint32_t motor_set_count = 0;
+    motor_set_count++;
+
     if (data == NULL || length < sizeof(xgw_header_t)) {
         return -1;
     }
@@ -684,6 +713,12 @@ int xgw_udp_process_motor_set(const uint8_t* data, uint16_t length)
         return -1;
     }
 
+    /* [DEBUG B071] Log first few motor_set packets */
+    if (motor_set_count <= 10) {
+        DebugP_log("[xGW UDP] Motor SET #%u: count=%d, mode[0]=%u, motor_id[0]=%u\r\n",
+                   motor_set_count, count, sets[0].mode, sets[0].motor_id);
+    }
+
     /* Convert motor set commands to motor commands and send to Core1
      * Motor set commands are used to configure motor mode (disable, enable, etc)
      * The motor_id will be used to look up the CAN bus from motor_config table */
@@ -707,15 +742,217 @@ int xgw_udp_process_motor_set(const uint8_t* data, uint16_t length)
     int ret = gateway_ringbuf_core0_send(ipc_cmds, count * sizeof(motor_cmd_ipc_t), &bytes_written);
 
     if (ret == 0) {
+        /* [DEBUG B071] Log success for first few packets */
+        if (motor_set_count <= 5) {
+            DebugP_log("[xGW UDP] Motor SET #%u: IPC send OK, %u bytes\r\n",
+                       motor_set_count, bytes_written);
+        }
         /* Notify Core 1 */
+        if (motor_set_count <= 5) {
+            DebugP_log("[xGW UDP] Motor SET #%u: About to notify Core1\r\n", motor_set_count);
+        }
         gateway_notify_commands_ready();
+        if (motor_set_count <= 5) {
+            DebugP_log("[xGW UDP] Motor SET #%u: Notify returned\r\n", motor_set_count);
+        }
         g_udp_state.rx_count++;
-        DebugP_log("[xGW UDP] Processed %d motor set commands\r\n", count);
         return 0;
     } else {
-        DebugP_log("[xGW UDP] ERROR: Failed to write motor set commands!\r\n");
+        DebugP_log("[xGW UDP] ERROR: Motor SET #%u: Failed to write IPC! ret=%d\r\n",
+                   motor_set_count, ret);
         g_udp_state.rx_errors++;
         return -1;
+    }
+}
+
+/*==============================================================================
+ * [FIX B070] UDP RX TASK - Queue-based packet processing
+ *============================================================================
+ *
+ * Processes UDP packets from the RX queue in task context (not lwIP thread).
+ * This prevents blocking in the lwIP tcpip_thread when:
+ * - Ring buffer is full
+ * - DebugP_log() is called (UART blocking)
+ * - IPC operations take time
+ *
+ * Reference: ccu_ti/ccu_xgw_gateway.c:udp_rx_task()
+ */
+
+/**
+ * @brief UDP RX task - Process packets from queue
+ *
+ * Waits for notification from callback, then processes all queued packets.
+ */
+static void udp_rx_task(void* parameters)
+{
+    (void)parameters;
+    xgw_udp_rx_item_t rx_item;
+    uint32_t packets_processed = 0;
+    uint32_t last_stats_time = xTaskGetTickCount();
+    uint32_t last_log_time = xTaskGetTickCount();
+
+    DebugP_log("[xGW UDP] RX task started\r\n");
+
+    while (g_udp_rx_task_running) {
+        /* Wait for notification from callback (timeout 1ms for stats update) */
+        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(1));
+
+        /* Process all queued packets */
+        while (xQueueReceive(g_udp_rx_queue, &rx_item, 0) == pdTRUE) {
+            packets_processed++;
+            g_udp_rx_task_packets++;
+
+            /* [DEBUG B071] Log first few packets for debugging */
+            if (g_udp_rx_task_packets <= 5) {
+                DebugP_log("[xGW UDP] RX task: packet #%u, len=%u, type=%u\r\n",
+                           g_udp_rx_task_packets, rx_item.length,
+                           rx_item.length >= sizeof(xgw_header_t) ? ((xgw_header_t*)rx_item.data)->msg_type : 0xFF);
+            }
+
+            /* Check minimum packet size (header only) */
+            if (rx_item.length < sizeof(xgw_header_t)) {
+                g_udp_state.parse_errors++;
+                continue;
+            }
+
+            /* Parse header */
+            const xgw_header_t* header = (const xgw_header_t*)rx_item.data;
+
+            /* Validate magic */
+            if (header->magic != XGW_PROTOCOL_MAGIC) {
+                g_udp_state.parse_errors++;
+                continue;
+            }
+
+            /* Process by message type */
+            switch (header->msg_type) {
+                case XGW_MSG_TYPE_MOTOR_CMD:
+                    if (xgw_udp_process_motor_cmd(rx_item.data, rx_item.length) == 0) {
+                        g_udp_state.rx_count++;
+                        DEBUG_COUNTER_INC(dbg_udp_rx_count);
+                    } else {
+                        g_udp_state.parse_errors++;
+                    }
+                    break;
+
+                case XGW_MSG_TYPE_MOTOR_SET:
+                    if (xgw_udp_process_motor_set(rx_item.data, rx_item.length) == 0) {
+                        g_udp_state.rx_count++;
+                        DEBUG_COUNTER_INC(dbg_udp_rx_count);
+                    } else {
+                        g_udp_state.parse_errors++;
+                    }
+                    break;
+
+                default:
+                    g_udp_state.parse_errors++;
+                    break;
+            }
+        }
+
+        /* Periodic stats logging (every 5 seconds) */
+        uint32_t current_time = xTaskGetTickCount();
+        if (current_time - last_stats_time >= pdMS_TO_TICKS(5000)) {
+            if (packets_processed > 0) {
+                DebugP_log("[xGW UDP] RX task: processed %u packets in 5s (total=%u, callback=%u, queued=%u, full=%u)\r\n",
+                           packets_processed, g_udp_rx_task_packets,
+                           g_udp_rx_callback_count, g_udp_rx_queue_success, g_udp_rx_queue_full);
+                packets_processed = 0;
+            }
+            last_stats_time = current_time;
+        }
+
+        /* [DEBUG B071] Initial status log (first 10 seconds) */
+        if (current_time - last_log_time >= pdMS_TO_TICKS(10000) && g_udp_rx_task_packets < 100) {
+            DebugP_log("[xGW UDP] Status: callback=%u, queued=%u, task_packets=%u, queue_full=%u\r\n",
+                       g_udp_rx_callback_count, g_udp_rx_queue_success, g_udp_rx_task_packets, g_udp_rx_queue_full);
+            last_log_time = current_time;
+        }
+    }
+
+    DebugP_log("[xGW UDP] RX task stopped\r\n");
+    vTaskDelete(NULL);
+}
+
+/*==============================================================================
+ * [FIX B070] UDP RX TASK START/STOP FUNCTIONS
+ *============================================================================*/
+
+/**
+ * @brief Start UDP RX task
+ *
+ * Creates the FreeRTOS task that processes packets from the RX queue.
+ * Must be called after xgw_udp_start().
+ *
+ * @param task_stack Stack buffer for the task
+ * @param task_stack_size Size of stack buffer in bytes
+ * @param task_tcb Task control block buffer (StaticTask_t) for xTaskCreateStatic
+ * @return 0 on success, -1 on error
+ */
+int xgw_udp_start_rx_task(void* task_stack, uint32_t task_stack_size, void* task_tcb)
+{
+    if (g_udp_rx_task_running) {
+        DebugP_log("[xGW UDP] RX task already running\r\n");
+        return 0;
+    }
+
+    if (g_udp_rx_queue == NULL) {
+        DebugP_log("[xGW UDP] ERROR: RX queue not created!\r\n");
+        return -1;
+    }
+
+    if (task_tcb == NULL) {
+        DebugP_log("[xGW UDP] ERROR: Task TCB buffer is NULL!\r\n");
+        return -1;
+    }
+
+    /* [DEBUG B071] Debug logging */
+    DebugP_log("[xGW UDP] Starting RX task: stack_size=%u, tcb=%p, priority=%u\r\n",
+               task_stack_size, task_tcb, XGW_UDP_RX_TASK_PRIORITY);
+
+    /* Create task with static stack and TCB */
+    g_udp_rx_task_running = true;
+    g_udp_rx_task_handle = xTaskCreateStatic(
+        udp_rx_task,
+        "udp_rx_task",
+        task_stack_size / sizeof(configSTACK_DEPTH_TYPE),
+        NULL,
+        XGW_UDP_RX_TASK_PRIORITY,
+        (StackType_t*)task_stack,
+        (StaticTask_t*)task_tcb  /* Task control block from caller */
+    );
+
+    if (g_udp_rx_task_handle == NULL) {
+        DebugP_log("[xGW UDP] ERROR: Failed to create RX task!\r\n");
+        g_udp_rx_task_running = false;
+        return -1;
+    }
+
+    DebugP_log("[xGW UDP] RX task created successfully, handle=%p\r\n", g_udp_rx_task_handle);
+
+    /* Give task time to start and log its startup message */
+    vTaskDelay(pdMS_TO_TICKS(10));
+
+    return 0;
+}
+
+/**
+ * @brief Stop UDP RX task
+ *
+ * Gracefully stops the UDP RX task.
+ */
+void xgw_udp_stop_rx_task(void)
+{
+    if (g_udp_rx_task_running) {
+        g_udp_rx_task_running = false;
+
+        /* Notify task to wake it up */
+        if (g_udp_rx_task_handle != NULL) {
+            vTaskNotifyGiveFromISR(g_udp_rx_task_handle, NULL);
+            g_udp_rx_task_handle = NULL;
+        }
+
+        DebugP_log("[xGW UDP] RX task stop requested\r\n");
     }
 }
 
@@ -723,81 +960,60 @@ int xgw_udp_process_motor_set(const uint8_t* data, uint16_t length)
  * UDP RX CALLBACK
  *============================================================================*/
 
+/**
+ * @brief UDP RX receive callback (lwIP tcpip_thread context)
+ *
+ * [FIX B070] ONLY queue packets for processing - NO blocking operations!
+ * Reference: ccu_ti/ccu_xgw_gateway.c:udp_recv_callback()
+ *
+ * CRITICAL: This runs in lwIP tcpip_thread context. Must NOT block!
+ * - NO DebugP_log() (blocks on UART)
+ * - NO ringbuf operations (can block if full)
+ * - NO IPC notifications (can block)
+ * Only copy packet to queue and return immediately.
+ */
 static void xgw_udp_recv_callback(void* arg, struct udp_pcb* pcb, struct pbuf* p,
                                    const ip_addr_t* addr, u16_t port)
 {
     (void)arg;
+    (void)pcb;  /* PCB already validated by lwIP via udp_bind() */
 
-    /* Convert ports from network byte order to host byte order */
-    uint16_t src_port = lwip_ntohs(port);  /* Source port (PC) */
-    uint16_t dst_port = lwip_ntohs(pcb->local_port);  /* Destination port (MCU) */
+    /* [DEBUG B071] Count every callback invocation */
+    g_udp_rx_callback_count++;
 
-    /* [DEBUG-UDP-RX] Check if this is RX or TX PCB */
-    int is_rx_pcb = (pcb == g_udp_rx_pcb);
-    int is_tx_pcb = (pcb == g_udp_tx_pcb);
+    /* [FIX B070] Queue-based processing - copy packet to queue and return */
+    if (p != NULL && g_udp_rx_queue != NULL) {
+        xgw_udp_rx_item_t rx_item;
+        rx_item.length = (p->len > sizeof(rx_item.data)) ? sizeof(rx_item.data) : p->len;
 
-    /* [DEBUG-UDP-RX] Entry point - always log this FIRST */
-    DebugP_log("[xGW UDP] === RX ENTRY === pcb=%p (rx=%d,tx=%d), src_port=%d, dst_port=%d\r\n",
-               pcb, is_rx_pcb, is_tx_pcb, src_port, dst_port);
+        /* Copy packet data to queue item */
+        pbuf_copy_partial(p, rx_item.data, rx_item.length, 0);
 
-    /* [QA TRACE T019] GPIO PA5 pulse on UDP RX entry */
-    /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
-    uint32_t baseAddr = (uint32_t)AddrTranslateP_getLocalAddr(DEBUG_GPIO_UDP_RX_BASE_ADDR);
-    GPIO_pinWriteHigh(baseAddr, DEBUG_GPIO_UDP_RX_PIN);
-    */
+        /* Copy source address and port */
+        ip_addr_copy(rx_item.src_addr, *addr);
+        rx_item.src_port = port;
 
-    if (p == NULL) {
-        /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
-        GPIO_pinWriteLow(baseAddr, DEBUG_GPIO_UDP_RX_PIN);
-        */
-        DebugP_log("[xGW UDP] RX: p=NULL, returning\r\n");
-        return;
-    }
+        /* Try to queue packet - non-blocking! */
+        BaseType_t queue_result = xQueueSend(g_udp_rx_queue, &rx_item, 0);
 
-    /* Copy packet data */
-    if (p->len > 0 && p->len <= XGW_UDP_MAX_PACKET_SIZE) {
-        uint8_t data[XGW_UDP_MAX_PACKET_SIZE];
-        uint16_t length = pbuf_copy_partial(p, data, p->len, 0);
-
-        /* lwIP already filtered by port via udp_bind(), no need to check port here */
-        /* Check message type */
-        if (length >= sizeof(xgw_header_t)) {
-            const xgw_header_t* header = (const xgw_header_t*)data;
-
-            switch (header->msg_type) {
-                case XGW_MSG_TYPE_MOTOR_CMD:
-                    xgw_udp_process_motor_cmd(data, length);
-                    g_udp_state.rx_count++;
-                    /* [QA TRACE T027] Increment UDP RX counter */
-                    DEBUG_COUNTER_INC(dbg_udp_rx_count);
-                    break;
-
-                case XGW_MSG_TYPE_MOTOR_SET:
-                    xgw_udp_process_motor_set(data, length);
-                    g_udp_state.rx_count++;
-                    /* [QA TRACE T027] Increment UDP RX counter */
-                    DEBUG_COUNTER_INC(dbg_udp_rx_count);
-                    break;
-
-                default:
-                    DebugP_log("[xGW UDP] Unknown message type: 0x%02X\r\n", header->msg_type);
-                    g_udp_state.parse_errors++;
-                    break;
+        if (queue_result == pdTRUE) {
+            /* Successfully queued - notify UDP RX task */
+            g_udp_rx_queue_success++;
+            if (g_udp_rx_task_handle != NULL) {
+                BaseType_t higher_priority_task_woken = pdFALSE;
+                vTaskNotifyGiveFromISR(g_udp_rx_task_handle, &higher_priority_task_woken);
+                portYIELD_FROM_ISR(higher_priority_task_woken);
+                g_udp_rx_task_wakeups++;
             }
         } else {
-            DebugP_log("[xGW UDP] RX: Packet too short: %d < %d\r\n", length, sizeof(xgw_header_t));
+            /* Queue full - packet dropped, update error counter */
+            g_udp_rx_queue_full++;
+            g_udp_state.rx_errors++;
         }
-        /* NOTE: User callback (g_rx_callback) removed to prevent duplicate processing.
-         * All UDP packet processing is now handled directly in this callback. */
-    } else {
-        DebugP_log("[xGW UDP] RX: Invalid length: %d\r\n", p ? p->len : 0);
     }
 
-    /* Free pbuf */
-    pbuf_free(p);
-
-    /* [QA TRACE T019] GPIO PA5 LOW on UDP RX exit */
-    /* TODO: Enable GPIO instrumentation pins in SysConfig before uncommenting
-    GPIO_pinWriteLow(baseAddr, DEBUG_GPIO_UDP_RX_PIN);
-    */
+    /* Always free pbuf - MUST be done in callback! */
+    if (p != NULL) {
+        pbuf_free(p);
+    }
 }

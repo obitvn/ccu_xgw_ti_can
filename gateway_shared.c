@@ -431,20 +431,22 @@ void gateway_update_stat(uint8_t core_id, uint8_t stat_id)
 
 int gateway_notify_commands_ready(void)
 {
-#if GATEWAY_USE_PINGPONG_BUFFER
-    return IpcNotify_sendMsg(CSL_CORE_ID_R5FSS0_1, GATEWAY_IPC_CLIENT_ID, MSG_ETH_DATA_READY, 1);
-#else
-    return IpcNotify_sendMsg(CSL_CORE_ID_R5FSS0_1, CLIENT_ID_ETH_TX, MSG_ETH_DATA_READY, 1);
-#endif
+    /* [FIX B072] Both cores register with GATEWAY_IPC_CLIENT_ID, so send to the same ID
+     * Previously used CLIENT_ID_ETH_TX when GATEWAY_USE_PINGPONG_BUFFER=0, but
+     * Core1 only registers with GATEWAY_IPC_CLIENT_ID, causing IPC notifications to be lost */
+    /* [DEBUG B074] Trace IPC notification */
+    DebugP_log("[IPC-TRACE] notify_commands_ready: BEFORE IpcNotify_sendMsg\r\n");
+    int ret = IpcNotify_sendMsg(CSL_CORE_ID_R5FSS0_1, GATEWAY_IPC_CLIENT_ID, MSG_ETH_DATA_READY, 1);
+    DebugP_log("[IPC-TRACE] notify_commands_ready: AFTER IpcNotify_sendMsg, ret=%d\r\n", ret);
+    return ret;
 }
 
 int gateway_notify_states_ready(void)
 {
-#if GATEWAY_USE_PINGPONG_BUFFER
+    /* [FIX B072] Both cores register with GATEWAY_IPC_CLIENT_ID, so send to the same ID
+     * Previously used CLIENT_ID_CAN_RX when GATEWAY_USE_PINGPONG_BUFFER=0, but
+     * Core0 only registers with GATEWAY_IPC_CLIENT_ID, causing IPC notifications to be lost */
     return IpcNotify_sendMsg(CSL_CORE_ID_R5FSS0_0, GATEWAY_IPC_CLIENT_ID, MSG_CAN_DATA_READY, 1);
-#else
-    return IpcNotify_sendMsg(CSL_CORE_ID_R5FSS0_0, CLIENT_ID_CAN_RX, MSG_CAN_DATA_READY, 1);
-#endif
 }
 
 /*==============================================================================

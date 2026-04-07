@@ -1,7 +1,7 @@
 ******************************************************************************
             TI ARM Clang Linker PC v4.0.4                      
 ******************************************************************************
->> Linked Tue Apr  7 14:38:42 2026
+>> Linked Tue Apr  7 17:40:37 2026
 
 OUTPUT FILE NAME:   <ccu_ti_multi_core_realtime.out>
 ENTRY POINT SYMBOL: "_vectors"  address: 00000000

@@ -464,8 +464,9 @@ int gateway_notify_commands_ready(void)
      * Core1 registration. Previous code used CLIENT_ID_ETH_TX when
      * GATEWAY_USE_PINGPONG_BUFFER=0, but Core1 registers with
      * GATEWAY_IPC_CLIENT_ID, causing IPC notification mismatch. */
-    DebugP_log("[Core0] Sending IPC notify to Core1: clientId=%u, msg=0x%X\r\n",
-               GATEWAY_IPC_CLIENT_ID, MSG_ETH_DATA_READY);
+    /* [FIX B067] Remove DebugP_log from lwIP thread context */
+    /* DebugP_log("[Core0] Sending IPC notify to Core1: clientId=%u, msg=0x%X\r\n",
+               GATEWAY_IPC_CLIENT_ID, MSG_ETH_DATA_READY); */
     int ret = IpcNotify_sendMsg(CSL_CORE_ID_R5FSS1_1, GATEWAY_IPC_CLIENT_ID, MSG_ETH_DATA_READY, 1);
     if (ret != SystemP_SUCCESS) {
         DebugP_log("[Core0] ERROR: IpcNotify_sendMsg failed! ret=%d\r\n", ret);

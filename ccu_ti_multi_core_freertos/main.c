@@ -71,7 +71,7 @@ volatile uint32_t dbg_imu_frame_count __attribute__((section(".bss.user_shared_m
 #define MAIN_TASK_SIZE        (4096U/sizeof(configSTACK_DEPTH_TYPE))
 #define ENET_LWIP_TASK_SIZE   (16384U/sizeof(configSTACK_DEPTH_TYPE))  /* Increased from 2KB to 16KB to prevent stack overflow */
 #define UDP_TX_TASK_SIZE      (16384U/sizeof(configSTACK_DEPTH_TYPE))
-#define UDP_RX_TASK_SIZE      (2048U/sizeof(configSTACK_DEPTH_TYPE))
+#define UDP_RX_TASK_SIZE      (4096U/sizeof(configSTACK_DEPTH_TYPE))  /* [FIX B073] Increased from 2048 to prevent stack overflow */
 #define IPC_TASK_SIZE         (1024U/sizeof(configSTACK_DEPTH_TYPE))
 
 #define UDP_TX_PERIOD_MS      1   
@@ -99,11 +99,13 @@ typedef struct {
 static StackType_t gMainTaskStack[MAIN_TASK_SIZE] __attribute__((aligned(32)));
 static StackType_t gEnetLwipTaskStack[ENET_LWIP_TASK_SIZE] __attribute__((aligned(32)));
 static StackType_t gUdpTxTaskStack[UDP_TX_TASK_SIZE] __attribute__((aligned(32)));
+static StackType_t gUdpRxTaskStack[UDP_RX_TASK_SIZE] __attribute__((aligned(32)));  /* [FIX B070] */
 static StackType_t gIpcTaskStack[IPC_TASK_SIZE] __attribute__((aligned(32)));
 
 static StaticTask_t gMainTaskObj;
 static StaticTask_t gEnetLwipTaskObj;
 static StaticTask_t gUdpTxTaskObj;
+static StaticTask_t gUdpRxTaskObj;  /* [FIX B070] UDP RX task TCB */
 static StaticTask_t gIpcTaskObj;
 
 TaskHandle_t gMainTask = NULL;
@@ -876,6 +878,9 @@ static void freertos_main(void *args)
  *
  * This is called in the context of the tcpip thread, after lwIP protection
  * (mutexes) has been initialized. Safe to call lwIP APIs here.
+ *
+ * [NOTE] This callback is NOT currently used. test.c uses its own test_init() callback.
+ * This function is kept for reference but is dead code.
  */
 static void lwip_init_callback(void *arg)
 {
@@ -891,6 +896,18 @@ static void lwip_init_callback(void *arg)
         DebugP_log("[Core0] xGW UDP interface started successfully\r\n");
         DebugP_log("[Core0] UDP RX Port: %d (PC -> xGW)\r\n", XGW_UDP_RX_PORT);
         DebugP_log("[Core0] UDP TX Port: %d (xGW -> PC)\r\n", XGW_UDP_TX_PORT);
+
+        /* [FIX B070] Start UDP RX task for queue-based processing
+         * This prevents lwIP thread blocking when processing many packets
+         * Reference: ccu_ti/ccu_xgw_gateway.c */
+        DebugP_log("[Core0] *** ABOUT TO START UDP RX TASK ***\r\n");
+        status = xgw_udp_start_rx_task(&gUdpRxTaskStack[0], sizeof(gUdpRxTaskStack), &gUdpRxTaskObj);
+        DebugP_log("[Core0] *** UDP RX TASK START RETURNED: status=%d ***\r\n", status);
+        if (status != 0) {
+            DebugP_log("[Core0] ERROR: UDP RX task start failed!\r\n");
+        } else {
+            DebugP_log("[Core0] UDP RX task started\r\n");
+        }
     }
 
     /* Signal that initialization is complete */

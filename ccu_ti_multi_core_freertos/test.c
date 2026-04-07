@@ -27,6 +27,13 @@
 /* xGW UDP interface */
 #include "enet/xgw_udp_interface.h"
 
+/* FreeRTOS for task stack type */
+#include "FreeRTOS.h"
+
+/* [FIX B070] UDP RX Task Stack & TCB - Queue-based packet processing */
+static StackType_t gUdpRxTaskStack[XGW_UDP_RX_TASK_STACK_SIZE] __attribute__((aligned(32)));
+static StaticTask_t gUdpRxTaskTcb;  /* Task control block for xTaskCreateStatic */
+
 #ifndef LWIP_EXAMPLE_APP_ABORT
 #define LWIP_EXAMPLE_APP_ABORT() 0
 #endif
@@ -161,17 +168,6 @@ static void test_init(void *arg)
     /* Start xGW UDP interface */
     DebugP_log("[Core0] Starting xGW UDP interface...\r\n");
 
-    /* [FIX B030] Set PC IP address for UDP TX - Use UNICAST, not broadcast!
-     * Broadcast (255.255.255.255) causes pbuf reference counting leak in lwIP
-     * When udp_sendto() uses broadcast, pbuf->ref becomes 2+ and ethernet driver
-     * may not properly free pbuf after transmit, causing memory pool exhaustion
-     * Solution: Use unicast PC IP (192.168.1.3) - default already set correctly
-     *
-     * Commented out - default in xgw_udp_interface.c is already correct (192.168.1.3)
-     * Only uncomment if you need to change PC IP address */
-    /* uint8_t pc_ip[4] = {192, 168, 1, 3};  */  /* Unicast - PC IP */
-    /* xgw_udp_set_pc_ip(pc_ip); */  /* Optional: override default if needed */
-
     int32_t status = xgw_udp_start();
     if (status != 0) {
         DebugP_log("[Core0] ERROR: xGW UDP interface start failed!\r\n");
@@ -179,6 +175,17 @@ static void test_init(void *arg)
         DebugP_log("[Core0] xGW UDP interface started successfully\r\n");
         DebugP_log("[Core0] UDP RX Port: %d (PC -> xGW)\r\n", XGW_UDP_RX_PORT);
         DebugP_log("[Core0] UDP TX Port: %d (xGW -> PC)\r\n", XGW_UDP_TX_PORT);
+
+        /* [FIX B070] Start UDP RX task for queue-based packet processing
+         * This prevents lwIP thread blocking when processing many packets (enable_all, disable_all) */
+        DebugP_log("[Core0] About to start UDP RX task: stack@%p, tcb@%p, size=%u bytes\r\n",
+                   gUdpRxTaskStack, &gUdpRxTaskTcb, (unsigned int)sizeof(gUdpRxTaskStack));
+        status = xgw_udp_start_rx_task(&gUdpRxTaskStack[0], sizeof(gUdpRxTaskStack), &gUdpRxTaskTcb);
+        if (status != 0) {
+            DebugP_log("[Core0] ERROR: UDP RX task start failed!\r\n");
+        } else {
+            DebugP_log("[Core0] UDP RX task started\r\n");
+        }
     }
 
 #if !NO_SYS
