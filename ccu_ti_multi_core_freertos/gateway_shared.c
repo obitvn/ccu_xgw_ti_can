@@ -184,6 +184,15 @@ void gateway_core0_ipc_callback(uint16_t clientId, uint16_t msg)
             gGatewaySharedMem.stats.ipc_notify_count[clientId & 0x3]++;
             break;
 
+        case MSG_IMU_DATA_READY:
+            /* [FIX B041] Core 1 has new IMU data ready
+             * IMU data is written to shared memory by Core1, imu_ready_flag is set
+             * This message notifies Core0 to read the IMU state from shared memory
+             * Note: IMU ready flag is set by Core1, cleared by Core0 after reading */
+            gGatewaySharedMem.stats.ipc_notify_count[clientId & 0x3]++;
+            /* IMU data is already in shared memory, UDP TX task will read it */
+            break;
+
         case MSG_EMERGENCY_STOP:
             /* Emergency stop from Core 1 - set flag for main loop to handle */
             gGatewaySharedMem.emergency_stop_flag = 1;

@@ -166,6 +166,13 @@ void gateway_core0_ipc_callback(uint16_t clientId, uint16_t msg)
             gGatewaySharedMem.stats.ipc_notify_count[clientId & 0x3]++;
             break;
 
+        case MSG_IMU_DATA_READY:
+            /* [FIX B041] Core 1 has new IMU data ready
+             * IMU data is written to shared memory by Core1, imu_ready_flag is set
+             * This message notifies Core0 to read the IMU state from shared memory */
+            gGatewaySharedMem.stats.ipc_notify_count[clientId & 0x3]++;
+            break;
+
 #if GATEWAY_USE_PINGPONG_BUFFER
         case MSG_ETH_DATA_ACK:
             /* Core 1 has received our motor commands */

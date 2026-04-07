@@ -1,5 +1,11 @@
 # CCU Multicore Debug Configuration
 
+## ⚠️ IMPORTANT: Cross-Cluster Debug Fix
+
+**Nếu Core3 không halt khi debug lần thứ 2, xem:** [CCS_MULTICORE_DEBUG_TUTORIAL.md](CCS_MULTICORE_DEBUG_TUTORIAL.md) - Hướng dẫn fix chi tiết.
+
+**Tóm tắt:** File `.theia/launch.json` phải có `ResetOnRestart=1` và `AutoResetOnConnect=1` cho TẤT CẢ cores.
+
 ## Overview
 
 Đã cấu hình debug riêng cho từng core của AM263Px multicore system:

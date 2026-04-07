@@ -72,6 +72,7 @@ yis320_private_data_t g_yis320_private_data;
  * [MIGRATED FROM draft/ccu_ti/imu/yis320/yis320_protocol.c:52-58]
  */
 static uint32_t g_frames_parsed = 0;
+/* [FIX B042] dbg_imu_frame_count already incremented by DEBUG_COUNTER_INC in gateway_write_imu_state() */
 static uint32_t g_frames_error = 0;
 static uint32_t g_bytes_received = 0;
 static uint32_t g_last_log_time = 0;
@@ -654,6 +655,7 @@ static void vtable_process_rx_data(imu_protocol_handler_t* handler, const uint8_
 
         if (parse_imu_frame(priv->rx_buffer + consumed, frame_size, &temp_state)) {
             g_frames_parsed++;
+            /* [FIX B042] dbg_imu_frame_count incremented by DEBUG_COUNTER_INC in gateway_write_imu_state() */
             g_last_parse_time = yis320_get_timestamp_ms();
             g_gap_logged = false;
 

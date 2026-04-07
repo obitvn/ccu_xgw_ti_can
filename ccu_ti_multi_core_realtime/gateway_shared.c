@@ -12,8 +12,7 @@
  * @date 2026-03-29 - Added emergency stop handler for Core 1
  */
 
-#include "gateway_shared.h"
-#include "../common/motor_config_types.h"
+#include "../gateway_shared.h"  /* [FIX B045] Use common header, not local outdated header */
 #include "can_interface.h"  /* For can_frame_t type definition */
 #include <kernel/dpl/DebugP.h>
 #include <string.h>
@@ -505,6 +504,9 @@ int gateway_write_imu_state(const imu_state_ipc_t* imu_state)
     gateway_memory_barrier();
     gGatewaySharedMem.imu_ready_flag = 1;
     gateway_memory_barrier();
+
+    /* [QA TRACE T029] Increment IMU frame counter */
+    DEBUG_COUNTER_INC(dbg_imu_frame_count);
 
     return 0;
 }
