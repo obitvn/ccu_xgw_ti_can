@@ -608,11 +608,8 @@ static void transmit_can_frames(void)
                 is_one_time_command = false;
             }
 
-            /* [DEBUG B095] Log enable frames for motors 16, 17 to debug */
-            if (is_one_time_command && (motor_index == 16 || motor_index == 17)) {
-                DebugP_log("[Core1] Enable: motor_index=%u, CAN_ID=%u, Bus=%u, comm_type=%u\r\n",
-                           motor_index, config->motor_id, config->can_bus, comm_type);
-            }
+            /* [DEBUG B095] Removed misleading debug log - said "Enable" for all one-time commands
+             * comm_type=4 is ZERO_STA_MECH, not ENABLE! */
 
             can_frame_t *frame = &g_frame_buffers[config->can_bus][frame_count[config->can_bus]++];
 

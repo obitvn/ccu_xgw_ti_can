@@ -638,14 +638,14 @@ int xgw_udp_process_motor_cmd(const uint8_t* data, uint16_t length)
 
     for (uint8_t i = 0; i < count; i++) {
         ipc_cmds[i].motor_id = cmds[i].motor_id;
-        /* [FIX B089] Preserve mode from UDP packet instead of overriding to 255
-         * Problem: PC sends enable command (mode=1) but code overrides to mode=255 (MIT)
-         * Core1 then sends MIT frame instead of Enable frame → motor not enabled!
-         * Solution: Keep mode from packet so Core1 can distinguish:
-         * - mode 0-4: One-time commands (disable/enable/zero) → send Enable/Disable frames
-         * - mode 255 or unset: MIT motion control → send MIT frames
-         * Reference: draft/ccu_ti/ccu_xgw_gateway.c doesn't use mode field, but PC may send it */
-        ipc_cmds[i].mode = cmds[i].mode;  /* Preserve mode from packet */
+        /* [FIX B097] MOTOR_CMD message always uses MIT mode (255)
+         * Problem: Python script sends mode=0 (default in MotorCmd class), causing Core1
+         * to treat it as DISABLE command instead of MIT motion control.
+         * Solution: Always set mode=255 for MOTOR_CMD messages (like ccu_ti reference which
+         * ignores mode field and always sends COMM_TYPE_MOTION_CONTROL).
+         * Note: MOTOR_SET messages (enable/disable/zero) use XGW_MSG_TYPE_MOTOR_SET and
+         * are processed separately by xgw_udp_process_motor_set(). */
+        ipc_cmds[i].mode = MOTOR_MODE_MIT_CONTROL;  /* MOTOR_CMD always MIT mode */
         /* [FIX B038] Use float directly in IPC (no more ×100 scaling)
          * Matches reference architecture: float directly from UDP to CAN */
         ipc_cmds[i].position = cmds[i].position;  /* rad (float) */
