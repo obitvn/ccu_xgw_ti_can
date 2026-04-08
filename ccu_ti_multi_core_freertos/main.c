@@ -56,17 +56,31 @@ volatile uint32_t dbg_imu_frame_count __attribute__((section(".bss.user_shared_m
  * CONSTANTS
  *============================================================================*/
 
-#define MAIN_TASK_PRI         (configMAX_PRIORITIES - 1)
-/* CRITICAL: TCP/IP thread must have HIGHER priority than tasks calling udp_sendto()
- * Otherwise TX completion won't be processed and pbufs won't be freed!
- * TCPIP_THREAD_PRIO = 7 (SDK default in lwipopts.h)
- * ENET_LWIP_TASK_PRI = 29
- * UDP_TX_TASK_PRI must be < 7 to allow tcpip thread to run!
- */
-#define ENET_LWIP_TASK_PRI    (configMAX_PRIORITIES - 3)  /* 29 - for lwIP init/operation */
-#define UDP_TX_TASK_PRI       (configMAX_PRIORITIES - 4)  /* LOWER than TCPIP_THREAD_PRIO(7) - allows TX completion */
-#define UDP_RX_TASK_PRI       (configMAX_PRIORITIES - 3)
-#define IPC_TASK_PRI          (configMAX_PRIORITIES - 2)
+#define MAIN_TASK_PRI         (configMAX_PRIORITIES - 1)  /* 31 - Highest */
+/* [FIX B100] CRITICAL: Priority structure for 1000Hz timing
+ *
+ * FREERTOS PRIORITY: 0 (lowest) → 31 (highest)
+ * TCPIP_THREAD_PRIO = 7 (from lwipopts.h)
+ *
+ * IMPORTANT: TCP/IP thread MUST have HIGHER priority than UDP_TX task!
+ * Otherwise: UDP_TX calls LOCK_TCPIP_CORE() + udp_sendto() → blocks
+ *            Tcpip thread (lower priority) never runs to complete TX
+ *            Result: Pbuf leak, UDP_TX starvation, 10ms jitter!
+ *
+ * Priority order (LOW to HIGH):
+ *   UDP_TX_TASK_PRI = 6     → Allow tcpip thread(7) to preempt
+ *   TCPIP_THREAD_PRIO = 7   → lwIP TCP/IP thread (SDK default)
+ *   ENET_LWIP_TASK_PRI = 8   → Ethernet/lwIP init task
+ *   UDP_RX_TASK_PRI = 9     → UDP RX processing
+ *   IPC_TASK_PRI = 29       → IPC callback (runs in ISR context)
+ *   MAIN_TASK_PRI = 30      → Initialization task
+ *
+ * With UDP_TX(6) < TCPIP(7), tcpip thread can preempt UDP_TX to complete
+ * TX operations and free pbufs, preventing jitter and memory leaks. */
+#define UDP_TX_TASK_PRI       6   /* LOWER than TCPIP_THREAD_PRIO(7) - CRITICAL! */
+#define ENET_LWIP_TASK_PRI    8   /* Slightly higher than tcpip for init */
+#define UDP_RX_TASK_PRI       9   /* Higher than tcpip for RX processing */
+#define IPC_TASK_PRI          (configMAX_PRIORITIES - 2)  /* 30 - ISR callback */
 
 #define MAIN_TASK_SIZE        (4096U/sizeof(configSTACK_DEPTH_TYPE))
 #define ENET_LWIP_TASK_SIZE   (16384U/sizeof(configSTACK_DEPTH_TYPE))  /* Increased from 2KB to 16KB to prevent stack overflow */

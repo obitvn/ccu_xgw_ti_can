@@ -91,6 +91,28 @@ static QueueHandle_t g_udp_rx_queue = NULL;
 static TaskHandle_t g_udp_rx_task_handle = NULL;
 static volatile bool g_udp_rx_task_running = false;
 
+/* [FIX B102] Pre-allocated pbuf pool for jitter-free 1000Hz UDP TX
+ * Problem: pbuf_alloc() in fast path causes 1-10ms jitter due to:
+ *   - Heap allocation blocking
+ *   - Heap fragmentation
+ *   - Cache misses on heap data structures
+ * Solution: Pre-allocate pbufs at init, cycle through them
+ * Pool size: 3 pbufs for motor states (492 bytes each)
+ *          2 pbufs for IMU states (100 bytes each) */
+#define PBUF_POOL_MOTOR_COUNT  3
+#define PBUF_POOL_IMU_COUNT    2
+
+typedef struct {
+    struct pbuf* pbuf;
+    bool in_use;
+    uint16_t size;
+} pbuf_pool_entry_t;
+
+static pbuf_pool_entry_t g_motor_pbuf_pool[PBUF_POOL_MOTOR_COUNT] = {0};
+static pbuf_pool_entry_t g_imu_pbuf_pool[PBUF_POOL_IMU_COUNT] = {0};
+static volatile uint8_t g_motor_pbuf_idx = 0;
+static volatile uint8_t g_imu_pbuf_idx = 0;
+
 /* [DEBUG B071] Debug counters for UDP RX queue processing */
 volatile uint32_t g_udp_rx_callback_count = 0;      /* Packets received in callback */
 volatile uint32_t g_udp_rx_queue_success = 0;       /* Successfully queued */
@@ -110,6 +132,11 @@ static void udp_rx_task(void* parameters);
 
 /* [QA TRACE T019, T020] Debug GPIO helper functions */
 static void debug_gpio_init_udp(void);
+
+/* [FIX B102] Pbuf pool helper functions */
+static int pbuf_pool_init(void);
+static struct pbuf* pbuf_pool_alloc_motor(uint16_t size);
+static struct pbuf* pbuf_pool_alloc_imu(uint16_t size);
 
 /*==============================================================================
  * DEBUG GPIO HELPER FUNCTIONS

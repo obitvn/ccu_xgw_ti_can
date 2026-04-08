@@ -39,7 +39,12 @@
 #define configUSE_COUNTING_SEMAPHORES           1
 #define configQUEUE_REGISTRY_SIZE               0
 #define configUSE_QUEUE_SETS                    0
-#define configUSE_TIME_SLICING                  1
+/* [FIX B101] Disable time slicing for deterministic 1000Hz timing
+ * Time slicing causes round-robin scheduling between equal-priority tasks,
+ * introducing unpredictable jitter in UDP TX task.
+ * With time slicing disabled, tasks run until they block or yield,
+ * giving precise control over timing via vTaskDelayUntil(). */
+#define configUSE_TIME_SLICING                  0
 
 /* ============================================================
  * MEMORY ALLOCATION
