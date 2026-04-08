@@ -27,6 +27,10 @@
 /* xGW UDP interface */
 #include "enet/xgw_udp_interface.h"
 
+/* [FIX B096] Centralized logging with Syslog support */
+#include "ccu_log.h"
+#include "syslog.h"  /* For Syslog_GetStats() */
+
 /* FreeRTOS for task stack type */
 #include "FreeRTOS.h"
 
@@ -76,6 +80,11 @@ static void test_netif_init(void);
 static void apps_init(void);
 static void test_init(void *arg);
 void main_loop(void *a0);
+
+#if LWIP_NETIF_LINK_CALLBACK
+/* [FIX B096] Forward declaration for link callback */
+static void link_callback(struct netif *state_netif);
+#endif
 
 /* test_netif_init - Initialize network interface with TI-specific API */
 static void test_netif_init(void)
@@ -131,6 +140,12 @@ static void test_netif_init(void)
             netif_set_up(g_netif[i]);
             netif_set_link_up(g_netif[i]);
 
+#if LWIP_NETIF_LINK_CALLBACK
+            /* [FIX B096] Register link callback to detect ethernet link up event
+             * This allows syslog to send test messages only after link is ready */
+            netif_set_link_callback(g_netif[i], link_callback);
+#endif
+
             DebugP_log("[%d] netif up: IP=%s, up=%d, link=%d\r\n", i,
                        ip4addr_ntoa(netif_ip4_addr(g_netif[i])),
                        netif_is_up(g_netif[i]),
@@ -145,6 +160,41 @@ static void apps_init(void)
 {
     /* No additional apps needed for xGW */
 }
+
+#if LWIP_NETIF_LINK_CALLBACK
+/* [FIX B096] Flag to track if syslog test messages have been sent */
+static volatile bool g_syslog_test_sent = false;
+
+/**
+ * @brief Link callback - called when ethernet link status changes
+ * This is called from ethernet driver context when PHY link goes up/down
+ */
+static void link_callback(struct netif *state_netif)
+{
+    if (netif_is_link_up(state_netif)) {
+        DebugP_log("[Core0] Ethernet link UP (netif %u)!\r\n", state_netif->num);
+
+        /* [FIX B096] Send syslog test messages on first link up event
+         * This ensures syslog is sent only after ethernet is ready */
+        if (!g_syslog_test_sent) {
+            g_syslog_test_sent = true;
+
+            DebugP_log("[Core0] Sending syslog test messages...\r\n");
+            ccu_log_info("LINK", "Ethernet link UP - Syslog working!");
+            ccu_log_warn("LINK", "Test warning message");
+            ccu_log_error("LINK", "Test error message");
+
+            /* Print stats */
+            syslog_stats_t stats;
+            Syslog_GetStats(&stats);
+            DebugP_log("[Core0] Syslog stats after link up: sent=%u, failed=%u\r\n",
+                       stats.logs_sent, stats.logs_failed);
+        }
+    } else {
+        DebugP_log("[Core0] Ethernet link DOWN (netif %u)\r\n", state_netif->num);
+    }
+}
+#endif /* LWIP_NETIF_LINK_CALLBACK */
 
 /* test_init - Called by tcpip_init() when tcpip thread is ready */
 static void test_init(void *arg)
@@ -175,6 +225,16 @@ static void test_init(void *arg)
         DebugP_log("[Core0] xGW UDP interface started successfully\r\n");
         DebugP_log("[Core0] UDP RX Port: %d (PC -> xGW)\r\n", XGW_UDP_RX_PORT);
         DebugP_log("[Core0] UDP TX Port: %d (xGW -> PC)\r\n", XGW_UDP_TX_PORT);
+
+        /* [FIX B096] Initialize logging system (Syslog + UART)
+         * MUST be after xgw_udp_start() because syslog needs lwIP ready
+         * Syslog test messages will be sent when ethernet link UP (via link_callback) */
+        DebugP_log("[Core0] Initializing ccu_log (Syslog)...\r\n");
+        if (ccu_log_init() == 0) {
+            DebugP_log("[Core0] ccu_log initialized - waiting for link UP...\r\n");
+        } else {
+            DebugP_log("[Core0] WARNING: ccu_log init failed\r\n");
+        }
 
         /* [FIX B070] Start UDP RX task for queue-based packet processing
          * This prevents lwIP thread blocking when processing many packets (enable_all, disable_all) */

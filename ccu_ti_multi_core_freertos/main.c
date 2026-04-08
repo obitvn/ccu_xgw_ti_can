@@ -30,6 +30,7 @@
 #include "lwip/stats.h"  /* For lwIP stats display */
 #include "test_enet_lwip.h"
 #include "enet/xgw_udp_interface.h"  /* For pbuf tracking counters */
+#include "ccu_log.h"  /* [FIX B096] Centralized logging with Syslog support */
 
 /* ==========================================================================
  * DEBUG COUNTERS (QA TRACE)
@@ -920,10 +921,24 @@ static void lwip_init_callback(void *arg)
     int32_t status = xgw_udp_start();
     if (status != 0) {
         DebugP_log("[Core0] ERROR: xGW UDP interface start failed!\r\n");
-    } else {
+    } 
+    else 
+    {
         DebugP_log("[Core0] xGW UDP interface started successfully\r\n");
         DebugP_log("[Core0] UDP RX Port: %d (PC -> xGW)\r\n", XGW_UDP_RX_PORT);
         DebugP_log("[Core0] UDP TX Port: %d (xGW -> PC)\r\n", XGW_UDP_TX_PORT);
+
+        /* [FIX B096] Initialize logging system (Syslog + UART)
+         * MUST be after xgw_udp_start() because syslog needs lwIP ready
+         * ccu_log_init() will initialize Syslog which sends logs to PC via UDP */
+        DebugP_log("[Core0] Initializing ccu_log (Syslog)...\r\n");
+        if (ccu_log_init() == 0) {
+            DebugP_log("[Core0] ccu_log initialized successfully\r\n");
+            /* Test syslog - send a test message */
+            ccu_log_info("MAIN", "ccu_log test message - Syslog is working!");
+        } else {
+            DebugP_log("[Core0] WARNING: ccu_log init failed\r\n");
+        }
 
         /* [FIX B070] Start UDP RX task for queue-based processing
          * This prevents lwIP thread blocking when processing many packets
