@@ -141,7 +141,7 @@ UART_DmaChConfig gUartDmaChConfig[CONFIG_UART_NUM_INSTANCES] =
 UART_Params gUartParams[CONFIG_UART_NUM_INSTANCES] =
 {
         {
-            .baudRate           = 115200,
+            .baudRate           = 1800000,
             .dataLength         = UART_LEN_8,
             .stopBits           = UART_STOPBITS_1,
             .parityType         = UART_PARITY_NONE,
@@ -157,7 +157,7 @@ UART_Params gUartParams[CONFIG_UART_NUM_INSTANCES] =
             .uartDmaIndex = -1,
             .intrNum            = 38U,
             .intrPriority       = 4U,
-            .operMode           = UART_OPER_MODE_16X,
+            .operMode           = UART_OPER_MODE_13X,
             .rxTrigLvl          = 8U,
             .txTrigLvl          = 32U,
             .rxEvtNum           = 0U,

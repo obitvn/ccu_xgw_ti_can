@@ -544,20 +544,20 @@ static void build_and_send_udp_packet(void)
 
     /* Log every 100 calls */
     static uint32_t cycle_count = 0;
-    if (call_count >= 100) {
-        DebugP_log("[Core0] build_and_send: %u calls processed\r\n", call_count);
-        call_count = 0;
-        cycle_count++;
+    // if (call_count >= 100) {
+    //     DebugP_log("[Core0] build_and_send: %u calls processed\r\n", call_count);
+    //     call_count = 0;
+    //     cycle_count++;
 
-        /* [FORCE LOG] Always log motor data after each 100-call cycle - bypass static variable persistence */
-        DebugP_log("[Core0] MOTOR_DATA cycle#%u: m[0].id=%u, pos=%.3f, vel=%.3f, trq=%.3f, tmp=%.1f\r\n",
-                   cycle_count,
-                   xgw_states[0].motor_id,
-                   g_motor_states[0].position,
-                   g_motor_states[0].velocity,
-                   g_motor_states[0].torque,
-                   g_motor_states[0].temperature);
-    }
+    //     /* [FORCE LOG] Always log motor data after each 100-call cycle - bypass static variable persistence */
+    //     DebugP_log("[Core0] MOTOR_DATA cycle#%u: m[0].id=%u, pos=%.3f, vel=%.3f, trq=%.3f, tmp=%.1f\r\n",
+    //                cycle_count,
+    //                xgw_states[0].motor_id,
+    //                g_motor_states[0].position,
+    //                g_motor_states[0].velocity,
+    //                g_motor_states[0].torque,
+    //                g_motor_states[0].temperature);
+    // }
 
     /* [TEST] Send only 1 motor instead of 23 to test if issue is item count */
     // int32_t sent = xgw_udp_send_motor_states(xgw_states, 1);  /* Only send 1 motor! */

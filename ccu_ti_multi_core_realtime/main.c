@@ -784,7 +784,7 @@ static void transmit_can_frames(void)
 
     /* [DEBUG] Periodic CAN TX logging (once per second) */
     if ((s_can_tx_call_count - s_last_can_tx_log) >= 1000) {
-        DebugP_log("[Core1] CAN TX: prepared=%u frames, sent=%u\r\n", total_frames, total_sent);
+        // DebugP_log("[Core1] CAN TX: prepared=%u frames, sent=%u\r\n", total_frames, total_sent);
         s_last_can_tx_log = s_can_tx_call_count;
     }
 }
@@ -1113,87 +1113,87 @@ static void main_loop(void)
         gateway_write_motor_states(g_motor_states, GATEWAY_NUM_MOTORS);
         gateway_notify_states_ready();
 
-        /* 3. Periodic heartbeat log every 1000 cycles (1 second) */
-        if ((g_cycle_count - last_heartbeat_log) >= 1000) {
-            DebugP_log("[Core1] Heartbeat: cycle=%u, timer_isr=%u, ipc_events=%u, ringbuf_init=%d\r\n",
-                       g_cycle_count, g_timer_isr_count, g_ipc_event_count, g_ringbuf_initialized);
-            /* [DEBUG] CAN TX/RX status */
-            DebugP_log("[Core1] CAN: tx_count=%u, rx_count=%u\r\n",
-                       dbg_can_tx_count, dbg_can_rx_count);
-            /* [DEBUG B046] Track ISR calls per bus */
-            uint32_t total_isr_calls = 0;
-            for (uint8_t i = 0; i < 8; i++) {
-                can_bus_stats_t stats;
-                CAN_GetStats(i, &stats);
-                total_isr_calls += stats.isr_call_count;
-            }
-            DebugP_log("[Core1] CAN ISR: total_calls=%u\r\n", total_isr_calls);
+        // /* 3. Periodic heartbeat log every 1000 cycles (1 second) */
+        // if ((g_cycle_count - last_heartbeat_log) >= 1000) {
+        //     DebugP_log("[Core1] Heartbeat: cycle=%u, timer_isr=%u, ipc_events=%u, ringbuf_init=%d\r\n",
+        //                g_cycle_count, g_timer_isr_count, g_ipc_event_count, g_ringbuf_initialized);
+        //     /* [DEBUG] CAN TX/RX status */
+        //     DebugP_log("[Core1] CAN: tx_count=%u, rx_count=%u\r\n",
+        //                dbg_can_tx_count, dbg_can_rx_count);
+        //     /* [DEBUG B046] Track ISR calls per bus */
+        //     uint32_t total_isr_calls = 0;
+        //     for (uint8_t i = 0; i < 8; i++) {
+        //         can_bus_stats_t stats;
+        //         CAN_GetStats(i, &stats);
+        //         total_isr_calls += stats.isr_call_count;
+        //     }
+        //     DebugP_log("[Core1] CAN ISR: total_calls=%u\r\n", total_isr_calls);
 
-            /* [DEBUG B048] Print first interrupt info captured by ISR */
-            extern volatile struct {
-                uint32_t intr_status;
-                uint32_t rx_count_at_intr;
-                uint32_t isr_call_count_at_intr;
-                uint8_t  bus_id;
-                uint8_t  captured;
-            } g_first_intr_info[8];
+        //     /* [DEBUG B048] Print first interrupt info captured by ISR */
+        //     extern volatile struct {
+        //         uint32_t intr_status;
+        //         uint32_t rx_count_at_intr;
+        //         uint32_t isr_call_count_at_intr;
+        //         uint8_t  bus_id;
+        //         uint8_t  captured;
+        //     } g_first_intr_info[8];
 
-            // for (uint8_t i = 0; i < 8; i++) {
-            //     if (g_first_intr_info[i].captured) {
-            //         DebugP_log("[Core1] CAN%d FirstISR: intr=0x%08X, rx_cnt=%u, isr_cnt=%u\r\n",
-            //                    i,
-            //                    g_first_intr_info[i].intr_status,
-            //                    g_first_intr_info[i].rx_count_at_intr,
-            //                    g_first_intr_info[i].isr_call_count_at_intr);
-            //     }
-            // }
+        //     // for (uint8_t i = 0; i < 8; i++) {
+        //     //     if (g_first_intr_info[i].captured) {
+        //     //         DebugP_log("[Core1] CAN%d FirstISR: intr=0x%08X, rx_cnt=%u, isr_cnt=%u\r\n",
+        //     //                    i,
+        //     //                    g_first_intr_info[i].intr_status,
+        //     //                    g_first_intr_info[i].rx_count_at_intr,
+        //     //                    g_first_intr_info[i].isr_call_count_at_intr);
+        //     //     }
+        //     // }
 
-            /* [DEBUG B060] Log which motors have valid data
-             * [FIX B066] Check can_bus != 0xFF (uninitialized value) since motor_id is now array index */
-            static bool motor_states_logged = false;
-            if (!motor_states_logged) {
-                DebugP_log("[Core1] MOTOR_STATES (motors with CAN data):\r\n");
-                uint8_t valid_count = 0;
-                for (uint8_t i = 0; i < GATEWAY_NUM_MOTORS; i++) {
-                    if (g_motor_states[i].can_bus < 8) {  /* Valid CAN bus (0-7) */
-                        DebugP_log("  [%2u] idx=%u, pos=%.3f, vel=%.3f\r\n",
-                                   i, g_motor_states[i].motor_id,
-                                   g_motor_states[i].position,
-                                   g_motor_states[i].velocity);
-                        valid_count++;
-                    }
-                }
-                DebugP_log("[Core1] Total valid motors: %u/%u\r\n", valid_count, GATEWAY_NUM_MOTORS);
-                motor_states_logged = true;
-            }
+        //     /* [DEBUG B060] Log which motors have valid data
+        //      * [FIX B066] Check can_bus != 0xFF (uninitialized value) since motor_id is now array index */
+        //     static bool motor_states_logged = false;
+        //     if (!motor_states_logged) {
+        //         DebugP_log("[Core1] MOTOR_STATES (motors with CAN data):\r\n");
+        //         uint8_t valid_count = 0;
+        //         for (uint8_t i = 0; i < GATEWAY_NUM_MOTORS; i++) {
+        //             if (g_motor_states[i].can_bus < 8) {  /* Valid CAN bus (0-7) */
+        //                 DebugP_log("  [%2u] idx=%u, pos=%.3f, vel=%.3f\r\n",
+        //                            i, g_motor_states[i].motor_id,
+        //                            g_motor_states[i].position,
+        //                            g_motor_states[i].velocity);
+        //                 valid_count++;
+        //             }
+        //         }
+        //         DebugP_log("[Core1] Total valid motors: %u/%u\r\n", valid_count, GATEWAY_NUM_MOTORS);
+        //         motor_states_logged = true;
+        //     }
 
-            /* [DEBUG B049] Print RX ISR execution flow counters */
-            extern volatile uint32_t dbg_can_isr_rx_entry_count;
-            extern volatile uint32_t dbg_can_isr_fifo_read_count;
-            extern volatile uint32_t dbg_can_isr_callback_count;
-            DebugP_log("[Core1] CAN ISR Flow: rx_entry=%u, fifo_read=%u, callback=%u\r\n",
-                       dbg_can_isr_rx_entry_count,
-                       dbg_can_isr_fifo_read_count,
-                       dbg_can_isr_callback_count);
-            /* [DEBUG] IMU UART ISR status */
-            DebugP_log("[Core1] IMU ISR: isr_cnt=%u, bytes=%u, frames=%u\r\n",
-                       dbg_imu_uart_isr_count, dbg_imu_rx_byte_count, dbg_imu_frame_count);
+        //     /* [DEBUG B049] Print RX ISR execution flow counters */
+        //     extern volatile uint32_t dbg_can_isr_rx_entry_count;
+        //     extern volatile uint32_t dbg_can_isr_fifo_read_count;
+        //     extern volatile uint32_t dbg_can_isr_callback_count;
+        //     DebugP_log("[Core1] CAN ISR Flow: rx_entry=%u, fifo_read=%u, callback=%u\r\n",
+        //                dbg_can_isr_rx_entry_count,
+        //                dbg_can_isr_fifo_read_count,
+        //                dbg_can_isr_callback_count);
+        //     /* [DEBUG] IMU UART ISR status */
+        //     DebugP_log("[Core1] IMU ISR: isr_cnt=%u, bytes=%u, frames=%u\r\n",
+        //                dbg_imu_uart_isr_count, dbg_imu_rx_byte_count, dbg_imu_frame_count);
 
-            /* [IMU DATA] Log parsed IMU data from protocol handler */
-            imu_state_t imu_state;
-            if (imu_protocol_get_state(&imu_state)) {
-                DebugP_log("[Core1] IMU Data: gyro=[%.3f,%.3f,%.3f] rad/s, rpy=[%.3f,%.3f,%.3f] rad\r\n",
-                           imu_state.gyroscope[0], imu_state.gyroscope[1], imu_state.gyroscope[2],
-                           imu_state.rpy[0], imu_state.rpy[1], imu_state.rpy[2]);
-                DebugP_log("[Core1] IMU Quat: [%.4f,%.4f,%.4f,%.4f], ts=%u ms\r\n",
-                           imu_state.quaternion[0], imu_state.quaternion[1], imu_state.quaternion[2], imu_state.quaternion[3],
-                           (unsigned int)imu_state.timestamp);
-            } else {
-                DebugP_log("[Core1] IMU: No new data\r\n");
-            }
+        //     /* [IMU DATA] Log parsed IMU data from protocol handler */
+        //     imu_state_t imu_state;
+        //     if (imu_protocol_get_state(&imu_state)) {
+        //         DebugP_log("[Core1] IMU Data: gyro=[%.3f,%.3f,%.3f] rad/s, rpy=[%.3f,%.3f,%.3f] rad\r\n",
+        //                    imu_state.gyroscope[0], imu_state.gyroscope[1], imu_state.gyroscope[2],
+        //                    imu_state.rpy[0], imu_state.rpy[1], imu_state.rpy[2]);
+        //         DebugP_log("[Core1] IMU Quat: [%.4f,%.4f,%.4f,%.4f], ts=%u ms\r\n",
+        //                    imu_state.quaternion[0], imu_state.quaternion[1], imu_state.quaternion[2], imu_state.quaternion[3],
+        //                    (unsigned int)imu_state.timestamp);
+        //     } else {
+        //         DebugP_log("[Core1] IMU: No new data\r\n");
+        //     }
 
-            last_heartbeat_log = g_cycle_count;
-        }
+        //     last_heartbeat_log = g_cycle_count;
+        // }
 
         /* [IMU] Read and process UART data from ISR buffer */
         if (imu_uart_is_initialized()) {
