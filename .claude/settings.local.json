@@ -109,7 +109,8 @@
       "Bash(grep -r \"8192\\\\|0x2000\" D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/ccu_ti_mutilcore/gateway_shared.*)",
       "Bash(grep -r \"RINGBUF_SIZE\\\\|RINGBUF.*SIZE\" D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/ccu_ti_mutilcore/ --include=*.h --include=*.c)",
       "Bash(grep -r \"GATEWAY_SHARED_MEM_ADDR\\\\|0x701D0000\" D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/ccu_ti_mutilcore/ccu_ti_multi_core_realtime/Debug/syscfg/ --include=*.cmd)",
-      "Bash(grep -r \"shared_mem\\\\|GATEWAY.*MEM\" D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/ccu_ti_mutilcore/ccu_ti_multi_core_freertos/Debug/syscfg/ --include=*.cmd --include=*.c)"
+      "Bash(grep -r \"shared_mem\\\\|GATEWAY.*MEM\" D:/VinDynamics/Project/CCU_TI_RS485_CAN/2.Firmware/ccu_ti_mutilcore/ccu_ti_multi_core_freertos/Debug/syscfg/ --include=*.cmd --include=*.c)",
+      "Bash(find D:VinDynamicsProjectCCU_TI_RS485_CAN -name *.py -type f)"
     ]
   }
 }

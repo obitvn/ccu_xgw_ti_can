@@ -105,9 +105,32 @@ static volatile bool g_timer_expired = false;
  * - Atomic swap: Main loop copies buffer to working when ready flag is set
  * - Ensures main loop always reads consistent command data (no torn reads)
  */
-static motor_cmd_ipc_t g_motor_commands_buffer[GATEWAY_NUM_MOTORS];
-static motor_cmd_ipc_t g_motor_commands_working[GATEWAY_NUM_MOTORS];
+/* [FIX B083] Initialize to zeros to prevent uninitialized data causing CAN TX issues
+ * Problem: When receiving partial packets (e.g., single motor enable), only received
+ * motors are updated. Remaining motors contain random BSS data, causing incorrect
+ * CAN frames to be transmitted.
+ *
+ * Enable all works: All 23 motors updated → no uninitialized data.
+ * Enable single fails: Only 1 motor updated → other 22 have random data.
+ *
+ * Solution: Initialize buffers to zero, safe defaults will be set in init() */
+static motor_cmd_ipc_t g_motor_commands_buffer[GATEWAY_NUM_MOTORS] = {0};
+static motor_cmd_ipc_t g_motor_commands_working[GATEWAY_NUM_MOTORS] = {0};
 static volatile bool g_buffer_ready = false;  /* Flag for buffer swap */
+/* [FIX B093] Track which motor positions were updated (bitmask)
+ * Problem: After Fix B091, data is scattered to working[motor_id]
+ *          TX loop still uses sequential index i=0..loop_limit-1
+ *          When enable motor 16: working[16] updated, but TX loop checks working[0]!
+ * Solution: Bitmask tracks which positions have new data
+ * Bit 0 = motor 0 updated, Bit 16 = motor 16 updated, etc.
+ * TX loop iterates through set bits instead of sequential indices */
+static uint32_t g_updated_motors_mask = 0;
+/* [FIX B086] Track actual motor count received from ring buffer
+ * Problem: When single motor command is sent, count=1, but main loop checks available
+ *          AFTER process_motor_commands() consumes data → available=0 → count=0
+ * Solution: Store count during receive, use it during buffer copy
+ * Default: GATEWAY_NUM_MOTORS (23) for startup safety */
+static uint8_t g_received_motor_count = GATEWAY_NUM_MOTORS;
 /* BUG B002 FIX: Race condition on g_commands_ready flag
  * Problem: Flag set in IPC ISR (line 243) and read/cleared in main loop (line 604)
  *          No memory barrier - can miss updates or read torn data on ARM Cortex-R5F
@@ -157,7 +180,9 @@ static void ipc_notify_callback_fxn(uint32_t remoteCoreId, uint16_t localClientI
                                      uint32_t msgValue, int32_t crcStatus, void *args);
 static int32_t init_1000hz_timer(void);
 static void process_can_rx(uint8_t bus_id, const can_frame_t *frame);
-static void process_motor_commands(void);
+static bool check_motor_commands_available(void);
+static uint8_t receive_motor_commands(void);
+static void copy_motor_commands_to_working(uint8_t count);
 static void transmit_can_frames(void);
 
 /* Debug GPIO helper functions */
@@ -340,8 +365,37 @@ static void process_can_rx(uint8_t bus_id, const can_frame_t *frame)
  * @brief Process motor commands from shared memory
  *
  * Called from 1000Hz loop to get commands from Core 0
+ *
+ * [FIX B086] Stores received motor count in static variable for use during copy.
+ * This is needed because we calculate count from bytes_read here, but use it
+ * later when copying from buffer to working buffer.
  */
-static void process_motor_commands(void)
+/**
+ * @brief Check if motor commands are available from ring buffer
+ *
+ * [FIX B096] Separate check from receive - allows draining multiple packets
+ *
+ * @return true if data available, false otherwise
+ */
+static bool check_motor_commands_available(void)
+{
+    if (!g_ringbuf_initialized) {
+        return false;
+    }
+
+    uint32_t available = gateway_ringbuf_core1_get_available();
+    return (available >= sizeof(motor_cmd_ipc_t));
+}
+
+/**
+ * @brief Receive motor commands from ring buffer
+ *
+ * [FIX B096] Renamed from process_motor_commands - now only receives
+ * Copy to working buffer is done separately in main loop
+ *
+ * @return Number of motors received, or 0 if no data
+ */
+static uint8_t receive_motor_commands(void)
 {
     /* [BUG B013 FIX] Check ring buffer initialization before receive
      * Problem: If called before initialization, could read from uninitialized memory
@@ -351,31 +405,81 @@ static void process_motor_commands(void)
     if (!g_ringbuf_initialized) {
         /* Ring buffer not ready - skip receive operation
          * This is safe during initialization; Core 0 will retry sending data */
-        DebugP_log("[Core1] ERROR: process_motor_commands called but ringbuf NOT initialized!\r\n");
-        return;
+        DebugP_log("[Core1] ERROR: receive_motor_commands called but ringbuf NOT initialized!\r\n");
+        return 0;
+    }
+
+    /* [ROOT CAUSE FIX] Read only available bytes, NOT entire buffer!
+     * Problem: Old code tried to read sizeof(g_motor_commands_buffer) = 736 bytes
+     * Ring buffer only had 32 bytes (1 motor) → available < size → return EMPTY!
+     * Solution: Check available first, then read only what's available
+     * Reference: draft/ccu_ti uses ping-pong buffer which reads fixed size,
+     * but ring buffer can have partial data */
+
+    /* Check how many bytes are available */
+    uint32_t available = gateway_ringbuf_core1_get_available();
+    if (available < sizeof(motor_cmd_ipc_t)) {
+        /* Not enough data for even 1 motor command */
+        return 0;
+    }
+
+    /* Calculate how many motors we can read (safely) */
+    uint8_t max_motors = sizeof(g_motor_commands_buffer) / sizeof(motor_cmd_ipc_t);
+    uint32_t bytes_to_read = available;
+    uint32_t max_bytes = max_motors * sizeof(motor_cmd_ipc_t);
+
+    /* Don't read more than buffer size or more than available */
+    if (bytes_to_read > max_bytes) {
+        bytes_to_read = max_bytes;
     }
 
     /* Read motor commands from ring buffer (populated by Core 0) */
     uint32_t bytes_read = 0;
-    /* [FIX B050] Disabled debug logs - blocking in 1000Hz loop causes system hang */
-    /* DebugP_log("[Core1] Calling gateway_ringbuf_core1_receive...\r\n"); */
     int32_t ret = gateway_ringbuf_core1_receive(g_motor_commands_buffer,
-                                                 sizeof(g_motor_commands_buffer),
+                                                 bytes_to_read,  // ← Read ONLY available bytes
                                                  &bytes_read);
-
-    /* DebugP_log("[Core1] gateway_ringbuf_core1_receive returned: ret=%d, bytes_read=%u\r\n", ret, bytes_read); */
 
     if (ret == GATEWAY_RINGBUF_OK && bytes_read > 0) {
         uint8_t count = bytes_read / sizeof(motor_cmd_ipc_t);
-        /* DebugP_log("[Core1] Received %u motor commands, setting g_buffer_ready\r\n", count); */
-        /* BUG B005 FIX: Set flag to indicate new data in buffer */
-        g_buffer_ready = true;
+        /* [DEBUG B095] Log received motors */
+        for (uint8_t i = 0; i < count && i < 5; i++) {  /* Log first 5 motors */
+            DebugP_log("[Core1] RX: motor[%u].id=%u, mode=%u\r\n",
+                       i, g_motor_commands_buffer[i].motor_id, g_motor_commands_buffer[i].mode);
+        }
+        return count;
     } else if (ret == GATEWAY_RINGBUF_EMPTY) {
-        /* DebugP_log("[Core1] Ring buffer EMPTY\r\n"); */
-    } else if (ret == GATEWAY_RINGBUF_FULL) {
-        /* DebugP_log("[Core1] Ring buffer FULL (unexpected!)\r\n"); */
+        /* No data available */
+        return 0;
     } else {
-        /* DebugP_log("[Core1] Ring buffer error: ret=%d\r\n", ret); */
+        /* Error */
+        DebugP_log("[Core1] RX ERROR: ret=%d\r\n", ret);
+        return 0;
+    }
+}
+
+/**
+ * @brief Copy motor commands from buffer to working buffer
+ *
+ * [FIX B096] NEW function - copies buffer to working and updates mask
+ * Called after receive_motor_commands() to apply new commands
+ *
+ * @param count Number of motors in buffer to copy
+ */
+static void copy_motor_commands_to_working(uint8_t count)
+{
+    if (count == 0 || count > GATEWAY_NUM_MOTORS) {
+        return;
+    }
+
+    /* [FIX B091/B093] Copy based on motor_id, track updated positions */
+    for (uint8_t i = 0; i < count; i++) {
+        uint8_t motor_index = g_motor_commands_buffer[i].motor_id;
+        if (motor_index < GATEWAY_NUM_MOTORS) {
+            g_motor_commands_working[motor_index] = g_motor_commands_buffer[i];
+            g_updated_motors_mask |= (1U << motor_index);  /* Mark as updated */
+            DebugP_log("[Core1] Copy: motor[%u]=id%u, mode%u, mask=0x%08X\r\n",
+                       i, motor_index, g_motor_commands_working[motor_index].mode, g_updated_motors_mask);
+        }
     }
 }
 
@@ -412,6 +516,29 @@ static void transmit_can_frames(void)
         return;
     }
 
+    /* [FIX B084] Check if we have one-time commands (enable/disable/zero) vs MIT commands
+     * Problem: When single motor enable is sent, ALL 23 motors get CAN frames.
+     * Motor 0 receives enable command meant for motor X (wrong motor!).
+     * Solution: Detect one-time commands and only send CAN for those motors.
+     * MIT commands (mode=255) are sent to ALL motors cyclically. */
+    bool has_one_time_command = false;
+    for (uint8_t i = 0; i < GATEWAY_NUM_MOTORS; i++) {
+        if (g_motor_commands_working[i].mode <= 4) {
+            has_one_time_command = true;
+            break;
+        }
+    }
+
+    /* [FIX B093] Determine which motors to process based on update mask or full packet
+     * Problem: After Fix B091, data scattered to working[motor_id], not sequential
+     *          TX loop needs to process updated positions, not sequential indices
+     * Solution: Use g_updated_motors_mask to track which positions have new data
+     * - Full packet (all 23 motors): Process all motors (mask==0 means all)
+     * - Partial packet (1-22 motors): Process only set bits in mask
+     */
+    uint8_t loop_limit = GATEWAY_NUM_MOTORS;  /* Always check all motors */
+    bool use_mask = (g_updated_motors_mask != 0);  /* Use mask if set */
+
     /* Group motors by CAN bus for batch transmission */
     can_frame_t* can_frames_ptr[NUM_CAN_BUSES];
     uint16_t frame_count[NUM_CAN_BUSES] = {0};
@@ -421,13 +548,39 @@ static void transmit_can_frames(void)
      * This was on stack (2,944 bytes) in 1000Hz loop, risking overflow on bare-metal core
      * Now uses g_frame_buffers allocated at file scope (global/static memory) */
     /* Build CAN frames for each motor */
-    for (uint8_t i = 0; i < GATEWAY_NUM_MOTORS; i++) {
-        const motor_config_t *config = motor_get_config(i);
+    for (uint8_t i = 0; i < loop_limit; i++) {
+        /* [FIX B093] Skip motors not updated (when using mask) */
+        if (use_mask && ((g_updated_motors_mask & (1U << i)) == 0)) {
+            continue;  /* This motor not updated, skip it */
+        }
+
         motor_cmd_ipc_t *cmd = &g_motor_commands_working[i];  /* [FIX] Non-const to allow clearing */
 
-        if (config != NULL && config->can_bus < NUM_CAN_BUSES) {
-            can_frame_t *frame = &g_frame_buffers[config->can_bus][frame_count[config->can_bus]++];
+        /* [FIX B084] Skip MIT motors when we have one-time commands
+         * If has_one_time_command=true, only send motors with mode <= 4
+         * Otherwise (all MIT), send all motors */
+        if (has_one_time_command && cmd->mode == MOTOR_MODE_MIT_CONTROL) {
+            continue;  /* Skip this motor, only send one-time command motors */
+        }
 
+        /* [FIX B088] Always use cmd->motor_id for config lookup, not loop index
+         * Problem: When single motor enable (index 21) at loop index 0:
+         *   - config = motor_get_config(0) → CAN ID 31 (wrong!)
+         *   - cmd->motor_id = 21 → CAN ID 44 (correct!)
+         *   - Code only fixed config for mode<=4, not MIT mode
+         * Solution: Always lookup config using cmd->motor_id directly */
+        const motor_config_t *config = NULL;
+        uint8_t motor_index = cmd->motor_id;
+
+        /* [FIX B088] Handle both cases: motor_id as index or direct lookup needed
+         * For MOTOR_SET: motor_id IS the array index (0-22)
+         * For MOTOR_CMD: motor_id is also the array index (0-22)
+         * So we can directly use motor_id to lookup config */
+        if (motor_index < GATEWAY_NUM_MOTORS) {
+            config = motor_get_config(motor_index);
+        }
+
+        if (config != NULL && config->can_bus < NUM_CAN_BUSES) {
             /* [FIX B035] Handle one-time commands (enable/disable/zero) vs cyclic commands (motion)
              * Problem: MOTOR_SET commands were being sent cyclically at 1000Hz
              * Solution: Check cmd->mode field to determine command type
@@ -453,6 +606,14 @@ static void transmit_can_frames(void)
                 comm_type = COMM_TYPE_MOTION_CONTROL;
                 is_one_time_command = false;
             }
+
+            /* [DEBUG B095] Log enable frames for motors 16, 17 to debug */
+            if (is_one_time_command && (motor_index == 16 || motor_index == 17)) {
+                DebugP_log("[Core1] Enable: motor_index=%u, CAN_ID=%u, Bus=%u, comm_type=%u\r\n",
+                           motor_index, config->motor_id, config->can_bus, comm_type);
+            }
+
+            can_frame_t *frame = &g_frame_buffers[config->can_bus][frame_count[config->can_bus]++];
 
             frame->flags = 0x01;  /* Extended ID */
 
@@ -527,51 +688,101 @@ static void transmit_can_frames(void)
         }
     }
 
-    /* [FIX B037] Post-transmission cleanup: Reset motors that received one-time commands
-     * Problem: If we reset working buffer during frame building loop, subsequent motors
-     *          would see wrong mode values and send incorrect CAN frames.
-     * Solution: Reset AFTER all frames are built and transmitted.
+    /* [FIX B090/B093] Post-transmission cleanup: Reset motors that received one-time commands
+     * Problem: Reset loop needs to only check updated motors, not all 23
+     * Solution: Use g_updated_motors_mask to track which motors were updated
      * Reference: draft/ccu_ti/ccu_xgw_gateway.c:1764-1793 */
-    for (uint8_t i = 0; i < GATEWAY_NUM_MOTORS; i++) {
-        motor_cmd_ipc_t *cmd = &g_motor_commands_working[i];
+    if (use_mask) {
+        /* Only reset motors that were updated this cycle */
+        for (uint8_t i = 0; i < GATEWAY_NUM_MOTORS; i++) {
+            if ((g_updated_motors_mask & (1U << i)) == 0) {
+                continue;  /* Skip motors not updated */
+            }
+            motor_cmd_ipc_t *cmd = &g_motor_commands_working[i];
 
-        /* Check if this motor sent a one-time command (enable/disable/zero)
-         * Modes 0-4 are one-time commands, mode 255 is MIT cyclic */
-        if (cmd->mode <= 4) {
-            if (cmd->mode == MOTOR_MODE_DISABLE) {
-                /* Disable: Reset ALL motors to safe idle state
-                 * Reference: draft/ccu_ti/ccu_xgw_gateway.c:677-695 */
-                for (uint8_t j = 0; j < GATEWAY_NUM_MOTORS; j++) {
-                    g_motor_commands_working[j].mode = MOTOR_MODE_MIT_CONTROL;
-                    g_motor_commands_working[j].position = 0;
-                    g_motor_commands_working[j].velocity = 0;
-                    g_motor_commands_working[j].torque = 0;
-                    g_motor_commands_working[j].kp = 0;
-                    g_motor_commands_working[j].kd = 2.0f;
+            /* Check if this motor sent a one-time command (enable/disable/zero)
+             * Modes 0-4 are one-time commands, mode 255 is MIT cyclic */
+            if (cmd->mode <= 4) {
+                if (cmd->mode == MOTOR_MODE_DISABLE) {
+                    /* Disable: Reset ALL motors to safe idle state
+                     * Reference: draft/ccu_ti/ccu_xgw_gateway.c:677-695 */
+                    for (uint8_t j = 0; j < GATEWAY_NUM_MOTORS; j++) {
+                        g_motor_commands_working[j].mode = MOTOR_MODE_MIT_CONTROL;
+                        g_motor_commands_working[j].position = 0;
+                        g_motor_commands_working[j].velocity = 0;
+                        g_motor_commands_working[j].torque = 0;
+                        g_motor_commands_working[j].kp = 0;
+                        g_motor_commands_working[j].kd = 2.0f;
+                    }
+                    /* Also reset buffer to prevent stale commands */
+                    for (uint8_t j = 0; j < GATEWAY_NUM_MOTORS; j++) {
+                        g_motor_commands_buffer[j].mode = MOTOR_MODE_MIT_CONTROL;
+                        g_motor_commands_buffer[j].position = 0;
+                        g_motor_commands_buffer[j].velocity = 0;
+                        g_motor_commands_buffer[j].torque = 0;
+                        g_motor_commands_buffer[j].kp = 0;
+                        g_motor_commands_buffer[j].kd = 2.0f;
+                    }
+                    /* Only need to reset once - break after first disable found */
+                    break;
+                } else {
+                    /* Enable/Zero: Reset only this motor to MIT mode
+                     * After enable/zero, motor should receive MIT motion control */
+                    cmd->mode = MOTOR_MODE_MIT_CONTROL;
+                    cmd->position = 0;
+                    cmd->velocity = 0;
+                    cmd->torque = 0;
+                    cmd->kp = 0;
+                    cmd->kd = 2.0f;
                 }
-                /* Also reset buffer to prevent stale commands */
-                for (uint8_t j = 0; j < GATEWAY_NUM_MOTORS; j++) {
-                    g_motor_commands_buffer[j].mode = MOTOR_MODE_MIT_CONTROL;
-                    g_motor_commands_buffer[j].position = 0;
-                    g_motor_commands_buffer[j].velocity = 0;
-                    g_motor_commands_buffer[j].torque = 0;
-                    g_motor_commands_buffer[j].kp = 0;
-                    g_motor_commands_buffer[j].kd = 2.0f;
+            }
+        }
+    } else {
+        /* All motors mode - check all motors (e.g., after full MIT packet) */
+        for (uint8_t i = 0; i < GATEWAY_NUM_MOTORS; i++) {
+            motor_cmd_ipc_t *cmd = &g_motor_commands_working[i];
+
+            /* Check if this motor sent a one-time command (enable/disable/zero)
+             * Modes 0-4 are one-time commands, mode 255 is MIT cyclic */
+            if (cmd->mode <= 4) {
+                if (cmd->mode == MOTOR_MODE_DISABLE) {
+                    /* Disable: Reset ALL motors to safe idle state
+                     * Reference: draft/ccu_ti/ccu_xgw_gateway.c:677-695 */
+                    for (uint8_t j = 0; j < GATEWAY_NUM_MOTORS; j++) {
+                        g_motor_commands_working[j].mode = MOTOR_MODE_MIT_CONTROL;
+                        g_motor_commands_working[j].position = 0;
+                        g_motor_commands_working[j].velocity = 0;
+                        g_motor_commands_working[j].torque = 0;
+                        g_motor_commands_working[j].kp = 0;
+                        g_motor_commands_working[j].kd = 2.0f;
+                    }
+                    /* Also reset buffer to prevent stale commands */
+                    for (uint8_t j = 0; j < GATEWAY_NUM_MOTORS; j++) {
+                        g_motor_commands_buffer[j].mode = MOTOR_MODE_MIT_CONTROL;
+                        g_motor_commands_buffer[j].position = 0;
+                        g_motor_commands_buffer[j].velocity = 0;
+                        g_motor_commands_buffer[j].torque = 0;
+                        g_motor_commands_buffer[j].kp = 0;
+                        g_motor_commands_buffer[j].kd = 2.0f;
+                    }
+                    /* Only need to reset once - break after first disable found */
+                    break;
+                } else {
+                    /* Enable/Zero: Reset only this motor to MIT mode
+                     * After enable/zero, motor should receive MIT motion control */
+                    cmd->mode = MOTOR_MODE_MIT_CONTROL;
+                    cmd->position = 0;
+                    cmd->velocity = 0;
+                    cmd->torque = 0;
+                    cmd->kp = 0;
+                    cmd->kd = 2.0f;
                 }
-                /* Only need to reset once - break after first disable found */
-                break;
-            } else {
-                /* Enable/Zero: Reset only this motor to MIT mode
-                 * After enable/zero, motor should receive MIT motion control */
-                cmd->mode = MOTOR_MODE_MIT_CONTROL;
-                cmd->position = 0;
-                cmd->velocity = 0;
-                cmd->torque = 0;
-                cmd->kp = 0;
-                cmd->kd = 2.0f;
             }
         }
     }
+
+    /* [FIX B093] Clear update mask after processing */
+    g_updated_motors_mask = 0;
 
     /* [DEBUG] Periodic CAN TX logging (once per second) */
     if ((s_can_tx_call_count - s_last_can_tx_log) >= 1000) {
@@ -642,6 +853,7 @@ static int32_t core1_init(void)
     DebugP_log("[Core1] Initializing motor commands with default MIT values...\r\n");
     for (uint8_t i = 0; i < GATEWAY_NUM_MOTORS; i++) {
         /* Set default MIT command values */
+        g_motor_commands_working[i].motor_id = i;  /* motor_id = array index */
         g_motor_commands_working[i].mode = MOTOR_MODE_MIT_CONTROL;  /* 255 = MIT cyclic */
         g_motor_commands_working[i].position = 0;
         g_motor_commands_working[i].velocity = 0;
@@ -651,6 +863,12 @@ static int32_t core1_init(void)
     }
     /* Also init buffer with same defaults */
     memcpy(g_motor_commands_buffer, g_motor_commands_working, sizeof(g_motor_commands_buffer));
+
+    /* [FIX B094] Set all motors as updated so default frames are sent immediately
+     * Problem: Without this, g_updated_motors_mask=0 → no frames sent until UDP received!
+     * Solution: Set mask to all 1s so TX loop sends all default frames on first cycle
+     * After first TX, mask will be cleared and only updated motors will be sent */
+    g_updated_motors_mask = 0xFFFFFFFF;  /* All 23 motors marked as updated */
     DebugP_log("[Core1] Motor commands initialized: mode=MIT(255), p=0, v=0, kp=0, kd=2.0, t=0 (idle state)\r\n");
 
     /* Initialize CAN buses */
@@ -826,26 +1044,64 @@ static void main_loop(void)
         /* === 1000Hz Processing Start === */
 
         /* 1. Process motor commands from shared memory */
-        if (g_commands_ready) {
-            /* [FIX B050] Disabled debug logs - blocking in 1000Hz loop causes system hang */
-            /* DebugP_log("[Core1] g_commands_ready=true, calling process_motor_commands\r\n"); */
-            process_motor_commands();
-            g_commands_ready = false;
+        /* [BUG B097 FIX] Drain ring buffer with IPC notify hint
+         * g_commands_ready is set by IPC ISR when Core0 notifies
+         * This hint helps handle race condition where Core1 checks before Core0's write is visible
+         * Main loop runs at 1000Hz, giving natural retry mechanism for cache sync delays */
+        bool drain_needed = g_commands_ready;
+
+        /* [DEBUG B097] Trace IPC notify for debugging single motor issue
+         * Only log first 10 times to avoid spam */
+        static volatile uint32_t ipc_notify_trace_count = 0;
+        if (drain_needed && ipc_notify_trace_count < 10) {
+            DebugP_log("[Core1] IPC notify received, cycle=%u\r\n", g_cycle_count);
+            ipc_notify_trace_count++;
         }
 
-        /* BUG B005 FIX: Atomic buffer swap - copy buffer to working if ready */
-        /* This ensures working buffer contains consistent command data */
-        /* Copy is done before clearing flag to prevent race conditions */
-        if (g_buffer_ready) {
-            /* [FIX B050] Disabled debug logs - blocking in 1000Hz loop causes system hang */
-            /* DebugP_log("[Core1] g_buffer_ready=true, copying %d commands\r\n", GATEWAY_NUM_MOTORS); */
-            /* Copy entire buffer atomically (single array assignment on ARM) */
-            for (uint8_t i = 0; i < GATEWAY_NUM_MOTORS; i++) {
-                g_motor_commands_working[i] = g_motor_commands_buffer[i];
+        /* Drain ring buffer if: IPC notify received OR data available */
+        uint32_t packets_drained = 0;
+        const uint32_t MAX_DRAIN_PER_CYCLE = 10;
+
+        while (packets_drained < MAX_DRAIN_PER_CYCLE &&
+               (drain_needed || check_motor_commands_available())) {
+            uint8_t count = receive_motor_commands();
+            if (count > 0) {
+                copy_motor_commands_to_working(count);
+                packets_drained++;
+                /* Once we successfully drain, clear the hint */
+                drain_needed = false;
+            } else {
+                /* No data - if we have drain_needed hint, it might be cache sync delay
+                 * Don't break immediately, try once more before giving up this cycle */
+                if (!drain_needed) {
+                    break;  /* No hint and no data - exit */
+                }
+                /* If drain_needed=true, try once more then exit
+                 * Main loop will retry next cycle (1ms later) if flag still set */
+                drain_needed = false;  /* Prevent infinite retry in same cycle */
             }
-            /* Clear flag after copy - safe because only main loop clears it */
-            g_buffer_ready = false;
         }
+
+        /* Clear IPC notify flag after drain attempt
+         * If we drained data, clear flag
+         * If we didn't drain (race condition), keep flag set for next cycle retry
+         * But clear it after a timeout to prevent stale flag from hanging forever */
+        if (packets_drained > 0) {
+            g_commands_ready = false;  /* Successfully drained */
+            if (ipc_notify_trace_count > 0) {
+                DebugP_log("[Core1] Drained %u packets, cycle=%u\r\n", packets_drained, g_cycle_count);
+            }
+        }
+        /* If packets_drained==0, g_commands_ready stays TRUE for retry
+         * Flag will eventually be cleared when data arrives or after timeout */
+
+        /* Optional: Log when draining multiple packets (for debugging, disabled by default)
+        if (packets_drained > 1 && (g_cycle_count % 1000) == 0) {
+            DebugP_log("[Core1] Drained %u packets in one cycle\r\n", packets_drained);
+        }
+        */
+
+        /* [FIX B096] Removed g_buffer_ready check - copy happens immediately after receive */
 
         /* 2. Transmit CAN frames to all motors */
         transmit_can_frames();

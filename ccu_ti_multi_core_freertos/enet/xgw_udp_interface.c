@@ -638,10 +638,14 @@ int xgw_udp_process_motor_cmd(const uint8_t* data, uint16_t length)
 
     for (uint8_t i = 0; i < count; i++) {
         ipc_cmds[i].motor_id = cmds[i].motor_id;
-        /* [FIX B038] Motor CMD is always MIT motion control (cyclic) - set mode=255
-         * This distinguishes MIT commands from motor_set commands (mode 0-4)
-         * Reference: gateway_shared.h mode definitions */
-        ipc_cmds[i].mode = MOTOR_MODE_MIT_CONTROL;  /* 255 = MIT cyclic */
+        /* [FIX B089] Preserve mode from UDP packet instead of overriding to 255
+         * Problem: PC sends enable command (mode=1) but code overrides to mode=255 (MIT)
+         * Core1 then sends MIT frame instead of Enable frame → motor not enabled!
+         * Solution: Keep mode from packet so Core1 can distinguish:
+         * - mode 0-4: One-time commands (disable/enable/zero) → send Enable/Disable frames
+         * - mode 255 or unset: MIT motion control → send MIT frames
+         * Reference: draft/ccu_ti/ccu_xgw_gateway.c doesn't use mode field, but PC may send it */
+        ipc_cmds[i].mode = cmds[i].mode;  /* Preserve mode from packet */
         /* [FIX B038] Use float directly in IPC (no more ×100 scaling)
          * Matches reference architecture: float directly from UDP to CAN */
         ipc_cmds[i].position = cmds[i].position;  /* rad (float) */
@@ -739,8 +743,9 @@ int xgw_udp_process_motor_set(const uint8_t* data, uint16_t length)
         g_udp_state.rx_count++;
         return 0;
     } else {
-        DebugP_log("[xGW UDP] ERROR: Motor SET #%u: Failed to write IPC! ret=%d\r\n",
-                   motor_set_count, ret);
+        /* [DEBUG B097] Log ring buffer write failure */
+        DebugP_log("[xGW UDP] ERROR: Motor SET #%u: ringbuf write failed! ret=%d, count=%u, size=%u\r\n",
+                   motor_set_count, ret, count, count * (uint32_t)sizeof(motor_cmd_ipc_t));
         g_udp_state.rx_errors++;
         return -1;
     }
@@ -953,7 +958,8 @@ static void xgw_udp_recv_callback(void* arg, struct udp_pcb* pcb, struct pbuf* p
     /* [FIX B070] Queue-based processing - copy packet to queue and return */
     if (p != NULL && g_udp_rx_queue != NULL) {
         xgw_udp_rx_item_t rx_item;
-        rx_item.length = (p->len > sizeof(rx_item.data)) ? sizeof(rx_item.data) : p->len;
+        /* [FIX B080] Use tot_len for pbuf chains - p->len is only first pbuf! */
+        rx_item.length = (p->tot_len > sizeof(rx_item.data)) ? sizeof(rx_item.data) : p->tot_len;
 
         /* Copy packet data to queue item */
         pbuf_copy_partial(p, rx_item.data, rx_item.length, 0);

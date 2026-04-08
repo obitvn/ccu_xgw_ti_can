@@ -177,8 +177,10 @@ static void ipc_notify_callback_fxn(uint32_t remoteCoreId, uint16_t localClientI
     (void)crcStatus;
     (void)args;
 
-    /* [QA TRACE T017] Log IPC callback entry */
-    DebugP_log("[QA-T017] IPC callback: msg_id=%u\r\n", (unsigned int)msgValue);
+    /* [FIX B081] Disabled DebugP_log in ISR - called at 1000Hz blocking UART!
+     * This callback runs at 1000Hz (every time Core1 sends motor states)
+     * DebugP_log blocking on UART causes severe performance degradation */
+    /* DebugP_log("[QA-T017] IPC callback: msg_id=%u\r\n", (unsigned int)msgValue); */
 
     /* [QA TRACE T024] Increment IPC receive counter (Core1→Core0) */
     DEBUG_COUNTER_INC(dbg_ipc_recv_count);

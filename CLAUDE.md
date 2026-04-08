@@ -85,6 +85,14 @@ ccu_ti_mutilcore/
 - `source/` - Driver source code
 - `docs/` - Driver documentation
 
+### Script PC UDP
+**Path:** `D:\VinDynamics\Project\CCU_TI_RS485_CAN\2.Firmware\ccu_ti_diag_syslog_v2.py`
+
+**Usage:**
+- Tham khảo driver cách PC gửi lệnh qua UDP xuống ccu_ti
+- Đây là script dùng để gửi, test, điều khiển qua udp xuống mạch
+- Không sửa file, chỉ đọc
+
 ---
 
 ## Architecture Constraints
