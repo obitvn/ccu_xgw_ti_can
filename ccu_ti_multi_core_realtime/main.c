@@ -1138,15 +1138,15 @@ static void main_loop(void)
                 uint8_t  captured;
             } g_first_intr_info[8];
 
-            for (uint8_t i = 0; i < 8; i++) {
-                if (g_first_intr_info[i].captured) {
-                    DebugP_log("[Core1] CAN%d FirstISR: intr=0x%08X, rx_cnt=%u, isr_cnt=%u\r\n",
-                               i,
-                               g_first_intr_info[i].intr_status,
-                               g_first_intr_info[i].rx_count_at_intr,
-                               g_first_intr_info[i].isr_call_count_at_intr);
-                }
-            }
+            // for (uint8_t i = 0; i < 8; i++) {
+            //     if (g_first_intr_info[i].captured) {
+            //         DebugP_log("[Core1] CAN%d FirstISR: intr=0x%08X, rx_cnt=%u, isr_cnt=%u\r\n",
+            //                    i,
+            //                    g_first_intr_info[i].intr_status,
+            //                    g_first_intr_info[i].rx_count_at_intr,
+            //                    g_first_intr_info[i].isr_call_count_at_intr);
+            //     }
+            // }
 
             /* [DEBUG B060] Log which motors have valid data
              * [FIX B066] Check can_bus != 0xFF (uninitialized value) since motor_id is now array index */

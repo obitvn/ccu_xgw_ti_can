@@ -367,8 +367,8 @@ int xgw_udp_send_imu_state(const xgw_imu_state_t* imu_state)
         return -1;
     }
 
-    /* [TEST] Increase IMU packet size from 100 to 1024 bytes to test pbuf exhaustion */
-    uint16_t payload_len = 900;  /* Instead of sizeof(xgw_imu_state_t) = 68 */
+    /* IMU packet size - actual IMU state data only */
+    uint16_t payload_len = sizeof(xgw_imu_state_t);  /* 68 bytes */
     uint16_t total_len = sizeof(xgw_header_t) + payload_len;
     struct pbuf* p = pbuf_alloc(PBUF_TRANSPORT, total_len, PBUF_RAM);
 
@@ -392,14 +392,8 @@ int xgw_udp_send_imu_state(const xgw_imu_state_t* imu_state)
     /* Set timestamp */
     header->timestamp_ns = ClockP_getTimeUsec() * 1000ULL;
 
-    /* Copy IMU state (first 68 bytes) */
+    /* Copy IMU state data */
     memcpy(data + sizeof(xgw_header_t), imu_state, sizeof(xgw_imu_state_t));
-
-    /* [TEST] Fill remaining payload with test pattern (0xAA) */
-    if (payload_len > sizeof(xgw_imu_state_t)) {
-        memset(data + sizeof(xgw_header_t) + sizeof(xgw_imu_state_t),
-               0xAA, payload_len - sizeof(xgw_imu_state_t));
-    }
 
     /* Calculate CRC */
     header->crc32 = xgw_crc32_calculate(header, data + sizeof(xgw_header_t), payload_len);

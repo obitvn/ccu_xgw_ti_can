@@ -300,62 +300,74 @@ static void udp_tx_task(void *args)
         }
 #endif
 
-        /* Read motor states from shared memory */
+        /* [FIX B099] Cache motor states like IMU - always send at 1000Hz
+         * Problem: Core1 updates @ 1000Hz, Core0 reads @ 1000Hz. Any timing drift
+         * causes Core0 to read before Core1 writes → count=0 → motor packet skipped.
+         * Result: Motor TX only 800Hz while IMU achieves 1000Hz (cached resend).
+         * Solution: Cache last valid motor states and resend every cycle, like IMU. */
+        static motor_state_ipc_t g_cached_motor_states[GATEWAY_NUM_MOTORS] = {0};
+        static volatile bool g_motor_has_valid_data = false;
         int32_t count;
+
 #if SIMULATE_MOTOR_DATA
         /* [TEST B033] Use simulated data directly, bypass shared memory */
-        count = GATEWAY_NUM_MOTORS;  /* Force count to trigger UDP send */
+        count = GATEWAY_NUM_MOTORS;
+        /* Generate simulated motor states */
+        for (uint8_t i = 0; i < GATEWAY_NUM_MOTORS; i++) {
+            g_motor_states[i].motor_id = i;
+            g_motor_states[i].position = 0.0f;
+            g_motor_states[i].velocity = 0.0f;
+            g_motor_states[i].torque = 0.0f;
+            g_motor_states[i].temperature = 25.0f;
+        }
 #else
         count = gateway_read_motor_states(g_motor_states);
 #endif
 
-        /* [DEBUG B051] Log read result occasionally to diagnose */
-        static uint32_t motor_read_count = 0;
-        static uint32_t motor_success_count = 0;
-        static uint32_t motor_error_count = 0;
-        motor_read_count++;
-
-        /* Log when count is not expected (every 100th error to avoid spam) */
-        if (count != GATEWAY_NUM_MOTORS && count > 0) {
-            if (++motor_error_count <= 10 || (motor_error_count % 100 == 0)) {
-                DebugP_log("[Core0] motor_read: count=%d (expected %d), err_cnt=%u\r\n",
-                           count, GATEWAY_NUM_MOTORS, motor_error_count);
-            }
-        }
-
-        /* [PERFORMANCE] Only send motor states if new data available
-         * This reduces UDP TX frequency when Core1 is not updating
-         */
+        /* Update cache when new data available */
         if (count == GATEWAY_NUM_MOTORS) {
-            /* [DEBUG B057] Log first successful motor read - verify shared memory working
-             * ONLY logs once to verify data flow from Core1 to Core0 */
+            /* New data - update cache */
+            memcpy(g_cached_motor_states, g_motor_states, sizeof(g_cached_motor_states));
+            g_motor_has_valid_data = true;
+
+            /* [DEBUG] Log first successful read */
             static bool first_motor_read_logged = false;
             if (!first_motor_read_logged) {
-                DebugP_log("[Core0] Motor READ OK: count=%d, m[0].id=%u, pos=%.3f, vel=%.3f, trq=%.3f, tmp=%.1f\r\n",
-                           count,
-                           g_motor_states[0].motor_id,
-                           g_motor_states[0].position,
-                           g_motor_states[0].velocity,
-                           g_motor_states[0].torque,
-                           g_motor_states[0].temperature);
+                DebugP_log("[Core0] Motor cache updated: count=%d, m[0].id=%u\r\n",
+                           count, g_motor_states[0].motor_id);
                 first_motor_read_logged = true;
             }
-
-            /* All motor states successfully read - send UDP packet */
-            build_and_send_udp_packet();
-            motor_success_count++;
         }
 
-        /* [DEBUG] Log motor read statistics every 5000 cycles - no logging in success path */
+        /* [DEBUG] Track read statistics */
+        static uint32_t motor_read_count = 0;
+        static uint32_t motor_new_count = 0;
+        static uint32_t motor_cached_count = 0;
+        motor_read_count++;
+
+        if (count == GATEWAY_NUM_MOTORS) {
+            motor_new_count++;
+        } else if (count == 0 && g_motor_has_valid_data) {
+            motor_cached_count++;
+        }
+
+        /* Log stats every 5000 cycles */
         if (motor_read_count >= 5000) {
-            DebugP_log("[Core0] Motor stats: total=%u, ok=%u (%.1f%%), err=%u, last=%d, link=%d\r\n",
-                       motor_read_count, motor_success_count,
-                       motor_read_count > 0 ? (float)motor_success_count * 100.0f / motor_read_count : 0.0f,
-                       motor_error_count, count, enet_is_link_up());
-            /* [FIX B055] Reset ALL counters to avoid overflow and incorrect stats */
+            DebugP_log("[Core0] Motor cache: total=%u, new=%u (%.1f%%), cached=%u (%.1f%%)\r\n",
+                       motor_read_count, motor_new_count,
+                       motor_read_count > 0 ? (float)motor_new_count * 100.0f / motor_read_count : 0.0f,
+                       motor_cached_count,
+                       motor_read_count > 0 ? (float)motor_cached_count * 100.0f / motor_read_count : 0.0f);
             motor_read_count = 0;
-            motor_success_count = 0;
-            motor_error_count = 0;
+            motor_new_count = 0;
+            motor_cached_count = 0;
+        }
+
+        /* Always send motor data (new or cached) every cycle at 1000Hz */
+        if (g_motor_has_valid_data) {
+            /* Copy cached data to global array for build_and_send_udp_packet() */
+            memcpy(g_motor_states, g_cached_motor_states, sizeof(g_motor_states));
+            build_and_send_udp_packet();
         }
 
         /* [IMU] Always send IMU state at 1000Hz - cache and resend if no new data
