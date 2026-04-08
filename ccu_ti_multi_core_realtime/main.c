@@ -441,14 +441,15 @@ static uint8_t receive_motor_commands(void)
 
     if (ret == GATEWAY_RINGBUF_OK && bytes_read > 0) {
         uint8_t count = bytes_read / sizeof(motor_cmd_ipc_t);
-        /* [DEBUG B095] Log received motors */
-        for (uint8_t i = 0; i < count && i < 5; i++) {  /* Log first 5 motors */
-            DebugP_log("[Core1] RX: motor[%u].id=%u, mode=%u\r\n",
-                       i, g_motor_commands_buffer[i].motor_id, g_motor_commands_buffer[i].mode);
-        }
+        // /* [DEBUG B095] Log received motors */
+        // for (uint8_t i = 0; i < count && i < 5; i++) {  /* Log first 5 motors */
+        //     DebugP_log("[Core1] RX: motor[%u].id=%u, mode=%u\r\n",
+        //                i, g_motor_commands_buffer[i].motor_id, g_motor_commands_buffer[i].mode);
+        // }
         return count;
     } else if (ret == GATEWAY_RINGBUF_EMPTY) {
         /* No data available */
+        DebugP_log("[Core1] RX ERROR: GATEWAY_RINGBUF_EMPTY ret=%d\r\n", ret);
         return 0;
     } else {
         /* Error */
@@ -477,8 +478,8 @@ static void copy_motor_commands_to_working(uint8_t count)
         if (motor_index < GATEWAY_NUM_MOTORS) {
             g_motor_commands_working[motor_index] = g_motor_commands_buffer[i];
             g_updated_motors_mask |= (1U << motor_index);  /* Mark as updated */
-            DebugP_log("[Core1] Copy: motor[%u]=id%u, mode%u, mask=0x%08X\r\n",
-                       i, motor_index, g_motor_commands_working[motor_index].mode, g_updated_motors_mask);
+            // DebugP_log("[Core1] Copy: motor[%u]=id%u, mode%u, mask=0x%08X\r\n",
+            //            i, motor_index, g_motor_commands_working[motor_index].mode, g_updated_motors_mask);
         }
     }
 }
@@ -1088,9 +1089,9 @@ static void main_loop(void)
          * But clear it after a timeout to prevent stale flag from hanging forever */
         if (packets_drained > 0) {
             g_commands_ready = false;  /* Successfully drained */
-            if (ipc_notify_trace_count > 0) {
-                DebugP_log("[Core1] Drained %u packets, cycle=%u\r\n", packets_drained, g_cycle_count);
-            }
+            // if (ipc_notify_trace_count > 0) {
+            //     DebugP_log("[Core1] Drained %u packets, cycle=%u\r\n", packets_drained, g_cycle_count);
+            // }
         }
         /* If packets_drained==0, g_commands_ready stays TRUE for retry
          * Flag will eventually be cleared when data arrives or after timeout */
