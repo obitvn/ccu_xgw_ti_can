@@ -178,21 +178,35 @@ static struct {
 } g_log_queue = {0};
 
 /**
- * @brief Log queue entry header
+ * @brief Log queue entry header with CRC for corruption detection
  */
 typedef struct {
     uint16_t syslog_len;
     uint16_t uart_len;
     uint8_t level;
     uint8_t priority;
+    uint16_t checksum;  /* [FIX B102] Simple checksum to detect corruption */
 } log_entry_header_t;
+
+/* [FIX B102] Simple checksum function for header validation */
+static inline uint16_t header_checksum(const log_entry_header_t* header)
+{
+    uint16_t sum = 0;
+    const uint8_t* data = (const uint8_t*)header;
+
+    /* Sum all fields except checksum itself */
+    for (size_t i = 0; i < sizeof(log_entry_header_t) - sizeof(uint16_t); i++) {
+        sum += data[i];
+    }
+    return sum;
+}
 
 /* Forward declaration for logger task */
 static void logger_task(void *args);
 
 /* Logger task handle and stack (shared with main.c) */
 extern TaskHandle_t gLoggerTask;
-extern StackType_t gLoggerTaskStack[LOGGER_TASK_SIZE];
+extern StackType_t gLoggerTaskStack[];  /* Size defined in main.c */
 extern StaticTask_t gLoggerTaskObj;
 
 /* Forward declaration for internal async push function */
@@ -563,15 +577,62 @@ static int ccu_log_push_v(log_level_t level, const char* tag, const char* fmt, v
         return -1;
     }
 
-    /* Format message */
+    /* Format message - use smaller buffer to leave room for guard bytes */
     char msg_buf[CCU_LOG_MAX_MSG_LEN];
-    vsnprintf(msg_buf, sizeof(msg_buf), fmt, args);
+    memset(msg_buf, 0, sizeof(msg_buf));  /* Clear buffer first */
+
+    /* Use vsnprintf with size-1 to ensure room for null terminator */
+    int len = vsnprintf(msg_buf, sizeof(msg_buf) - 1, fmt, args);
+    if (len < 0 || len >= (int)(sizeof(msg_buf) - 1)) {
+        /* Format failed or would overflow */
+        return -1;
+    }
+
+    /* Explicit null termination */
+    msg_buf[len] = '\0';
+
+    /* Validate msg_buf for corruption before processing */
+    uint32_t msg_len = strlen(msg_buf);
+    if (msg_len == 0 || msg_len >= CCU_LOG_MAX_MSG_LEN - 64) {
+        /* Invalid message, too long or empty */
+        return -1;
+    }
+
+    /* Check for non-printable characters in msg_buf (sign of corruption) */
+    for (uint32_t i = 0; i < msg_len; i++) {
+        if (msg_buf[i] < 0x20 && msg_buf[i] != '\t' && msg_buf[i] != '\n' && msg_buf[i] != '\r') {
+            /* Corrupted character detected */
+            return -1;
+        }
+    }
 
     /* Format syslog and UART versions */
     char syslog_buf[CCU_LOG_MAX_MSG_LEN];
     char uart_buf[CCU_LOG_MAX_MSG_LEN];
-    uint32_t syslog_len = format_syslog_msg(syslog_buf, sizeof(syslog_buf), level, tag, msg_buf);
-    uint32_t uart_len = format_uart_msg(uart_buf, sizeof(uart_buf), level, tag, msg_buf);
+
+    /* Clear buffers to prevent garbage data */
+    memset(syslog_buf, 0, sizeof(syslog_buf));
+    memset(uart_buf, 0, sizeof(uart_buf));
+
+    uint32_t syslog_len = format_syslog_msg(syslog_buf, sizeof(syslog_buf) - 1, level, tag, msg_buf);
+    uint32_t uart_len = format_uart_msg(uart_buf, sizeof(uart_buf) - 1, level, tag, msg_buf);
+
+    /* Validate lengths are reasonable */
+    if (syslog_len == 0 || syslog_len >= CCU_LOG_MAX_MSG_LEN - 64) {
+        return -1;
+    }
+    if (uart_len == 0 || uart_len >= CCU_LOG_MAX_MSG_LEN - 64) {
+        return -1;
+    }
+
+    /* Explicit null termination after format */
+    syslog_buf[syslog_len] = '\0';
+    uart_buf[uart_len] = '\0';
+
+    /* Final validation: check for null terminators */
+    if (syslog_buf[syslog_len] != '\0' || uart_buf[uart_len] != '\0') {
+        return -1;
+    }
 
     uint32_t total_size = sizeof(log_entry_header_t) + syslog_len + uart_len;
 
@@ -581,13 +642,79 @@ static int ccu_log_push_v(log_level_t level, const char* tag, const char* fmt, v
         return 0;
     }
 
-    /* Check space and make room if needed */
+    /* [FIX B104] Check space - discard COMPLETE messages only */
     uint32_t available = queue_get_available();
-    if (total_size > available) {
-        uint32_t needed = total_size - available;
-        g_log_queue.tail = (g_log_queue.tail + needed) % CCU_LOG_QUEUE_SIZE;
-        g_log_queue.stats.overruns += needed;
+
+    /* [FIX B106] If not enough room, simple drop oldest message(s) */
+    while (total_size > available) {
+        /* Drop ONE complete message from the tail */
+        log_entry_header_t temp_header;
+        uint32_t tail = g_log_queue.tail;
+        uint32_t used = queue_get_used();
+
+        if (used < sizeof(log_entry_header_t)) {
+            /* Nothing valid in queue, clear it */
+            g_log_queue.tail = g_log_queue.head;
+            break;
+        }
+
+        /* Read header atomically using queue_read (which handles wrap-around) */
+        if (!queue_read((uint8_t*)&temp_header, sizeof(temp_header))) {
+            /* Can't read header - clear queue */
+            g_log_queue.tail = g_log_queue.head;
+            break;
+        }
+
+        /* Validate checksum before using */
+        if (header_checksum(&temp_header) != temp_header.checksum) {
+            /* Corrupted header - clear entire queue */
+            g_log_queue.tail = g_log_queue.head;
+            g_log_queue.stats.dropped++;
+            break;
+        }
+
+        /* Validate lengths */
+        if (temp_header.syslog_len >= CCU_LOG_MAX_MSG_LEN ||
+            temp_header.uart_len >= CCU_LOG_MAX_MSG_LEN) {
+            /* Invalid lengths - clear queue */
+            g_log_queue.tail = g_log_queue.head;
+            g_log_queue.stats.dropped++;
+            break;
+        }
+
+        /* Skip syslog data */
+        if (temp_header.syslog_len > 0) {
+            uint8_t dummy;
+            for (uint32_t i = 0; i < temp_header.syslog_len; i++) {
+                queue_read(&dummy, 1);
+            }
+        }
+
+        /* Skip UART data */
+        if (temp_header.uart_len > 0) {
+            uint8_t dummy;
+            for (uint32_t i = 0; i < temp_header.uart_len; i++) {
+                queue_read(&dummy, 1);
+            }
+        }
+
+        g_log_queue.stats.overruns += sizeof(temp_header) + temp_header.syslog_len + temp_header.uart_len;
         g_log_queue.stats.dropped++;
+
+        /* Recalculate available space */
+        available = queue_get_available();
+
+        /* Safety check to prevent infinite loop */
+        if (g_log_queue.tail == g_log_queue.head) {
+            break;
+        }
+    }
+
+    if (total_size > available) {
+        /* Still not enough room after making room - drop this message */
+        xSemaphoreGive(g_log_queue.mutex);
+        g_log_queue.stats.dropped++;
+        return 0;
     }
 
     /* Write header */
@@ -595,8 +722,12 @@ static int ccu_log_push_v(log_level_t level, const char* tag, const char* fmt, v
         .syslog_len = (uint16_t)syslog_len,
         .uart_len = (uint16_t)uart_len,
         .level = (uint8_t)level,
-        .priority = 0
+        .priority = 0,
+        .checksum = 0  /* Will be calculated below */
     };
+
+    /* [FIX B102] Calculate and set checksum */
+    header.checksum = header_checksum(&header);
 
     if (!queue_write((uint8_t*)&header, sizeof(header))) {
         xSemaphoreGive(g_log_queue.mutex);
@@ -656,7 +787,9 @@ static int logger_pop_and_flush(uint32_t timeout_ms)
     }
 
     if (xSemaphoreTake(g_log_queue.mutex, pdMS_TO_TICKS(100)) != pdTRUE) {
-        return 0;
+        /* [FIX] Must give back semaphore if mutex take fails! */
+        xSemaphoreGive(g_log_queue.sem);
+        return -1;
     }
 
     uint32_t used = queue_get_used();
@@ -672,8 +805,18 @@ static int logger_pop_and_flush(uint32_t timeout_ms)
         return -1;
     }
 
-    /* Validate */
-    if (header.syslog_len > CCU_LOG_MAX_MSG_LEN || header.uart_len > CCU_LOG_MAX_MSG_LEN) {
+    /* [FIX B102] Verify checksum to detect header corruption */
+    if (header_checksum(&header) != header.checksum) {
+        /* Header corrupted - reset queue to prevent cascading corruption */
+        DebugP_log("[Core0] WARNING: Log queue header corrupted, resetting queue\r\n");
+        g_log_queue.tail = g_log_queue.head;
+        g_log_queue.stats.dropped++;
+        xSemaphoreGive(g_log_queue.mutex);
+        return -1;
+    }
+
+    /* Validate - must be < CCU_LOG_MAX_MSG_LEN to leave room for null terminator */
+    if (header.syslog_len >= CCU_LOG_MAX_MSG_LEN || header.uart_len >= CCU_LOG_MAX_MSG_LEN) {
         g_log_queue.tail = g_log_queue.head;
         xSemaphoreGive(g_log_queue.mutex);
         return -1;
@@ -687,6 +830,8 @@ static int logger_pop_and_flush(uint32_t timeout_ms)
             return -1;
         }
         syslog_buf[header.syslog_len] = '\0';
+    } else {
+        syslog_buf[0] = '\0';
     }
 
     /* Read UART data */
@@ -697,6 +842,8 @@ static int logger_pop_and_flush(uint32_t timeout_ms)
             return -1;
         }
         uart_buf[header.uart_len] = '\0';
+    } else {
+        uart_buf[0] = '\0';
     }
 
     g_log_queue.stats.popped++;
@@ -706,6 +853,17 @@ static int logger_pop_and_flush(uint32_t timeout_ms)
 
     /* Flush to outputs */
     if (header.syslog_len > 0) {
+        /* [DEBUG B108] Debug: Print syslog_buf content */
+        static uint32_t syslog_debug_count = 0;
+        if (syslog_debug_count < 5) {
+            DebugP_log("[Core0] SYSLOG READ: len=%u, data(0..31): ", header.syslog_len);
+            for (int i = 0; i < 32 && i < (int)header.syslog_len; i++) {
+                DebugP_log("%02x ", (uint8_t)syslog_buf[i]);
+            }
+            DebugP_log("\r\n");
+            syslog_debug_count++;
+        }
+
         syslog_severity_t severity;
         switch (header.level) {
             case LOG_LEVEL_ERROR: severity = SYSLOG_SEV_ERROR; break;
@@ -733,6 +891,13 @@ static void logger_task(void *args)
 
     DebugP_log("[Core0] Logger task started\r\n");
 
+    /* [FIX B102] Add stack watermark to detect overflow */
+    const uint32_t STACK_WATERMARK = 0xDEADBEEF;
+    StackType_t stack_watermark[32] __attribute__((aligned(32)));
+    for (int i = 0; i < 32; i++) {
+        stack_watermark[i] = STACK_WATERMARK;
+    }
+
     uint32_t log_count = 0;
     const uint32_t STATS_INTERVAL = 5000;
 
@@ -746,10 +911,19 @@ static void logger_task(void *args)
         }
 
         if (log_count >= STATS_INTERVAL) {
-            DebugP_log("[Core0] Logger: pushed=%u, popped=%u, dropped=%u, usage=%u/%u\r\n",
+            /* [FIX B102] Check stack watermark */
+            int watermark_corrupted = 0;
+            for (int i = 0; i < 32; i++) {
+                if (stack_watermark[i] != STACK_WATERMARK) {
+                    watermark_corrupted = 1;
+                    break;
+                }
+            }
+
+            DebugP_log("[Core0] Logger: pushed=%u, popped=%u, dropped=%u, usage=%u/%u, stack_ok=%d\r\n",
                        g_log_queue.stats.pushed, g_log_queue.stats.popped,
                        g_log_queue.stats.dropped, g_log_queue.stats.current_bytes,
-                       CCU_LOG_QUEUE_SIZE);
+                       CCU_LOG_QUEUE_SIZE, !watermark_corrupted);
             log_count = 0;
         }
     }
@@ -767,7 +941,7 @@ int ccu_log_start_logger_task(void)
     gLoggerTask = xTaskCreateStatic(
         logger_task,
         "Logger",
-        LOGGER_TASK_SIZE,
+        LOGGER_TASK_STACK_WORDS,
         NULL,
         LOGGER_TASK_PRI,
         gLoggerTaskStack,

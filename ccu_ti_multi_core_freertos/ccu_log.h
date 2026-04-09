@@ -229,8 +229,9 @@ void ccu_log_dual(const char* tag, const char* fmt, ...);
 #define CCU_LOG_MAX_MSG_LEN      512           /* Max single log message */
 
 /* Logger task configuration */
-#define LOGGER_TASK_SIZE         (4096U/sizeof(StackType_t))  /* 4KB stack */
-#define LOGGER_TASK_PRI          2   /* Lowest priority - background logging */
+#define LOGGER_TASK_PRI          5   /* Medium-low priority - [FIX B097] increased from 2 to avoid starvation */
+#define LOGGER_TASK_STACK_WORDS  (4096U/sizeof(StackType_t))  /* Stack depth for xTaskCreateStatic (number of StackType_t elements) */
+/* NOTE: Actual stack array gLoggerTaskStack is defined in main.c with LOGGER_TASK_SIZE */
 
 /**
  * @brief Log queue statistics

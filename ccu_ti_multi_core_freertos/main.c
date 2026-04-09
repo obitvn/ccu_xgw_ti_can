@@ -435,10 +435,17 @@ static void udp_tx_task(void *args)
             int32_t pbuf_in_use = g_pbuf_alloc_count - g_pbuf_free_count;
 
             /* [FIX B097] Use async logging to avoid blocking */
+            /* [FIX B100] Make local copies of volatile variables to ensure atomic reads */
+            uint32_t pbuf_alloc = g_pbuf_alloc_count;
+            uint32_t pbuf_free = g_pbuf_free_count;
+            uint32_t pbuf_fail = g_pbuf_alloc_fail_count;
+            uint32_t sendto_count = g_udp_sendto_count;
+            int32_t pbuf_in_use_local = pbuf_in_use;
+
             ccu_log_info("UDP_TX", "UDP TX: %.1f Hz, %.2f us | pbuf: alloc=%u free=%u in_use=%d fail=%u sendto=%u",
                        actual_rate, avg_period_us,
-                       g_pbuf_alloc_count, g_pbuf_free_count, pbuf_in_use,
-                       g_pbuf_alloc_fail_count, g_udp_sendto_count);
+                       pbuf_alloc, pbuf_free, pbuf_in_use_local,
+                       pbuf_fail, sendto_count);
 
             /* [DEBUG B029] Dump lwIP stats every 30 seconds */
             static uint32_t stats_dump_counter = 0;
@@ -789,13 +796,7 @@ static int32_t core0_init(void)
         DebugP_log("[Core0] WARNING: UDP init failed!\r\n");
     }
 
-    /* [FIX B097] Initialize async log queue (must be after scheduler starts) */
-    status = ccu_log_queue_init();
-    if (status != 0) {
-        DebugP_log("[Core0] WARNING: Log queue init failed, using direct logging\r\n");
-    } else {
-        DebugP_log("[Core0] Async log queue initialized (%d bytes)\r\n", CCU_LOG_QUEUE_SIZE);
-    }
+    /* [FIX B097] Async log queue initialized later in freertos_main() after scheduler starts */
 
     /* Register IPC callback - BOTH cores must use the SAME client ID */
     DebugP_log("[Core0] Registering IPC callback with client ID=%u\r\n", GATEWAY_IPC_CLIENT_ID);

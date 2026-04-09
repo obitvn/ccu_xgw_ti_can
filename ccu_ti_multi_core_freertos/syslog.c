@@ -44,39 +44,91 @@ static int format_syslog_message(char *buf, size_t buf_len,
     int offset = 0;
     uint32_t now_ms;
 
+    /* [FIX B107] Validate input parameters */
+    if (buf == NULL || buf_len < 32) {
+        return -1;
+    }
+    if (msg == NULL) {
+        msg = "";
+    }
+
     /* Get current time (using lwIP sys_now) */
     now_ms = sys_now();
 
     /* Start with PRI - Priority value */
-    offset += snprintf(buf + offset, buf_len - offset, "<%d>", pri);
+    int written = snprintf(buf + offset, buf_len - offset, "<%d>", pri);
+    if (written < 0 || written >= (int)(buf_len - offset)) {
+        return -1;
+    }
+    offset += written;
 
     /* Add timestamp (simplified ISO 8601 format without timezone) */
     if (g_syslog.config.include_timestamp) {
         uint32_t seconds = now_ms / 1000;
         uint32_t milliseconds = now_ms % 1000;
-        offset += snprintf(buf + offset, buf_len - offset,
+        written = snprintf(buf + offset, buf_len - offset,
                           "%u.%03u ", seconds, milliseconds);
+        if (written < 0 || written >= (int)(buf_len - offset)) {
+            return -1;
+        }
+        offset += written;
     }
 
     /* Add hostname */
     if (g_syslog.config.include_hostname) {
-        offset += snprintf(buf + offset, buf_len - offset, "%s ",
-                          g_syslog.config.hostname);
+        /* [FIX B105] Ensure hostname is null-terminated */
+        size_t hostname_len = strnlen(g_syslog.config.hostname, 31);
+        if (hostname_len == 0 || hostname_len >= 32) {
+            /* Hostname corrupted - skip it */
+        } else {
+            written = snprintf(buf + offset, buf_len - offset, "%s ",
+                              g_syslog.config.hostname);
+            if (written < 0 || written >= (int)(buf_len - offset)) {
+                return -1;
+            }
+            offset += written;
+        }
     }
 
     /* Add app name */
     if (g_syslog.config.include_app_name) {
-        offset += snprintf(buf + offset, buf_len - offset, "%s ",
-                          g_syslog.config.app_name);
+        /* [FIX B105] Ensure app_name is null-terminated */
+        size_t app_name_len = strnlen(g_syslog.config.app_name, 31);
+        if (app_name_len == 0 || app_name_len >= 32) {
+            /* App name corrupted - skip it */
+        } else {
+            written = snprintf(buf + offset, buf_len - offset, "%s ",
+                              g_syslog.config.app_name);
+            if (written < 0 || written >= (int)(buf_len - offset)) {
+                return -1;
+            }
+            offset += written;
+        }
     }
 
     /* Add tag if provided */
     if (tag != NULL && tag[0] != '\0') {
-        offset += snprintf(buf + offset, buf_len - offset, "[%s] ", tag);
+        written = snprintf(buf + offset, buf_len - offset, "[%s] ", tag);
+        if (written < 0 || written >= (int)(buf_len - offset)) {
+            return -1;
+        }
+        offset += written;
     }
 
     /* Add message */
-    offset += snprintf(buf + offset, buf_len - offset, "%s", msg);
+    written = snprintf(buf + offset, buf_len - offset, "%s", msg);
+    if (written < 0 || written >= (int)(buf_len - offset)) {
+        return -1;
+    }
+    offset += written;
+
+    /* [FIX B107] Final safety check */
+    if (offset < 0 || offset >= (int)buf_len) {
+        return -1;
+    }
+
+    /* Ensure null termination */
+    buf[offset] = '\0';
 
     return offset;
 }
@@ -158,9 +210,28 @@ static int32_t syslog_send_internal(syslog_facility_t facility, syslog_severity_
     int msg_len;
     int sent;
 
+    /* [FIX B103] Clear buffer to prevent garbage data */
+    memset(msg_buf, 0, sizeof(msg_buf));
+
     /* Check if enabled */
     if (!g_syslog.config.enabled) {
         return 0;
+    }
+
+    /* [FIX B105] Validate and sanitize hostname/app_name to prevent corruption */
+    if (g_syslog.config.hostname[0] == '\0' ||
+        g_syslog.config.hostname[SYSLOG_HOSTNAME_MAX_LEN - 1] != '\0') {
+        /* Corrupted hostname - reset to default */
+        const char* default_hostname = "ccu-am263p";
+        strncpy((char*)g_syslog.config.hostname, default_hostname, SYSLOG_HOSTNAME_MAX_LEN - 1);
+        g_syslog.config.hostname[SYSLOG_HOSTNAME_MAX_LEN - 1] = '\0';
+    }
+    if (g_syslog.config.app_name[0] == '\0' ||
+        g_syslog.config.app_name[SYSLOG_APP_NAME_MAX_LEN - 1] != '\0') {
+        /* Corrupted app_name - reset to default */
+        const char* default_app_name = "ccu_ti";
+        strncpy((char*)g_syslog.config.app_name, default_app_name, SYSLOG_APP_NAME_MAX_LEN - 1);
+        g_syslog.config.app_name[SYSLOG_APP_NAME_MAX_LEN - 1] = '\0';
     }
 
     /* Check minimum severity
@@ -178,10 +249,24 @@ static int32_t syslog_send_internal(syslog_facility_t facility, syslog_severity_
     }
 
     /* Format message */
-    msg_len = format_syslog_message(msg_buf, sizeof(msg_buf), facility, severity, tag, msg);
-    if (msg_len < 0 || msg_len > (int)sizeof(msg_buf)) {
+    msg_len = format_syslog_message(msg_buf, sizeof(msg_buf) - 1, facility, severity, tag, msg);
+    if (msg_len < 0 || msg_len > (int)(sizeof(msg_buf) - 1)) {
         g_syslog.stats.logs_failed++;
         return -1;
+    }
+
+    /* [FIX B103] Ensure null termination */
+    msg_buf[msg_len] = '\0';
+
+    /* [DEBUG B108] Debug: Print msg_buf content for first few messages */
+    static uint32_t debug_count = 0;
+    if (debug_count < 5) {  /* Only print first 5 messages */
+        DebugP_log("[SYSLOG DEBUG] msg_len=%d, msg(0..31): ", msg_len);
+        for (int i = 0; i < 32 && i < msg_len; i++) {
+            DebugP_log("%02x ", (uint8_t)msg_buf[i]);
+        }
+        DebugP_log("\r\n");
+        debug_count++;
     }
 
     /* Set up destination address */
