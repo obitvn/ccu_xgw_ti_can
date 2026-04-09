@@ -32,10 +32,12 @@ extern "C" {
  * - LOG_OUTPUT_SYSLOG: Output to Syslog only (UDP network)
  * - LOG_OUTPUT_BOTH:  Output to both UART0 and Syslog
  *
- * Default: LOG_OUTPUT_BOTH
+ * Default: LOG_OUTPUT_SYSLOG
+ * [FIX B111] Use SYSLOG-only mode for runtime to avoid UART blocking jitter
+ * UART logging causes 10-15ms blocking per message in logger task at 115200 baud
  */
 #ifndef LOG_OUTPUT_MODE
-#define LOG_OUTPUT_MODE  LOG_OUTPUT_BOTH
+#define LOG_OUTPUT_MODE  LOG_OUTPUT_SYSLOG
 #endif
 
 /**

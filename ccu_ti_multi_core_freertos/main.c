@@ -80,7 +80,7 @@ volatile uint32_t dbg_imu_frame_count __attribute__((section(".bss.user_shared_m
  * With UDP_TX(6) < TCPIP(7), tcpip thread can preempt UDP_TX to complete
  * TX operations and free pbufs, preventing jitter and memory leaks. */
 #define UDP_TX_TASK_PRI       6   /* LOWER than TCPIP_THREAD_PRIO(7) - CRITICAL! */
-#define LOGGER_TASK_PRI       2   /* Lowest priority - background logging */
+/* LOGGER_TASK_PRI defined in ccu_log.h - [FIX B097] increased to 5 to avoid starvation */
 #define ENET_LWIP_TASK_PRI    8   /* Slightly higher than tcpip for init */
 #define UDP_RX_TASK_PRI       9   /* Higher than tcpip for RX processing */
 #define IPC_TASK_PRI          (configMAX_PRIORITIES - 2)  /* 30 - ISR callback */
@@ -175,6 +175,7 @@ static void lwip_init_callback(void *arg);
 static void udp_tx_task(void *args);
 static void ipc_process_task(void *args);
 /* [FIX B097] logger_task now in ccu_log.c - called via ccu_log_start_logger_task() */
+extern int ccu_log_start_logger_task(void);  /* Function declaration for ccu_log.c */
 static void ipc_notify_callback_fxn(uint32_t remoteCoreId, uint16_t localClientId,
                                       uint32_t msgValue, int32_t crcStatus, void *args);
 static void xgw_udp_rx_callback_wrapper(const uint8_t* data, uint16_t length,
@@ -277,7 +278,7 @@ static void udp_tx_task(void *args)
 
         /* Log every 1 second */
         if (wait_count % 1000 == 0) {
-            DebugP_log("[Core0] UDP TX: Still waiting for link... (%lu sec)\r\n", wait_count / 1000);
+            ccu_log_debug("UDP_TX", "Still waiting for link... (%lu sec)", wait_count / 1000);
         }
     }
 
@@ -297,6 +298,7 @@ static void udp_tx_task(void *args)
          * Task runs at 500Hz (2ms) sending 2 packets/cycle = 1000 packets/sec total.
          * Even at 500Hz, logging would cause significant timing issues.
          * Solution: Only log on startup, use counters for runtime monitoring.
+         * NOTE: UART actually runs at 1.8M baud (225 bytes/ms), much faster than 115200
          */
 
         /* [DEBUG B026] Simulate motor data for testing when no motors connected
@@ -357,7 +359,7 @@ static void udp_tx_task(void *args)
             /* [DEBUG] Log first successful read */
             static bool first_motor_read_logged = false;
             if (!first_motor_read_logged) {
-                DebugP_log("[Core0] Motor cache updated: count=%d, m[0].id=%u\r\n",
+                ccu_log_debug("CORE0", "Motor cache updated: count=%d, m[0].id=%u",
                            count, g_motor_states[0].motor_id);
                 first_motor_read_logged = true;
             }
@@ -417,7 +419,7 @@ static void udp_tx_task(void *args)
         if (count < 0) {
             static uint32_t error_count = 0;
             if (++error_count >= 1000) {
-                DebugP_log("[Core0] ERROR: gateway_read_motor_states failed\r\n");
+                ccu_log_error("UDP_TX", "gateway_read_motor_states failed");
                 error_count = 0;
             }
         }
@@ -447,20 +449,46 @@ static void udp_tx_task(void *args)
                        pbuf_alloc, pbuf_free, pbuf_in_use_local,
                        pbuf_fail, sendto_count);
 
-            /* [DEBUG B029] Dump lwIP stats every 30 seconds */
-            static uint32_t stats_dump_counter = 0;
-            if (++stats_dump_counter >= 6) {  /* Every 6 x 5 seconds = 30 seconds */
-                ccu_log_info("LWIP", "=== LWIP STATS ===");
-                stats_display();
-                stats_dump_counter = 0;
-            }
-
             loop_count = 0;
             last_loop_time_us = current_time_us;
         }
 
+        /* [DEBUG B112] Detect jitter - measure cycle time and log when > 1.5ms */
+        uint64_t cycle_start_us = ClockP_getTimeUsec();
+
         /* Wait for next cycle */
         vTaskDelayUntil(&last_wake_time, period);
+
+        /* Measure actual cycle time (including time waiting + processing) */
+        uint64_t cycle_end_us = ClockP_getTimeUsec();
+        uint64_t cycle_time_us = cycle_end_us - cycle_start_us;
+
+        // /* [DEBUG B113] Detailed jitter tracking - identify trigger source */
+        // if (cycle_time_us > 2000ULL) {
+        //     static uint32_t detailed_jitter_count = 0;
+        //     static uint64_t last_jitter_time = 0;
+        //     uint64_t now_us = cycle_end_us;
+
+        //     /* Log with context to identify pattern */
+        //     if (++detailed_jitter_count <= 50) {
+        //         uint64_t time_since_last = (last_jitter_time > 0) ? (now_us - last_jitter_time) / 1000 : 0;
+        //         DebugP_log("[JITTER] %llu us @ %llu ms (gap: %llu ms), calls=%u\r\n",
+        //                    cycle_time_us, now_us / 1000, time_since_last,
+        //                    detailed_jitter_count);
+        //         last_jitter_time = now_us;
+        //     }
+        // }
+
+        // /* Log if cycle took longer than expected (> 1.5ms indicates jitter) */
+        // if (cycle_time_us > 1500ULL) {
+        //     static uint32_t jitter_count = 0;
+        //     if (++jitter_count <= 20) {  /* Log first 20 jitters */
+        //         DebugP_log("[JITTER] Cycle time: %llu us (expected ~1000 us), count=%u\r\n",
+        //                    cycle_time_us, jitter_count);
+        //     } else if (jitter_count == 21) {
+        //         DebugP_log("[JITTER] Too many jitters - suppressing further logs\r\n");
+        //     }
+        // }
     }
 }
 
@@ -551,9 +579,9 @@ static void build_and_send_udp_packet(void)
      * Print in format: [Core0] MOTOR_IDS: 0:ID0 1:ID1 2:ID2 ... */
     static bool motor_ids_logged = false;
     if (!motor_ids_logged) {
-        DebugP_log("[Core0] SENDING MOTOR_IDS:\r\n");
+        ccu_log_debug("MOTOR", "SENDING MOTOR_IDS:");
         for (uint8_t i = 0; i < GATEWAY_NUM_MOTORS; i++) {
-            DebugP_log("  [%2u] id=%u, pos=%.3f, vel=%.3f\r\n",
+            ccu_log_debug("MOTOR", "[%2u] id=%u, pos=%.3f, vel=%.3f",
                        i, xgw_states[i].motor_id,
                        xgw_states[i].position,
                        xgw_states[i].velocity);
@@ -562,7 +590,6 @@ static void build_and_send_udp_packet(void)
     }
 
     /* Log every 100 calls */
-    static uint32_t cycle_count = 0;
     // if (call_count >= 100) {
     //     DebugP_log("[Core0] build_and_send: %u calls processed\r\n", call_count);
     //     call_count = 0;
@@ -586,7 +613,7 @@ static void build_and_send_udp_packet(void)
 
     /* [FORCE LOG] Always log UDP result in first cycle of each 100-call batch */
     if (call_count == 0) {
-        DebugP_log("[Core0] UDP send result: sent=%d, count=%u, started=%d\r\n",
+        ccu_log_debug("MOTOR", "UDP send result: sent=%d, count=%u, started=%d",
                    sent, GATEWAY_NUM_MOTORS, xgw_udp_is_initialized());
     }
 
@@ -600,7 +627,7 @@ static void build_and_send_udp_packet(void)
         /* Log error every 100th failure to avoid spam */
         static uint32_t error_count = 0;
         if (++error_count >= 100) {
-            DebugP_log("[Core0] UDP TX motor: %d failures\r\n", error_count);
+            ccu_log_error("MOTOR", "UDP TX motor: %d failures", error_count);
             error_count = 0;
         }
     }
@@ -648,7 +675,7 @@ static void xgw_udp_rx_callback_wrapper(const uint8_t* data, uint16_t length,
 
             default:
                 gStats.parse_errors++;
-                DebugP_log("[Core0] Unknown xGW message type: 0x%02X\r\n", header->msg_type);
+                ccu_log_warn("UDP_RX", "Unknown xGW message type: 0x%02X", header->msg_type);
                 break;
         }
     }
@@ -669,7 +696,7 @@ static void ipc_process_task(void *args)
 {
     (void)args;
 
-    DebugP_log("[Core0] IPC process task started\r\n");
+    ccu_log_info("IPC", "IPC process task started");
 
     while (1) {
         /* Wait for notification from Core 1 */
@@ -680,7 +707,7 @@ static void ipc_process_task(void *args)
 
         /* Check for emergency stop condition */
         if (gGatewaySharedMem.emergency_stop_flag != 0) {
-            DebugP_log("[Core0] *** EMERGENCY STOP *** - Signal received from Core1\r\n");
+            ccu_log_error("IPC", "*** EMERGENCY STOP *** - Signal received from Core1");
 
             /* Notify application (could trigger GPIO, buzzer, etc.) */
             /* For now, just increment a counter for monitoring */

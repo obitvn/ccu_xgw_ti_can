@@ -14,6 +14,7 @@
 #include "../gateway_shared.h"
 #include <kernel/dpl/DebugP.h>
 #include <string.h>
+#include "ccu_log.h"  /* [FIX B109] Runtime logging for warning/fail cases */
 
 /*==============================================================================
  * SHARED MEMORY INSTANCE
@@ -565,10 +566,22 @@ int gateway_write_motor_commands_pp(const motor_cmd_ipc_t* cmds, uint16_t count)
             write_idx = next_idx;
             pp->write_idx = write_idx;
             pp->stats.buffer_switch_count++;
-            DebugP_log("[Core0] PP: Switch to buf[%u]\r\n", write_idx);
+            /* [FIX B109] Log buffer switch for monitoring */
+            static uint32_t switch_log_count = 0;
+            if (switch_log_count < 10) {  /* Log first 10 switches only */
+                ccu_log_debug("PP", "Switch to buf[%u]", write_idx);
+                switch_log_count++;
+            }
         } else {
-            /* Both buffers busy */
+            /* Both buffers busy - Core 1 not keeping up */
             pp->stats.timeout_count++;
+            /* [FIX B109] Log timeout for monitoring - log every 100th timeout */
+            static uint32_t timeout_warn_count = 0;
+            if (++timeout_warn_count >= 100) {
+                ccu_log_warn("PP", "Both buffers busy - Core1 not keeping up (timeout_count=%u)",
+                           pp->stats.timeout_count);
+                timeout_warn_count = 0;
+            }
             return 0;
         }
     }
@@ -608,6 +621,17 @@ int gateway_read_motor_states_pp(motor_state_ipc_t* states)
     uint32_t seq = pp->write_seq[read_idx];
     if (pp->stats.last_seq != 0 && seq != pp->stats.last_seq + 1) {
         pp->stats.seq_error_count++;
+        /* [FIX B109] Log sequence error for monitoring */
+        static uint32_t seq_error_log_count = 0;
+        if (seq_error_log_count < 10) {  /* Log first 10 sequence errors */
+            ccu_log_error("PP", "Sequence error: last_seq=%u, curr_seq=%u (gap=%u)",
+                       pp->stats.last_seq, seq, seq - pp->stats.last_seq - 1);
+            seq_error_log_count++;
+        } else if (seq_error_log_count == 10) {
+            /* Log once more after first 10 to indicate continued errors */
+            ccu_log_warn("PP", "Sequence errors continuing... (total=%u)", pp->stats.seq_error_count);
+            seq_error_log_count++;
+        }
     }
     pp->stats.last_seq = seq;
 
@@ -1069,9 +1093,15 @@ int gateway_ringbuf_core0_send(const void* data, uint32_t size, uint32_t* bytes_
     uint32_t free_space = gateway_ringbuf_get_free(gGatewaySharedMem.ringbuf_0_to_1);
 
     if (free_space < size) {
-        /* Debug: Ring buffer full - log state */
-        DebugP_log("[Core0] RingBuf FULL! size=%u, wr=%u, rd=%u, free=%u, required=%u\r\n",
-                   rb->size, rb->ctrl.write_index, rb->ctrl.read_index, free_space, size);
+        /* [FIX B109] Ring buffer full - log with ccu_log for async/syslog output */
+        static uint32_t ringbuf_full_count = 0;
+        if (++ringbuf_full_count <= 20) {  /* Log first 20 occurrences */
+            ccu_log_warn("RINGBUF", "RingBuf 0->1 FULL! size=%u, wr=%u, rd=%u, free=%u, required=%u",
+                       rb->size, rb->ctrl.write_index, rb->ctrl.read_index, free_space, size);
+        } else if (ringbuf_full_count == 21) {
+            /* Log once more to indicate continued issues */
+            ccu_log_error("RINGBUF", "RingBuf 0->1 continues to have full events - Core1 may not be keeping up");
+        }
     }
 
     return gateway_ringbuf_write(gGatewaySharedMem.ringbuf_0_to_1, data, size, bytes_written);

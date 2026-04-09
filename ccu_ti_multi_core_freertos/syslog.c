@@ -1,4 +1,13 @@
-
+/**
+ * @file syslog.c
+ * @brief Syslog client implementation for lwIP
+ * Based on RFC 5424 (The Syslog Protocol)
+ *
+ * [FIX B114] Replace socket API with non-blocking UDP PCB to eliminate jitter
+ * - Socket API (lwip_sendto) blocks via tcpip_send_msg_wait_sem()
+ * - This causes 5ms jitter every 8 seconds in UDP_TX task
+ * - Solution: Use direct UDP PCB with LOCK_TCPIP_CORE() like xGW UDP
+ */
 
 #include "syslog.h"
 #include <kernel/dpl/DebugP.h>
@@ -10,16 +19,19 @@
 #include "lwip/sockets.h"
 #include "lwip/inet.h"
 #include "lwip/err.h"
+#include "lwip/udp.h"
+#include "lwip/tcpip.h"
+#include "lwip/pbuf.h"
 
 /* Syslog state */
 static struct {
-    int sock;
+    struct udp_pcb* pcb;          /* UDP PCB (non-blocking) */
     bool initialized;
     syslog_config_t config;
     syslog_stats_t stats;
-    uint32_t sequence;  /* Message sequence number */
+    uint32_t sequence;            /* Message sequence number */
 } g_syslog = {
-    .sock = -1,
+    .pcb = NULL,
     .initialized = false,
     .config = SYSLOG_CONFIG,
     .stats = {0},
@@ -28,6 +40,9 @@ static struct {
 
 /* Default configuration */
 static const syslog_config_t default_config = SYSLOG_CONFIG;
+
+/* Forward declarations */
+static int syslog_send_nonblocking(const char* msg, int msg_len);
 
 /*
  * Create RFC 5424 syslog message format
@@ -133,17 +148,62 @@ static int format_syslog_message(char *buf, size_t buf_len,
     return offset;
 }
 
+/**
+ * [FIX B114] Non-blocking UDP send using UDP PCB
+ * Uses LOCK_TCPIP_CORE() + udp_sendto() instead of socket API
+ * This avoids the blocking tcpip_send_msg_wait_sem() call
+ *
+ * Implementation matches xGW UDP interface pattern:
+ * - Allocate PBUF_RAM (not PBUF_ROM)
+ * - Copy data into pbuf payload
+ * - Send with LOCK_TCPIP_CORE()
+ */
+static int syslog_send_nonblocking(const char* msg, int msg_len)
+{
+    struct pbuf* p;
+    ip_addr_t dest_addr;
+    err_t err;
+
+    /* Allocate pbuf with PBUF_RAM (same as xGW UDP interface) */
+    p = pbuf_alloc(PBUF_TRANSPORT, msg_len, PBUF_RAM);
+    if (p == NULL) {
+        g_syslog.stats.logs_failed++;
+        return -1;
+    }
+
+    /* Copy message data into pbuf payload */
+    memcpy(p->payload, msg, msg_len);
+
+    /* Set destination address */
+    IP4_ADDR(&dest_addr,
+             g_syslog.config.remote_ip[0],
+             g_syslog.config.remote_ip[1],
+             g_syslog.config.remote_ip[2],
+             g_syslog.config.remote_ip[3]);
+
+    /* Send via UDP PCB - MUST lock tcpip core */
+    LOCK_TCPIP_CORE();
+    err = udp_sendto(g_syslog.pcb, p, &dest_addr, g_syslog.config.remote_port);
+    UNLOCK_TCPIP_CORE();
+
+    /* Free pbuf */
+    pbuf_free(p);
+
+    if (err != ERR_OK) {
+        g_syslog.stats.logs_failed++;
+        return -1;
+    }
+
+    g_syslog.stats.logs_sent++;
+    g_syslog.stats.bytes_sent += msg_len;
+    return 0;
+}
+
 /*
  * Initialize syslog client
  */
 int32_t Syslog_Init(const syslog_config_t *config)
 {
-    int err;
-
-    if (g_syslog.initialized) {
-        return 0;
-    }
-
     /* Copy configuration */
     if (config != NULL) {
         memcpy(&g_syslog.config, config, sizeof(syslog_config_t));
@@ -151,21 +211,21 @@ int32_t Syslog_Init(const syslog_config_t *config)
         memcpy(&g_syslog.config, &default_config, sizeof(syslog_config_t));
     }
 
-    /* Create UDP socket */
-    g_syslog.sock = socket(AF_INET, SOCK_DGRAM, 0);
-    if (g_syslog.sock < 0) {
-        DebugP_log("[SYSLOG] Failed to create socket (lwIP not ready)\r\n");
+    /* [FIX B114] Create UDP PCB instead of socket */
+    g_syslog.pcb = udp_new();
+    if (g_syslog.pcb == NULL) {
+        DebugP_log("[SYSLOG] Failed to create UDP PCB\r\n");
         return -1;
     }
 
-    /* Bind socket to any local port (required for lwIP UDP) */
-    struct sockaddr_in local_addr;
-    memset(&local_addr, 0, sizeof(local_addr));
-    local_addr.sin_family = AF_INET;
-    local_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    local_addr.sin_port = htons(0);  /* Any ephemeral port */
-
-    lwip_bind(g_syslog.sock, (struct sockaddr *)&local_addr, sizeof(local_addr));
+    /* Bind to any local port */
+    err_t err = udp_bind(g_syslog.pcb, IP_ADDR_ANY, 0);
+    if (err != ERR_OK) {
+        DebugP_log("[SYSLOG] Failed to bind UDP PCB: err=%d\r\n", err);
+        udp_remove(g_syslog.pcb);
+        g_syslog.pcb = NULL;
+        return -1;
+    }
 
     /* Clear statistics */
     memset(&g_syslog.stats, 0, sizeof(syslog_stats_t));
@@ -173,7 +233,7 @@ int32_t Syslog_Init(const syslog_config_t *config)
 
     g_syslog.initialized = true;
 
-    DebugP_log("[SYSLOG] Initialized - Server: %u.%u.%u.%u:%d\r\n",
+    DebugP_log("[SYSLOG] Initialized (non-blocking) - Server: %u.%u.%u.%u:%d\r\n",
             g_syslog.config.remote_ip[0],
             g_syslog.config.remote_ip[1],
             g_syslog.config.remote_ip[2],
@@ -188,9 +248,9 @@ int32_t Syslog_Init(const syslog_config_t *config)
  */
 void Syslog_Deinit(void)
 {
-    if (g_syslog.sock >= 0) {
-        close(g_syslog.sock);
-        g_syslog.sock = -1;
+    if (g_syslog.pcb != NULL) {
+        udp_remove(g_syslog.pcb);
+        g_syslog.pcb = NULL;
     }
 
     g_syslog.initialized = false;
@@ -199,19 +259,13 @@ void Syslog_Deinit(void)
 }
 
 /*
- * Send syslog message
+ * Send syslog message (internal)
  */
 static int32_t syslog_send_internal(syslog_facility_t facility, syslog_severity_t severity,
                                      const char *tag, const char *msg)
 {
     char msg_buf[SYSLOG_MAX_MSG_LEN + 64]; /* Extra space for header */
-    struct sockaddr_in to;
-    socklen_t tolen;
     int msg_len;
-    int sent;
-
-    /* [FIX B103] Clear buffer to prevent garbage data */
-    memset(msg_buf, 0, sizeof(msg_buf));
 
     /* Check if enabled */
     if (!g_syslog.config.enabled) {
@@ -242,8 +296,8 @@ static int32_t syslog_send_internal(syslog_facility_t facility, syslog_severity_
         return 0;
     }
 
-    /* Check socket */
-    if (g_syslog.sock < 0) {
+    /* Check PCB */
+    if (g_syslog.pcb == NULL) {
         g_syslog.stats.logs_failed++;
         return -1;
     }
@@ -255,51 +309,16 @@ static int32_t syslog_send_internal(syslog_facility_t facility, syslog_severity_
         return -1;
     }
 
-    /* [FIX B103] Ensure null termination */
+    /* Ensure null termination */
     msg_buf[msg_len] = '\0';
 
-    /* [DEBUG B108] Debug: Print msg_buf content for first few messages */
-    static uint32_t debug_count = 0;
-    if (debug_count < 5) {  /* Only print first 5 messages */
-        DebugP_log("[SYSLOG DEBUG] msg_len=%d, msg(0..31): ", msg_len);
-        for (int i = 0; i < 32 && i < msg_len; i++) {
-            DebugP_log("%02x ", (uint8_t)msg_buf[i]);
-        }
-        DebugP_log("\r\n");
-        debug_count++;
-    }
-
-    /* Set up destination address */
-    memset(&to, 0, sizeof(to));
-    to.sin_family = AF_INET;
-    to.sin_port = htons(g_syslog.config.remote_port);
-    to.sin_addr.s_addr = htonl((g_syslog.config.remote_ip[0] << 24) |
-                               (g_syslog.config.remote_ip[1] << 16) |
-                               (g_syslog.config.remote_ip[2] << 8) |
-                                g_syslog.config.remote_ip[3]);
-    tolen = sizeof(to);
-
-    /* Send message */
-    sent = lwip_sendto(g_syslog.sock, msg_buf, msg_len, 0,
-                       (struct sockaddr *)&to, tolen);
-
-    if (sent < 0) {
-        g_syslog.stats.logs_failed++;
-        /* Only log error occasionally to avoid spam */
-        if (g_syslog.stats.logs_failed % 100 == 1) {
-            DebugP_log("[SYSLOG] Send failed: errno=%d\r\n", errno);
-        }
-        return -1;
-    } else if (sent != msg_len) {
-        /* Partial send - count as failed */
-        g_syslog.stats.logs_failed++;
+    /* [FIX B114] Use non-blocking UDP send */
+    int ret = syslog_send_nonblocking(msg_buf, msg_len);
+    if (ret != 0) {
         return -1;
     }
 
-    g_syslog.stats.logs_sent++;
-    g_syslog.stats.bytes_sent += sent;
     g_syslog.sequence++;
-
     return 0;
 }
 
@@ -322,17 +341,12 @@ int32_t Syslog_Send(syslog_facility_t facility, syslog_severity_t severity,
     vsnprintf(msg_buf, sizeof(msg_buf), fmt, args);
     va_end(args);
 
-    /* Ensure null termination */
-    msg_buf[sizeof(msg_buf) - 1] = '\0';
-
-    /* Send the message */
     ret = syslog_send_internal(facility, severity, tag, msg_buf);
-
     return ret;
 }
 
 /*
- * Public API: Log message with default facility
+ * Send a syslog message with default facility
  */
 int32_t Syslog_Log(syslog_severity_t severity, const char *tag,
                     const char *fmt, ...)
@@ -350,12 +364,7 @@ int32_t Syslog_Log(syslog_severity_t severity, const char *tag,
     vsnprintf(msg_buf, sizeof(msg_buf), fmt, args);
     va_end(args);
 
-    /* Ensure null termination */
-    msg_buf[sizeof(msg_buf) - 1] = '\0';
-
-    /* Send the message */
     ret = syslog_send_internal(g_syslog.config.facility, severity, tag, msg_buf);
-
     return ret;
 }
 
@@ -391,6 +400,7 @@ void Syslog_GetStats(syslog_stats_t *stats)
 void Syslog_ResetStats(void)
 {
     memset(&g_syslog.stats, 0, sizeof(syslog_stats_t));
+    g_syslog.sequence = 0;
 }
 
 /*
@@ -412,7 +422,7 @@ void Syslog_SetRemotePort(uint16_t port)
 }
 
 /*
- * Set minimum severity level
+ * Set minimum severity level to log
  */
 void Syslog_SetMinSeverity(syslog_severity_t severity)
 {

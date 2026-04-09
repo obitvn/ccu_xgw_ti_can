@@ -606,31 +606,37 @@ static int ccu_log_push_v(log_level_t level, const char* tag, const char* fmt, v
         }
     }
 
-    /* Format syslog and UART versions */
+    /* [FIX B113] Only format buffers for outputs that are ENABLED
+     * This saves CPU time and queue space - important for high-frequency logging! */
     char syslog_buf[CCU_LOG_MAX_MSG_LEN];
     char uart_buf[CCU_LOG_MAX_MSG_LEN];
+    uint32_t syslog_len = 0;
+    uint32_t uart_len = 0;
 
-    /* Clear buffers to prevent garbage data */
-    memset(syslog_buf, 0, sizeof(syslog_buf));
-    memset(uart_buf, 0, sizeof(uart_buf));
-
-    uint32_t syslog_len = format_syslog_msg(syslog_buf, sizeof(syslog_buf) - 1, level, tag, msg_buf);
-    uint32_t uart_len = format_uart_msg(uart_buf, sizeof(uart_buf) - 1, level, tag, msg_buf);
-
-    /* Validate lengths are reasonable */
-    if (syslog_len == 0 || syslog_len >= CCU_LOG_MAX_MSG_LEN - 64) {
-        return -1;
-    }
-    if (uart_len == 0 || uart_len >= CCU_LOG_MAX_MSG_LEN - 64) {
-        return -1;
+    /* Only format syslog buffer if syslog output is enabled */
+    if (g_ccu_log.output_mode == LOG_OUTPUT_SYSLOG ||
+        g_ccu_log.output_mode == LOG_OUTPUT_BOTH) {
+        memset(syslog_buf, 0, sizeof(syslog_buf));
+        syslog_len = format_syslog_msg(syslog_buf, sizeof(syslog_buf) - 1, level, tag, msg_buf);
+        if (syslog_len == 0 || syslog_len >= CCU_LOG_MAX_MSG_LEN - 64) {
+            return -1;
+        }
+        syslog_buf[syslog_len] = '\0';
     }
 
-    /* Explicit null termination after format */
-    syslog_buf[syslog_len] = '\0';
-    uart_buf[uart_len] = '\0';
+    /* Only format UART buffer if UART output is enabled */
+    if (g_ccu_log.output_mode == LOG_OUTPUT_UART ||
+        g_ccu_log.output_mode == LOG_OUTPUT_BOTH) {
+        memset(uart_buf, 0, sizeof(uart_buf));
+        uart_len = format_uart_msg(uart_buf, sizeof(uart_buf) - 1, level, tag, msg_buf);
+        if (uart_len == 0 || uart_len >= CCU_LOG_MAX_MSG_LEN - 64) {
+            return -1;
+        }
+        uart_buf[uart_len] = '\0';
+    }
 
-    /* Final validation: check for null terminators */
-    if (syslog_buf[syslog_len] != '\0' || uart_buf[uart_len] != '\0') {
+    /* At least one output must be enabled */
+    if (syslog_len == 0 && uart_len == 0) {
         return -1;
     }
 
@@ -682,19 +688,32 @@ static int ccu_log_push_v(log_level_t level, const char* tag, const char* fmt, v
             break;
         }
 
-        /* Skip syslog data */
+        /* [FIX B110] Skip syslog data in chunks instead of byte-by-byte
+         * Reading byte-by-byte in a loop while holding mutex causes severe performance issues
+         * Each queue_read() call has overhead (memory barriers, pointer checks)
+         * For 200-byte messages, this means 200+ queue_read() calls = several milliseconds! */
         if (temp_header.syslog_len > 0) {
-            uint8_t dummy;
-            for (uint32_t i = 0; i < temp_header.syslog_len; i++) {
-                queue_read(&dummy, 1);
+            uint8_t dummy_buf[64];  /* Skip in 64-byte chunks */
+            uint32_t remaining = temp_header.syslog_len;
+            while (remaining > 0) {
+                uint32_t chunk = (remaining > sizeof(dummy_buf)) ? sizeof(dummy_buf) : remaining;
+                if (!queue_read(dummy_buf, chunk)) {
+                    break;  /* Error - stop skipping */
+                }
+                remaining -= chunk;
             }
         }
 
-        /* Skip UART data */
+        /* [FIX B110] Skip UART data in chunks instead of byte-by-byte */
         if (temp_header.uart_len > 0) {
-            uint8_t dummy;
-            for (uint32_t i = 0; i < temp_header.uart_len; i++) {
-                queue_read(&dummy, 1);
+            uint8_t dummy_buf[64];  /* Skip in 64-byte chunks */
+            uint32_t remaining = temp_header.uart_len;
+            while (remaining > 0) {
+                uint32_t chunk = (remaining > sizeof(dummy_buf)) ? sizeof(dummy_buf) : remaining;
+                if (!queue_read(dummy_buf, chunk)) {
+                    break;  /* Error - stop skipping */
+                }
+                remaining -= chunk;
             }
         }
 
@@ -851,8 +870,18 @@ static int logger_pop_and_flush(uint32_t timeout_ms)
 
     xSemaphoreGive(g_log_queue.mutex);
 
-    /* Flush to outputs */
-    if (header.syslog_len > 0) {
+    /* [FIX B111] Flush to outputs - check LOG_OUTPUT_MODE to avoid blocking */
+    /* Only output to configured destinations to avoid unnecessary blocking */
+
+    /* UART output - only if enabled */
+    if (header.uart_len > 0 && (g_ccu_log.output_mode == LOG_OUTPUT_UART ||
+                                g_ccu_log.output_mode == LOG_OUTPUT_BOTH)) {
+        DebugP_log("%s\r\n", uart_buf);
+    }
+
+    /* Syslog output - only if enabled */
+    if (header.syslog_len > 0 && (g_ccu_log.output_mode == LOG_OUTPUT_SYSLOG ||
+                                  g_ccu_log.output_mode == LOG_OUTPUT_BOTH)) {
         /* [DEBUG B108] Debug: Print syslog_buf content */
         static uint32_t syslog_debug_count = 0;
         if (syslog_debug_count < 5) {
@@ -873,10 +902,6 @@ static int logger_pop_and_flush(uint32_t timeout_ms)
             default: severity = SYSLOG_SEV_DEBUG; break;
         }
         Syslog_Send(SYSLOG_FAC_LOCAL0, severity, NULL, "%s", syslog_buf);
-    }
-
-    if (header.uart_len > 0) {
-        DebugP_log("%s\r\n", uart_buf);
     }
 
     return 0;
@@ -911,19 +936,13 @@ static void logger_task(void *args)
         }
 
         if (log_count >= STATS_INTERVAL) {
-            /* [FIX B102] Check stack watermark */
-            int watermark_corrupted = 0;
-            for (int i = 0; i < 32; i++) {
-                if (stack_watermark[i] != STACK_WATERMARK) {
-                    watermark_corrupted = 1;
-                    break;
-                }
-            }
-
-            DebugP_log("[Core0] Logger: pushed=%u, popped=%u, dropped=%u, usage=%u/%u, stack_ok=%d\r\n",
+            /* [FIX B112] TEMPORARILY DISABLE: Logger stats logging causes jitter every 8 seconds
+             * Testing if this eliminates the 5ms jitter issue
+             * Stats can be re-enabled later after identifying root cause */
+            /* ccu_log_info("LOGGER", "Stats: pushed=%u popped=%u dropped=%u usage=%u/%u",
                        g_log_queue.stats.pushed, g_log_queue.stats.popped,
                        g_log_queue.stats.dropped, g_log_queue.stats.current_bytes,
-                       CCU_LOG_QUEUE_SIZE, !watermark_corrupted);
+                       CCU_LOG_QUEUE_SIZE); */
             log_count = 0;
         }
     }

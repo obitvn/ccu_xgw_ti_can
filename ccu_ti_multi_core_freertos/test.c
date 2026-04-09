@@ -223,8 +223,8 @@ static void test_init(void *arg)
         DebugP_log("[Core0] ERROR: xGW UDP interface start failed!\r\n");
     } else {
         DebugP_log("[Core0] xGW UDP interface started successfully\r\n");
-        DebugP_log("[Core0] UDP RX Port: %d (PC -> xGW)\r\n", XGW_UDP_RX_PORT);
-        DebugP_log("[Core0] UDP TX Port: %d (xGW -> PC)\r\n", XGW_UDP_TX_PORT);
+        DebugP_log("[Core0] UDP RX Port: %d (PC -> xGW) \r\n", XGW_UDP_RX_PORT);
+        DebugP_log("[Core0] UDP TX Port: %d (xGW -> PC) \r\n", XGW_UDP_TX_PORT);
 
         /* [FIX B096] Initialize logging system (Syslog + UART)
          * MUST be after xgw_udp_start() because syslog needs lwIP ready

@@ -302,7 +302,7 @@ int xgw_udp_send_motor_states(const xgw_motor_state_t* states, uint8_t count)
 
     if (p == NULL) {
         g_pbuf_alloc_fail_count++;
-        DebugP_log("[xGW UDP] Motor: pbuf_alloc FAILED! size=%u, alloc_cnt=%u, free_cnt=%u, fail_cnt=%u\r\n",
+        ccu_log_error("UDP_TX", "Motor: pbuf_alloc FAILED! size=%u, alloc_cnt=%u, free_cnt=%u, fail_cnt=%u",
                    total_len, g_pbuf_alloc_count, g_pbuf_free_count, g_pbuf_alloc_fail_count);
         g_udp_state.tx_errors++;
         return -1;
@@ -313,7 +313,7 @@ int xgw_udp_send_motor_states(const xgw_motor_state_t* states, uint8_t count)
     /* Debug: Log pbuf allocation success (first 5 times only) */
     static uint32_t alloc_log_count = 0;
     if (alloc_log_count < 5) {
-        DebugP_log("[xGW UDP] Motor: pbuf_alloc OK, len=%u, pbuf=%p, alloc_cnt=%u\r\n", total_len, p, g_pbuf_alloc_count);
+        ccu_log_debug("UDP_TX", "Motor: pbuf_alloc OK, len=%u, pbuf=%p, alloc_cnt=%u", total_len, p, g_pbuf_alloc_count);
         alloc_log_count++;
     }
 
@@ -343,7 +343,7 @@ int xgw_udp_send_motor_states(const xgw_motor_state_t* states, uint8_t count)
     /* [DEBUG B066] Log packet details - first 3 times */
     static uint32_t packet_log_count = 0;
     if (packet_log_count < 3) {
-        DebugP_log("[xGW UDP] Motor: SENT count=%u, payload_len=%u, total=%u, motors[0].id=%u, motors[0].pos=%.3f\r\n",
+        ccu_log_debug("UDP_TX", "Motor: SENT count=%u, payload_len=%u, total=%u, motors[0].id=%u, motors[0].pos=%.3f",
                    count, payload_len, total_len,
                    states[0].motor_id, states[0].position);
         packet_log_count++;
@@ -352,7 +352,7 @@ int xgw_udp_send_motor_states(const xgw_motor_state_t* states, uint8_t count)
     /* [DEBUG] Log udp_sendto return value and ref count (first 10 times) */
     static uint32_t sendto_motor_log_count = 0;
     if (sendto_motor_log_count < 10) {
-        DebugP_log("[xGW UDP] Motor: udp_sendto err=%d, p->ref=%u (before free), sendto_cnt=%u\r\n",
+        ccu_log_debug("UDP_TX", "Motor: udp_sendto err=%d, p->ref=%u (before free), sendto_cnt=%u",
                    err, p->ref, g_udp_sendto_count);
         sendto_motor_log_count++;
     }
@@ -360,7 +360,7 @@ int xgw_udp_send_motor_states(const xgw_motor_state_t* states, uint8_t count)
     /* [DEBUG] Log pbuf ref count before free (first 5 times) */
     static uint32_t pbuf_motor_dbg_count = 0;
     if (pbuf_motor_dbg_count < 5) {
-        DebugP_log("[xGW UDP] Motor: pbuf_free called, ref=%u, p=%p, alloc_cnt=%u, free_cnt=%u\r\n",
+        ccu_log_debug("UDP_TX", "Motor: pbuf_free called, ref=%u, p=%p, alloc_cnt=%u, free_cnt=%u",
                    p->ref, p, g_pbuf_alloc_count, g_pbuf_free_count);
         pbuf_motor_dbg_count++;
     }
@@ -379,7 +379,7 @@ int xgw_udp_send_motor_states(const xgw_motor_state_t* states, uint8_t count)
     if (err != ERR_OK) {
         g_udp_state.tx_errors++;
         if (send_err_log_count < 3) {
-            DebugP_log("[xGW UDP] Motor: udp_sendto FAILED! err=%d, len=%u\r\n", err, total_len);
+            ccu_log_error("UDP_TX", "Motor: udp_sendto FAILED! err=%d, len=%u", err, total_len);
             send_err_log_count++;
         }
         return -1;
@@ -402,7 +402,7 @@ int xgw_udp_send_imu_state(const xgw_imu_state_t* imu_state)
 
     if (p == NULL) {
         g_pbuf_alloc_fail_count++;
-        DebugP_log("[xGW UDP] IMU: pbuf_alloc FAILED! size=%u, alloc_cnt=%u, free_cnt=%u, fail_cnt=%u\r\n",
+        ccu_log_error("UDP_TX", "IMU: pbuf_alloc FAILED! size=%u, alloc_cnt=%u, free_cnt=%u, fail_cnt=%u",
                    total_len, g_pbuf_alloc_count, g_pbuf_free_count, g_pbuf_alloc_fail_count);
         g_udp_state.tx_errors++;
         return -1;
@@ -436,7 +436,7 @@ int xgw_udp_send_imu_state(const xgw_imu_state_t* imu_state)
     /* [DEBUG] Log IMU udp_sendto (first 5 times) */
     static uint32_t imu_sendto_log_count = 0;
     if (imu_sendto_log_count < 5) {
-        DebugP_log("[xGW UDP] IMU: udp_sendto err=%d, p->ref=%u, alloc_cnt=%u\r\n",
+        ccu_log_debug("UDP_TX", "IMU: udp_sendto err=%d, p->ref=%u, alloc_cnt=%u",
                    err, p->ref, g_pbuf_alloc_count);
         imu_sendto_log_count++;
     }
@@ -450,7 +450,7 @@ int xgw_udp_send_imu_state(const xgw_imu_state_t* imu_state)
     if (err != ERR_OK) {
         g_udp_state.tx_errors++;
         if (imu_err_log_count < 3) {
-            DebugP_log("[xGW UDP] IMU: udp_sendto FAILED! err=%d, len=%u\r\n", err, total_len);
+            ccu_log_error("UDP_TX", "IMU: udp_sendto FAILED! err=%d, len=%u", err, total_len);
             imu_err_log_count++;
         }
         return -1;
@@ -625,21 +625,21 @@ int xgw_udp_process_motor_cmd(const uint8_t* data, uint16_t length)
 
     /* Validate magic */
     if (header->magic != XGW_PROTOCOL_MAGIC) {
-        DebugP_log("[xGW UDP] ERROR: Invalid magic: 0x%04X\r\n", header->magic);
+        ccu_log_error("UDP_RX", "Invalid magic: 0x%04X", header->magic);
         g_udp_state.parse_errors++;
         return -1;
     }
 
     /* Validate CRC */
     if (!xgw_crc32_validate(header, data + sizeof(xgw_header_t))) {
-        DebugP_log("[xGW UDP] ERROR: CRC validation failed!\r\n");
+        ccu_log_error("UDP_RX", "CRC validation failed");
         g_udp_state.crc_errors++;
         return -1;
     }
 
     /* Check message type */
     if (header->msg_type != XGW_MSG_TYPE_MOTOR_CMD) {
-        DebugP_log("[xGW UDP] ERROR: Expected MOTOR_CMD (0x%02X), got 0x%02X\r\n",
+        ccu_log_error("UDP_RX", "Expected MOTOR_CMD (0x%02X), got 0x%02X",
                    XGW_MSG_TYPE_MOTOR_CMD, header->msg_type);
         g_udp_state.parse_errors++;
         return -1;
@@ -650,7 +650,7 @@ int xgw_udp_process_motor_cmd(const uint8_t* data, uint16_t length)
     uint8_t count = header->count;
 
     if (count > XGW_MAX_MOTORS) {
-        DebugP_log("[xGW UDP] ERROR: Too many motors: %d\r\n", count);
+        ccu_log_error("UDP_RX", "Too many motors: %d", count);
         g_udp_state.parse_errors++;
         return -1;
     }
@@ -689,7 +689,7 @@ int xgw_udp_process_motor_cmd(const uint8_t* data, uint16_t length)
         g_udp_state.rx_count++;
         return 0;
     } else {
-        DebugP_log("[xGW UDP] ERROR: Failed to write motor commands! ret=%d, written=%u/%u\r\n",
+        ccu_log_error("UDP_RX", "Failed to write motor commands! ret=%d, written=%u/%u",
                    ret, bytes_written, bytes_to_write);
         g_udp_state.rx_errors++;
         return -1;
@@ -711,18 +711,31 @@ int xgw_udp_process_motor_set(const uint8_t* data, uint16_t length)
 
     /* Validate magic */
     if (header->magic != XGW_PROTOCOL_MAGIC) {
+        static uint32_t magic_error_count = 0;
+        if (++magic_error_count <= 10) {
+            ccu_log_error("UDP_RX", "MOTOR_SET: Invalid magic: 0x%04X", header->magic);
+        }
         g_udp_state.parse_errors++;
         return -1;
     }
 
     /* Validate CRC */
     if (!xgw_crc32_validate(header, data + sizeof(xgw_header_t))) {
+        static uint32_t crc_error_count = 0;
+        if (++crc_error_count <= 10) {
+            ccu_log_error("UDP_RX", "MOTOR_SET: CRC validation failed");
+        }
         g_udp_state.crc_errors++;
         return -1;
     }
 
     /* Check message type */
     if (header->msg_type != XGW_MSG_TYPE_MOTOR_SET) {
+        static uint32_t type_error_count = 0;
+        if (++type_error_count <= 10) {
+            ccu_log_error("UDP_RX", "MOTOR_SET: Expected MOTOR_SET (0x%02X), got 0x%02X",
+                       XGW_MSG_TYPE_MOTOR_SET, header->msg_type);
+        }
         g_udp_state.parse_errors++;
         return -1;
     }
@@ -732,7 +745,7 @@ int xgw_udp_process_motor_set(const uint8_t* data, uint16_t length)
     uint8_t count = header->count;
 
     if (count > XGW_MAX_MOTORS) {
-        DebugP_log("[xGW UDP] ERROR: Too many motor sets: %d\r\n", count);
+        ccu_log_error("UDP_RX", "Too many motor sets: %d", count);
         g_udp_state.parse_errors++;
         return -1;
     }
@@ -766,7 +779,7 @@ int xgw_udp_process_motor_set(const uint8_t* data, uint16_t length)
         return 0;
     } else {
         /* [DEBUG B097] Log ring buffer write failure */
-        DebugP_log("[xGW UDP] ERROR: Motor SET #%u: ringbuf write failed! ret=%d, count=%u, size=%u\r\n",
+        ccu_log_error("UDP_RX", "Motor SET #%u: ringbuf write failed! ret=%d, count=%u, size=%u",
                    motor_set_count, ret, count, count * (uint32_t)sizeof(motor_cmd_ipc_t));
         g_udp_state.rx_errors++;
         return -1;
@@ -851,7 +864,7 @@ static void udp_rx_task(void* parameters)
         uint32_t current_time = xTaskGetTickCount();
         if (current_time - last_stats_time >= pdMS_TO_TICKS(5000)) {
             if (packets_processed > 0) {
-                DebugP_log("[xGW UDP] RX task: processed %u packets in 5s (total=%u, callback=%u, queued=%u, full=%u)\r\n",
+                ccu_log_info("UDP_RX", "RX task: processed %u packets in 5s (total=%u, callback=%u, queued=%u, full=%u)",
                            packets_processed, g_udp_rx_task_packets,
                            g_udp_rx_callback_count, g_udp_rx_queue_success, g_udp_rx_queue_full);
                 packets_processed = 0;
