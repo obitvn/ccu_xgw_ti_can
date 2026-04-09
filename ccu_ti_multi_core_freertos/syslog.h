@@ -208,20 +208,34 @@ void Syslog_SetMinSeverity(syslog_severity_t severity);
 
 #define LOG_EMERG(fmt, ...)   do { DebugP_log("[EMERG] " fmt "\r\n", ##__VA_ARGS__); \
                                    Syslog_Emerg(LOG_TAG, fmt, ##__VA_ARGS__); } while(0)
+#ifndef LOG_ALERT
 #define LOG_ALERT(fmt, ...)   do { DebugP_log("[ALERT] " fmt "\r\n", ##__VA_ARGS__); \
                                    Syslog_Alert(LOG_TAG, fmt, ##__VA_ARGS__); } while(0)
+#endif
+#ifndef LOG_CRIT
 #define LOG_CRIT(fmt, ...)    do { DebugP_log("[CRIT] " fmt "\r\n", ##__VA_ARGS__); \
                                    Syslog_Crit(LOG_TAG, fmt, ##__VA_ARGS__); } while(0)
+#endif
+#ifndef LOG_ERROR
 #define LOG_ERROR(fmt, ...)   do { DebugP_log("[ERROR] " fmt "\r\n", ##__VA_ARGS__); \
                                    Syslog_Error(LOG_TAG, fmt, ##__VA_ARGS__); } while(0)
+#endif
+#ifndef LOG_WARN
 #define LOG_WARN(fmt, ...)    do { DebugP_log("[WARN] " fmt "\r\n", ##__VA_ARGS__); \
                                    Syslog_Warn(LOG_TAG, fmt, ##__VA_ARGS__); } while(0)
+#endif
+#ifndef LOG_NOTICE
 #define LOG_NOTICE(fmt, ...)  do { DebugP_log("[NOTICE] " fmt "\r\n", ##__VA_ARGS__); \
                                    Syslog_Notice(LOG_TAG, fmt, ##__VA_ARGS__); } while(0)
+#endif
+#ifndef LOG_INFO
 #define LOG_INFO(fmt, ...)    do { DebugP_log("[INFO] " fmt "\r\n", ##__VA_ARGS__); \
                                    Syslog_Info(LOG_TAG, fmt, ##__VA_ARGS__); } while(0)
+#endif
+#ifndef LOG_DEBUG
 #define LOG_DEBUG(fmt, ...)   do { DebugP_log("[DEBUG] " fmt "\r\n", ##__VA_ARGS__); \
                                    Syslog_Debug(LOG_TAG, fmt, ##__VA_ARGS__); } while(0)
+#endif
 
 /* Generic log macro - uses INFO level by default */
 #define LOG(fmt, ...)         LOG_INFO(fmt, ##__VA_ARGS__)

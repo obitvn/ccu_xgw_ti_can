@@ -31,6 +31,7 @@
 #include "test_enet_lwip.h"
 #include "enet/xgw_udp_interface.h"  /* For pbuf tracking counters */
 #include "ccu_log.h"  /* [FIX B096] Centralized logging with Syslog support */
+                      /* [FIX B097] Async logging queue now integrated into ccu_log */
 
 /* ==========================================================================
  * DEBUG COUNTERS (QA TRACE)
@@ -79,6 +80,7 @@ volatile uint32_t dbg_imu_frame_count __attribute__((section(".bss.user_shared_m
  * With UDP_TX(6) < TCPIP(7), tcpip thread can preempt UDP_TX to complete
  * TX operations and free pbufs, preventing jitter and memory leaks. */
 #define UDP_TX_TASK_PRI       6   /* LOWER than TCPIP_THREAD_PRIO(7) - CRITICAL! */
+#define LOGGER_TASK_PRI       2   /* Lowest priority - background logging */
 #define ENET_LWIP_TASK_PRI    8   /* Slightly higher than tcpip for init */
 #define UDP_RX_TASK_PRI       9   /* Higher than tcpip for RX processing */
 #define IPC_TASK_PRI          (configMAX_PRIORITIES - 2)  /* 30 - ISR callback */
@@ -88,6 +90,7 @@ volatile uint32_t dbg_imu_frame_count __attribute__((section(".bss.user_shared_m
 #define UDP_TX_TASK_SIZE      (16384U/sizeof(configSTACK_DEPTH_TYPE))
 #define UDP_RX_TASK_SIZE      (4096U/sizeof(configSTACK_DEPTH_TYPE))  /* [FIX B073] Increased from 2048 to prevent stack overflow */
 #define IPC_TASK_SIZE         (1024U/sizeof(configSTACK_DEPTH_TYPE))
+#define LOGGER_TASK_SIZE      (4096U/sizeof(configSTACK_DEPTH_TYPE))    /* 4KB for async logger task */
 
 #define UDP_TX_PERIOD_MS      1   
 #define UDP_RX_PORT           61904  /* Motor commands from PC */
@@ -116,16 +119,21 @@ static StackType_t gEnetLwipTaskStack[ENET_LWIP_TASK_SIZE] __attribute__((aligne
 static StackType_t gUdpTxTaskStack[UDP_TX_TASK_SIZE] __attribute__((aligned(32)));
 static StackType_t gUdpRxTaskStack[UDP_RX_TASK_SIZE] __attribute__((aligned(32)));  /* [FIX B070] */
 static StackType_t gIpcTaskStack[IPC_TASK_SIZE] __attribute__((aligned(32)));
+/* [FIX B097] Logger task stack - non-static for ccu_log.c extern access */
+StackType_t gLoggerTaskStack[LOGGER_TASK_SIZE] __attribute__((aligned(32)));
 
 static StaticTask_t gMainTaskObj;
 static StaticTask_t gEnetLwipTaskObj;
 static StaticTask_t gUdpTxTaskObj;
 static StaticTask_t gUdpRxTaskObj;  /* [FIX B070] UDP RX task TCB */
 static StaticTask_t gIpcTaskObj;
+/* [FIX B097] Logger task TCB - non-static for ccu_log.c extern access */
+StaticTask_t gLoggerTaskObj;
 
 TaskHandle_t gMainTask = NULL;
 TaskHandle_t gUdpTxTask = NULL;
 TaskHandle_t gIpcTask = NULL;
+TaskHandle_t gLoggerTask = NULL;  /* [FIX B097] Logger task handle */
 
 /* Statistics */
 static core0_stats_t gStats = {0};
@@ -166,6 +174,7 @@ static void enet_lwip_task_wrapper(void *args);
 static void lwip_init_callback(void *arg);
 static void udp_tx_task(void *args);
 static void ipc_process_task(void *args);
+/* [FIX B097] logger_task now in ccu_log.c - called via ccu_log_start_logger_task() */
 static void ipc_notify_callback_fxn(uint32_t remoteCoreId, uint16_t localClientId,
                                       uint32_t msgValue, int32_t crcStatus, void *args);
 static void xgw_udp_rx_callback_wrapper(const uint8_t* data, uint16_t length,
@@ -366,9 +375,10 @@ static void udp_tx_task(void *args)
             motor_cached_count++;
         }
 
-        /* Log stats every 5000 cycles */
+        /* Log stats every 5000 cycles (5 seconds at 1000Hz) */
         if (motor_read_count >= 5000) {
-            DebugP_log("[Core0] Motor cache: total=%u, new=%u (%.1f%%), cached=%u (%.1f%%)\r\n",
+            /* [FIX B097] Use async logging to avoid blocking */
+            ccu_log_info("CORE0", "Motor cache: total=%u, new=%u (%.1f%%), cached=%u (%.1f%%)",
                        motor_read_count, motor_new_count,
                        motor_read_count > 0 ? (float)motor_new_count * 100.0f / motor_read_count : 0.0f,
                        motor_cached_count,
@@ -424,7 +434,8 @@ static void udp_tx_task(void *args)
             /* [DEBUG B029] Get pbuf stats from xGW UDP interface */
             int32_t pbuf_in_use = g_pbuf_alloc_count - g_pbuf_free_count;
 
-            DebugP_log("[Core0] UDP TX: %.1f Hz, %.2f us | pbuf: alloc=%u free=%u in_use=%d fail=%u sendto=%u\r\n",
+            /* [FIX B097] Use async logging to avoid blocking */
+            ccu_log_info("UDP_TX", "UDP TX: %.1f Hz, %.2f us | pbuf: alloc=%u free=%u in_use=%d fail=%u sendto=%u",
                        actual_rate, avg_period_us,
                        g_pbuf_alloc_count, g_pbuf_free_count, pbuf_in_use,
                        g_pbuf_alloc_fail_count, g_udp_sendto_count);
@@ -432,7 +443,7 @@ static void udp_tx_task(void *args)
             /* [DEBUG B029] Dump lwIP stats every 30 seconds */
             static uint32_t stats_dump_counter = 0;
             if (++stats_dump_counter >= 6) {  /* Every 6 x 5 seconds = 30 seconds */
-                DebugP_log("[Core0] === LWIP STATS ===\r\n");
+                ccu_log_info("LWIP", "=== LWIP STATS ===");
                 stats_display();
                 stats_dump_counter = 0;
             }
@@ -778,6 +789,14 @@ static int32_t core0_init(void)
         DebugP_log("[Core0] WARNING: UDP init failed!\r\n");
     }
 
+    /* [FIX B097] Initialize async log queue (must be after scheduler starts) */
+    status = ccu_log_queue_init();
+    if (status != 0) {
+        DebugP_log("[Core0] WARNING: Log queue init failed, using direct logging\r\n");
+    } else {
+        DebugP_log("[Core0] Async log queue initialized (%d bytes)\r\n", CCU_LOG_QUEUE_SIZE);
+    }
+
     /* Register IPC callback - BOTH cores must use the SAME client ID */
     DebugP_log("[Core0] Registering IPC callback with client ID=%u\r\n", GATEWAY_IPC_CLIENT_ID);
     /* [QA TRACE T014] IPC register entry */
@@ -872,6 +891,22 @@ static void freertos_main(void *args)
     DebugP_log("[DEBUG-009] Log Reader task creation returned, status=%d\r\n", status);
     if (status != 0) {
         DebugP_log("[Core0] WARNING: Log Reader task creation failed!\r\n");
+    }
+
+    /* [FIX B097] Initialize async log queue before creating logger task */
+    DebugP_log("[DEBUG-009a] Initializing async log queue...\r\n");
+    status = ccu_log_queue_init();
+    if (status != 0) {
+        DebugP_log("[Core0] WARNING: Log queue initialization failed!\r\n");
+    }
+
+    /* [FIX B097] Create Async Logger task - flushes log queue to UART/Syslog */
+    DebugP_log("[DEBUG-009b] Creating Logger task...\r\n");
+    status = ccu_log_start_logger_task();
+    if (status != 0) {
+        DebugP_log("[Core0] WARNING: Logger task creation failed!\r\n");
+    } else {
+        DebugP_log("[DEBUG-009c] Logger task created, ptr=%p\r\n", (void*)gLoggerTask);
     }
 
     /* Create Ethernet/LwIP task (runs main_loop in separate task) */

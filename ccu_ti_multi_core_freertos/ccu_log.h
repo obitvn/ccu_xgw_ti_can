@@ -220,6 +220,80 @@ void ccu_log_dual(const char* tag, const char* fmt, ...);
     #define LOG_DEBUG_BUILD(fmt, ...)  do {} while(0)
 #endif
 
+/*==============================================================================
+ * [FIX B097] ASYNC LOGGING QUEUE API
+ *============================================================================*/
+
+/* Async log configuration */
+#define CCU_LOG_QUEUE_SIZE       (16 * 1024)  /* 16KB ring buffer */
+#define CCU_LOG_MAX_MSG_LEN      512           /* Max single log message */
+
+/* Logger task configuration */
+#define LOGGER_TASK_SIZE         (4096U/sizeof(StackType_t))  /* 4KB stack */
+#define LOGGER_TASK_PRI          2   /* Lowest priority - background logging */
+
+/**
+ * @brief Log queue statistics
+ */
+typedef struct {
+    uint32_t pushed;          /* Total messages pushed */
+    uint32_t popped;          /* Total messages popped */
+    uint32_t dropped;         /* Messages dropped (queue full) */
+    uint32_t overruns;        /* Bytes overwritten (partial drops) */
+    uint32_t current_bytes;   /* Current bytes in queue */
+    uint32_t peak_bytes;      /* Peak bytes in queue */
+} ccu_log_queue_stats_t;
+
+/**
+ * @brief Initialize async logging queue
+ *
+ * Must be called before using async log functions.
+ * Creates ring buffer and synchronization primitives.
+ *
+ * @return 0 on success, -1 on error
+ */
+int ccu_log_queue_init(void);
+
+/**
+ * @brief Check if async log queue is initialized
+ *
+ * @return true if initialized, false otherwise
+ */
+bool ccu_log_queue_is_initialized(void);
+
+/**
+ * @brief Push log message to queue (non-blocking)
+ *
+ * Formats both syslog and UART messages and stores in queue.
+ * If queue is full, oldest message is dropped (no blocking).
+ *
+ * @param level    Log level
+ * @param tag      Module tag (can be NULL)
+ * @param fmt      Printf-style format string
+ * @param ...      Format arguments
+ * @return         0 on success (pushed or dropped), -1 on error
+ */
+int ccu_log_push(log_level_t level, const char* tag, const char* fmt, ...);
+
+/**
+ * @brief Get log queue statistics
+ *
+ * @param stats  Pointer to stats structure to fill
+ */
+void ccu_log_queue_get_stats(ccu_log_queue_stats_t* stats);
+
+/**
+ * @brief Reset log queue statistics
+ */
+void ccu_log_queue_reset_stats(void);
+
+/**
+ * @brief Get current queue usage (bytes)
+ *
+ * @return Current bytes used in queue
+ */
+uint32_t ccu_log_queue_get_usage(void);
+
 #ifdef __cplusplus
 }
 #endif

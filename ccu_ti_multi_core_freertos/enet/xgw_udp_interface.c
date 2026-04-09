@@ -12,6 +12,7 @@
 #include "xgw_udp_interface.h"
 #include "../../gateway_shared.h"
 #include "../common/crc32.h"
+#include "../ccu_log.h"  /* [FIX B097] Async logging */
 #include "kernel/dpl/ClockP.h"
 #include "kernel/dpl/DebugP.h"
 #include "kernel/dpl/AddrTranslateP.h"
@@ -860,7 +861,8 @@ static void udp_rx_task(void* parameters)
 
         /* [DEBUG B071] Initial status log (first 10 seconds) */
         if (current_time - last_log_time >= pdMS_TO_TICKS(10000) && g_udp_rx_task_packets < 100) {
-            DebugP_log("[xGW UDP] Status: callback=%u, queued=%u, task_packets=%u, queue_full=%u\r\n",
+            /* [FIX B097] Use async logging to avoid blocking */
+            ccu_log_info("XGW_UDP", "Status: callback=%u, queued=%u, task_packets=%u, queue_full=%u",
                        g_udp_rx_callback_count, g_udp_rx_queue_success, g_udp_rx_task_packets, g_udp_rx_queue_full);
             last_log_time = current_time;
         }
