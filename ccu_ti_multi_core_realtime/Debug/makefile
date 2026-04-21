@@ -154,8 +154,7 @@ all: $(OBJS) $(GEN_CMDS)
 
 # Tool invocations
 ccu_ti_multi_core_realtime.out: $(OBJS) $(GEN_CMDS)
-	@echo 'Building target: "$@"'
-	@echo 'Invoking: Arm Linker'
+	@echo 'Arm Linker - building target: "$@"'
 	"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS/bin/tiarmclang.exe" -mcpu=cortex-r5 -mfloat-abi=hard -mfpu=vfpv3-d16 -mlittle-endian -mthumb -DSOC_AM263PX -DOS_NORTOS -D_DEBUG_=1 -g -Wall -Wno-gnu-variable-sized-type-not-at-end -Wno-unused-function -Wl,-m"ipc_spinlock_sharedmem.Debug.map" -Wl,-i"C:/ti/mcu_plus_sdk_am263px_11_01_00_19/source/kernel/nortos/lib" -Wl,-i"C:/ti/mcu_plus_sdk_am263px_11_01_00_19/source/drivers/lib" -Wl,-i"C:/ti/mcu_plus_sdk_am263px_11_01_00_19/source/board/lib" -Wl,-i"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS/lib" -Wl,--reread_libs -Wl,--diag_suppress=10063 -Wl,--diag_wrap=off -Wl,--display_error_number -Wl,--warn_sections -Wl,--gen_xml_func_hash -Wl,--xml_link_info="ccu_ti_multi_core_realtime_linkInfo.xml" -Wl,--ram_model -o "ccu_ti_multi_core_realtime.out" $(ORDERED_OBJS)
 	@echo 'Finished building target: "$@"'
 	@echo ' '
@@ -167,11 +166,10 @@ clean:
 	-$(RM) "can_interface.o" "syscfg\ti_dpl_config.o" "syscfg\ti_drivers_config.o" "syscfg\ti_drivers_open_close.o" "syscfg\ti_pinmux_config.o" "syscfg\ti_power_clock_config.o" "syscfg\ti_board_config.o" "syscfg\ti_board_open_close.o" "syscfg\ti_enet_config.o" "syscfg\ti_enet_init.o" "syscfg\ti_enet_dma_init.o" "syscfg\ti_enet_open_close.o" "syscfg\ti_enet_soc.o" "syscfg\ti_enet_lwipif.o" "syscfg\ti_sdl_config.o" "gateway_shared.o" "ipc_spinlock_sharedmem.o" "main.o" "motor_mapping.o" "imu\imu_interface_isr.o" "imu\imu_protocol_handler.o" "imu\yis320\yis320_protocol.o" 
 	-$(RM) "can_interface.d" "syscfg\ti_dpl_config.d" "syscfg\ti_drivers_config.d" "syscfg\ti_drivers_open_close.d" "syscfg\ti_pinmux_config.d" "syscfg\ti_power_clock_config.d" "syscfg\ti_board_config.d" "syscfg\ti_board_open_close.d" "syscfg\ti_enet_config.d" "syscfg\ti_enet_init.d" "syscfg\ti_enet_dma_init.d" "syscfg\ti_enet_open_close.d" "syscfg\ti_enet_soc.d" "syscfg\ti_enet_lwipif.d" "syscfg\ti_sdl_config.d" "gateway_shared.d" "ipc_spinlock_sharedmem.d" "main.d" "motor_mapping.d" "imu\imu_interface_isr.d" "imu\imu_protocol_handler.d" "imu\yis320\yis320_protocol.d" 
 	-$(RMDIR) $(GEN_MISC_DIRS__QUOTED)
-	-@echo 'Finished clean'
 	-@echo ' '
 
 post-build:
-	-$(MAKE) -C D:\VinDynamics\Project\CCU_TI_RS485_CAN\2.Firmware\ccu_ti_mutilcore\ccu_ti_multi_core_realtime -f makefile_ccs_bootimage_gen OUTNAME=ccu_ti_multi_core_realtime PROFILE=Debug MCU_PLUS_SDK_PATH=C:/ti/mcu_plus_sdk_am263px_11_01_00_19 CG_TOOL_ROOT=C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS CCS_INSTALL_DIR=C:\ti\ccs2031\ccs\ CCS_IDE_MODE=desktop DEVICE=am263px
+	-$(MAKE) -C D:\VinDynamics\Project\CCU_Robot_Central_Control_Unit\2.firmware\ccu_ti_mutilcore\ccu_ti_multi_core_realtime -f makefile_ccs_bootimage_gen OUTNAME=ccu_ti_multi_core_realtime PROFILE=Debug MCU_PLUS_SDK_PATH=C:/ti/mcu_plus_sdk_am263px_11_01_00_19 CG_TOOL_ROOT=C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS CCS_INSTALL_DIR=C:\ti\ccs2031\ccs\ CCS_IDE_MODE=desktop DEVICE=am263px
 	-@echo ' '
 
 .PHONY: all clean dependents

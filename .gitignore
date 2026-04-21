@@ -35,3 +35,6 @@
 /ccu_ti_multi_core_realtime/Debug
 /ccu_ti_multi_core_freertos/Debug
 CLAUDE.md
+/ccu_ti_multi_core_system/Debug
+/ccu_ti_multi_core_freertos/Debug
+/ccu_ti_multi_core_realtime/Debug

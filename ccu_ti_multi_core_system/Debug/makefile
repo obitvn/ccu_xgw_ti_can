@@ -12,7 +12,7 @@ GEN_CMDS__FLAG :=
 ORDERED_OBJS += \
 
 system-post-build:
-	-$(MAKE) -C D:\VinDynamics\Project\CCU_TI_RS485_CAN\2.Firmware\ccu_ti_mutilcore\ccu_ti_multi_core_system -f makefile_system_ccs_bootimage_gen OUTNAME=ipc_spinlock_sharedmem_system PROFILE=Debug MCU_PLUS_SDK_PATH=C:/ti/mcu_plus_sdk_am263px_11_01_00_19 CG_TOOL_ROOT=C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS CCS_INSTALL_DIR=C:\ti\ccs2031\ccs\ CCS_IDE_MODE=desktop
+	-$(MAKE) -C D:\VinDynamics\Project\CCU_Robot_Central_Control_Unit\2.firmware\ccu_ti_mutilcore\ccu_ti_multi_core_system -f makefile_system_ccs_bootimage_gen OUTNAME=ipc_spinlock_sharedmem_system PROFILE=Debug MCU_PLUS_SDK_PATH=C:/ti/mcu_plus_sdk_am263px_11_01_00_19 CG_TOOL_ROOT=C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS CCS_INSTALL_DIR=C:\ti\ccs2031\ccs\ CCS_IDE_MODE=desktop
 	-@echo ' '
 
 -include ../makefile.init
@@ -36,7 +36,6 @@ all:
 # Other Targets
 clean:
 	-$(RM) 
-	-@echo 'Finished clean'
 	-@echo ' '
 
 .PHONY: all clean dependents

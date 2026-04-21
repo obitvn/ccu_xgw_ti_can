@@ -180,104 +180,140 @@ static void init_can_stb_gpios(void)
     DebugP_log("[CAN] All STB GPIO pins initialized (LOW = enabled)\r\n");
 }
 
+static volatile uint8_t g_bus_off_pending_flags = 0;    // Bitmask for ISR-triggered recovery
+
+
+
 /**
- * @brief MCAN RX Interrupt Handler
- * Handles RX FIFO 0 and Bus-Off detection
- */
+* @brief MCAN RX Interrupt Handler
+* Handles RX FIFO 0 and Bus-Off detection
+*/
 static void can_rx_isr(void *arg)
 {
-    uint32_t bus_id = (uint32_t)arg;
-    uint32_t baseAddr = g_mcan_base_addr[bus_id];
-    uint32_t intrStatus;
-    MCAN_RxNewDataStatus newDataStatus;
+       uint32_t bus_id = (uint32_t)arg;
+       uint32_t baseAddr = g_mcan_base_addr[bus_id];
+       uint32_t intrStatus;
+       MCAN_RxNewDataStatus newDataStatus;
+       MCAN_RxFIFOStatus fifoStatus;
 
-    /* [DEBUG B046] Track ISR calls - increment BEFORE checking interrupt source */
-    g_can_stats[bus_id].isr_call_count++;
+       // Get interrupt status
+       intrStatus = MCAN_getIntrStatus(baseAddr);
 
-    // Get interrupt status
-    intrStatus = MCAN_getIntrStatus(baseAddr);
+       // Clear interrupt status FIRST (but we'll re-check for BO below)
+       MCAN_clearIntrStatus(baseAddr, intrStatus);
 
-    /* [DEBUG B048] Capture first interrupt info to shared memory (no blocking!) */
-    if (g_first_intr_info[bus_id].captured == 0 && intrStatus != 0) {
-        g_first_intr_info[bus_id].intr_status = intrStatus;
-        g_first_intr_info[bus_id].rx_count_at_intr = g_can_stats[bus_id].rx_count;
-        g_first_intr_info[bus_id].isr_call_count_at_intr = g_can_stats[bus_id].isr_call_count;
-        g_first_intr_info[bus_id].bus_id = bus_id;
-        g_first_intr_info[bus_id].captured = 1;
-        __asm volatile("dmb" ::: "memory");  /* Ensure visibility */
-    }
+       /* ========================================================================
+         * BUS-OFF INTERRUPT HANDLING (per TRM spruj55d.pdf)
+         * MCAN_IR_BO_MASK (bit 25) - Bus-Off Status interrupt
+         * This triggers when PSR.BO transitions from 0 to 1
+         * ======================================================================== */
+       if (intrStatus & MCAN_INTR_SRC_BUS_OFF_STATUS)
+       {
+               /* Bus-Off detected! Set flag for deferred recovery.
+                 * DO NOT perform recovery in ISR context - it's too slow.
+                 * The auto-recovery task will handle it. */
+               g_bus_off_pending_flags |= (1U << bus_id);
 
-    // Clear interrupt status FIRST
-    MCAN_clearIntrStatus(baseAddr, intrStatus);
+               /* Update stats immediately for visibility */
+               g_can_stats[bus_id].is_bus_off = true;
 
-    /* BUS-OFF INTERRUPT HANDLING */
-    if (intrStatus & MCAN_INTR_SRC_BUS_OFF_STATUS)
-    {
-        /* Bug B008 Fix: Atomic write with memory barrier */
-        g_can_stats[bus_id].is_bus_off = true;
-        __asm volatile("dmb" ::: "memory");  /* Ensure visibility to main loop */
-        DebugP_logError("[CAN] ISR: CAN%d Bus-Off detected!\r\n", bus_id);
-    }
+               /* Log bus-off event (throttled to avoid spam) */
+               static uint32_t bo_log_count[NUM_CAN_BUSES] = {0};
+               if (++bo_log_count[bus_id] <= 5 || (bo_log_count[bus_id] % 100) == 0) {
+                       DebugP_logError("[CAN] ISR: CAN%d Bus-Off detected! (event #%u)\r\n",
+                                                       bus_id, bo_log_count[bus_id]);
+               }
+       }
 
-    /* NORMAL RX INTERRUPT HANDLING */
-    if (intrStatus & MCAN_INTR_SRC_RX_FIFO0_NEW_MSG)
-    {
-        /* [DEBUG B049] Track RX ISR entry */
-        dbg_can_isr_rx_entry_count++;
+       /* Error Passive Warning (optional - for proactive monitoring) */
+       if (intrStatus & MCAN_INTR_SRC_ERR_PASSIVE)
+       {
+               static uint32_t ep_log_count[NUM_CAN_BUSES] = {0};
+               if (++ep_log_count[bus_id] % 50 == 0) {   /* Log every 50th EP event */
+                       DebugP_logWarn("[CAN] ISR: CAN%d Error Passive (event #%u)\r\n",
+                                                         bus_id, ep_log_count[bus_id]);
+               }
+       }
 
-        // Get and clear new data status
-        MCAN_getNewDataStatus(baseAddr, &newDataStatus);
-        newDataStatus.statusLow = 0x1U;
-        MCAN_clearNewDataStatus(baseAddr, &newDataStatus);
+       /* Warning Status (TEC >= 96 or REC >= 96) */
+       if (intrStatus & MCAN_INTR_SRC_WARNING_STATUS)
+       {
+               static uint32_t ew_log_count[NUM_CAN_BUSES] = {0};
+               if (++ew_log_count[bus_id] % 100 == 0) {   /* Log every 100th warning */
+                       DebugP_logWarn("[CAN] ISR: CAN%d Warning Status (event #%u)\r\n",
+                                                         bus_id, ew_log_count[bus_id]);
+               }
+       }
 
-        // Read message from FIFO 0
-        MCAN_readMsgRam(baseAddr, MCAN_MEM_TYPE_FIFO, 0, MCAN_RX_FIFO_NUM_0, &g_rx_buffer);
+       /* ========================================================================
+         * NORMAL RX INTERRUPT HANDLING
+         * Drain all pending messages from RX FIFO 0 to avoid message loss.
+         * The FIFO is circular - always use the get index from HW status,
+         * and acknowledge each element after reading.
+         * ======================================================================== */
+       if (intrStatus & MCAN_INTR_SRC_RX_FIFO0_NEW_MSG)
+       {
+               /* Drain all messages currently in FIFO 0 */
+               do {
+                       /* Check FIFO fill level */
+                       fifoStatus.num = MCAN_RX_FIFO_NUM_0;
+                       MCAN_getRxFIFOStatus(baseAddr, &fifoStatus);
 
-        /* [DEBUG B049] Track FIFO read */
-        dbg_can_isr_fifo_read_count++;
+                       if (fifoStatus.fillLvl == 0)
+                               break;
 
-        // Update statistics
-        /* Bug B008 Fix: Atomic increment with memory barrier
-         * While 32-bit aligned writes are atomic on ARM, ++ is read-modify-write.
-         * In bare-metal context, ISR has exclusive access during execution,
-         * but DMB ensures visibility to main loop when it reads stats.
-         */
-        g_can_stats[bus_id].rx_count++;
-        __asm volatile("dmb" ::: "memory");  /* Ensure visibility to main loop */
+                       /* Read from the current get index (NOT hardcoded 0) */
+                       MCAN_readMsgRam(baseAddr, MCAN_MEM_TYPE_FIFO,
+                                                       fifoStatus.getIdx, MCAN_RX_FIFO_NUM_0,
+&g_rx_buffer);
 
-        /* [SKIP] dbg_can_rx_count - use g_can_stats[bus_id].rx_count instead */
+                       /* Acknowledge this FIFO element so HW advances the get index */
+                       MCAN_writeRxFIFOAck(baseAddr, MCAN_RX_FIFO_NUM_0,
+                                                               fifoStatus.getIdx);
 
-        // Call user callback if registered
-        if (g_rx_callback != NULL)
-        {
-            can_frame_t frame;
+                       /* Update statistics */
+                       g_can_stats[bus_id].rx_count++;
 
-            // Convert MCAN format to our format
-            if (g_rx_buffer.xtd)
-            {
-                frame.can_id = g_rx_buffer.id & 0x1FFFFFFF;
-                frame.flags = 0x01;
-            }
-            else
-            {
-                frame.can_id = (g_rx_buffer.id >> 18) & 0x7FF;
-                frame.flags = 0x00;
-            }
+                       /* Call user callback if registered */
+                       if (g_rx_callback != NULL)
+                       {
+                               can_frame_t frame;
 
-            frame.dlc = g_rx_buffer.dlc;
-            if (frame.dlc > 8) frame.dlc = 8;
+                               /* Convert MCAN format to our format */
+                               if (g_rx_buffer.xtd)
+                               {
+                                       /* Extended ID (29-bit) */
+                                       frame.can_id = g_rx_buffer.id & 0x1FFFFFFF;
+                                       frame.flags = 0x01;   /* Extended flag */
+                               }
+                               else
+                               {
+                                       /* Standard ID (11-bit) - shifted in MCAN */
+                                       frame.can_id = (g_rx_buffer.id >> 18) & 0x7FF;
+                                       frame.flags = 0x00;
+                               }
 
-            for (uint8_t i = 0; i < frame.dlc; i++)
-            {
-                frame.data[i] = g_rx_buffer.data[i];
-            }
+                               frame.dlc = g_rx_buffer.dlc;
+                               if (frame.dlc > 8) frame.dlc = 8;
 
-            /* [DEBUG B049] Track callback execution */
-            dbg_can_isr_callback_count++;
-            g_rx_callback(bus_id, &frame);
-        }
-    }
+                               /* Copy data */
+                               for (uint8_t i = 0; i < frame.dlc; i++)
+                               {
+                                       frame.data[i] = g_rx_buffer.data[i];
+                               }
+
+                               /* Call callback (from ISR context, so keep it short!) */
+                               g_rx_callback(bus_id, &frame);
+                       }
+
+               } while (1);
+
+               /* Clear new data status after draining */
+               MCAN_getNewDataStatus(baseAddr, &newDataStatus);
+               MCAN_clearNewDataStatus(baseAddr, &newDataStatus);
+       }
 }
+
 
 /**
  * @brief Initialize a single MCAN peripheral
